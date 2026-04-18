@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="settings.css">
+    <title>Edupage Extras Settings</title>
+  </head>
+  <body>
+    <main class="settings">
+      <header class="page-header">
+        <div>
+          <h1>Settings</h1>
+          <p>Choose how Edupage Extras works.</p>
+        </div>
+        <button class="secondary-button" id="ExperimentalSettingsButton" type="button">Experimental</button>
+      </header>
+
+      <section class="setting-group" aria-labelledby="appearance-heading">
+        <h2 id="appearance-heading">Appearance</h2>
+
+        <div class="setting-row">
+          <div>
+            <h3>Dark Mode</h3>
+            <p>Use the dark theme across Edupage.</p>
+          </div>
+          <label class="switch" for="DarkModeCheckbox">
+            <input type="checkbox" id="DarkModeCheckbox">
+            <span>Enabled</span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <h3>Theme</h3>
+            <p>Choose the colors Edupage Extras applies to Edupage.</p>
+          </div>
+          <label class="select-control" for="ThemeSelect">
+            <span>Theme</span>
+            <select id="ThemeSelect">
+              <option value="dark">Midnight</option>
+              <option value="ocean">Ocean</option>
+              <option value="forest">Forest</option>
+              <option value="light">Light</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="setting-group" aria-labelledby="cleanup-heading">
+        <h2 id="cleanup-heading">Cleanup</h2>
+
+        <div class="setting-row">
+          <div>
+            <h3>Centered Layout</h3>
+            <p>Keep the top schedule and main content aligned in the middle.</p>
+          </div>
+          <label class="switch" for="CleanUiCheckbox">
+            <input type="checkbox" id="CleanUiCheckbox">
+            <span>Enabled</span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <h3>Help Text</h3>
+            <p>Hide the top-right Edupage help greeting.</p>
+          </div>
+          <label class="switch" for="HideHelpTextCheckbox">
+            <input type="checkbox" id="HideHelpTextCheckbox">
+            <span>Hidden</span>
+          </label>
+        </div>
+
+      </section>
+
+      <section class="setting-group" aria-labelledby="features-heading">
+        <h2 id="features-heading">Features</h2>
+
+        <div class="setting-row">
+          <div>
+            <h3>Grade Badges</h3>
+            <p>Show average badges, bars, and the overall average row on the grades page.</p>
+          </div>
+          <label class="switch" for="GradeBadgesCheckbox">
+            <input type="checkbox" id="GradeBadgesCheckbox">
+            <span>Enabled</span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <h3>Absence Summary</h3>
+            <p>Show the absence summary on the absences page.</p>
+          </div>
+          <label class="switch" for="AbsenceColumnsCheckbox">
+            <input type="checkbox" id="AbsenceColumnsCheckbox">
+            <span>Enabled</span>
+          </label>
+        </div>
+      </section>
+    </main>
+    <script src="settings.js"></script>
+  </body>
+</html>

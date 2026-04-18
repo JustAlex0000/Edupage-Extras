@@ -4,63 +4,63 @@
 
 body {
     margin: 0;
+    min-height: 100vh;
     font-family: Arial, sans-serif;
     background: #11111b;
     color: #cdd6f4;
 }
 
-.menu {
-    width: 280px;
-    padding: 14px;
+.settings {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 32px 18px;
 }
 
-.menu-header {
+.page-header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 14px;
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+h1,
+h2,
+p {
+    margin: 0;
 }
 
 h1 {
-    margin: 0;
+    font-size: 28px;
+}
+
+h2 {
     font-size: 16px;
 }
 
-.menu-version {
-    border: 1px solid #313244;
-    border-radius: 8px;
+p {
     color: #a6adc8;
-    font-size: 11px;
-    padding: 3px 7px;
+    line-height: 1.5;
+    margin-top: 6px;
 }
 
-.toggle-row {
+.setting-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 20px;
     border: 1px solid #313244;
     border-radius: 8px;
     background: #181825;
-    cursor: pointer;
     margin-bottom: 12px;
-    padding: 10px;
+    padding: 16px;
 }
 
-.toggle-row strong,
-.toggle-row small {
-    display: block;
-}
-
-.toggle-row strong {
-    font-size: 13px;
-}
-
-.toggle-row small {
-    color: #a6adc8;
-    font-size: 11px;
-    margin-top: 3px;
+.switch {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
 }
 
 input[type="checkbox"] {
@@ -69,16 +69,7 @@ input[type="checkbox"] {
     width: 18px;
 }
 
-.button-stack {
-    display: grid;
-    gap: 8px;
-}
-
-.menu-button {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
+.secondary-button {
     border: 1px solid #313244;
     border-radius: 8px;
     background: #1e1e2e;
@@ -86,13 +77,20 @@ input[type="checkbox"] {
     cursor: pointer;
     font: inherit;
     font-weight: 700;
-    padding: 10px 12px;
-    text-align: left;
+    padding: 9px 12px;
 }
 
-.menu-button:hover,
-.menu-button:focus-visible {
+.secondary-button:hover,
+.secondary-button:focus-visible {
     border-color: #89b4fa;
     color: #89b4fa;
     outline: none;
+}
+
+@media (max-width: 560px) {
+    .page-header,
+    .setting-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
 }

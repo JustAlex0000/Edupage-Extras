@@ -1,0 +1,43 @@
+html:not(.ee-theme-light) {
+  color-scheme: dark !important;
+  background: #11111b !important;
+}
+
+html:not(.ee-theme-light) body {
+  background: #11111b !important;
+  color: #cdd6f4 !important;
+}
+
+html:not(.ee-theme-light) .bgDiv,
+html:not(.ee-theme-light) .skinBody,
+html:not(.ee-theme-light) .skinContent,
+html:not(.ee-theme-light) .userContentInner,
+html:not(.ee-theme-light) #eb_main_content,
+html:not(.ee-theme-light) #bar_mainDiv {
+  background: #11111b !important;
+  color: #cdd6f4 !important;
+}
+
+html.ee-theme-ocean,
+html.ee-theme-ocean body,
+html.ee-theme-ocean .bgDiv,
+html.ee-theme-ocean .skinBody,
+html.ee-theme-ocean .skinContent,
+html.ee-theme-ocean .userContentInner,
+html.ee-theme-ocean #eb_main_content,
+html.ee-theme-ocean #bar_mainDiv {
+  background: #071a1f !important;
+  color: #d8f3f0 !important;
+}
+
+html.ee-theme-forest,
+html.ee-theme-forest body,
+html.ee-theme-forest .bgDiv,
+html.ee-theme-forest .skinBody,
+html.ee-theme-forest .skinContent,
+html.ee-theme-forest .userContentInner,
+html.ee-theme-forest #eb_main_content,
+html.ee-theme-forest #bar_mainDiv {
+  background: #11170f !important;
+  color: #e5f2df !important;
+}

@@ -8,11 +8,25 @@
   </head>
   <body>
     <main class="menu">
-      <h1>Edupage Extras</h1>
-      <label class="row" for="DarkModeCheckbox">
+      <header class="menu-header">
+        <h1>Edupage Extras</h1>
+        <span class="menu-version">0.2</span>
+      </header>
+
+      <label class="toggle-row" for="DarkModeCheckbox">
+        <span>
+          <strong>Dark Mode</strong>
+          <small>Use the dark Edupage theme</small>
+        </span>
         <input type="checkbox" id="DarkModeCheckbox">
-        <span>Dark Mode</span>
       </label>
+
+      <div class="button-stack">
+        <button class="menu-button" id="SettingsButton" type="button">
+          <span>Settings</span>
+          <span aria-hidden="true">></span>
+        </button>
+      </div>
     </main>
     <script src="menu.js"></script>
   </body>

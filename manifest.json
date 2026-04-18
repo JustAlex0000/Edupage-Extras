@@ -9,12 +9,18 @@
     "default_popup": "menu/menu.html",
     "default_icon": "images/placeholder_icon.png"
   },
+  "options_ui": {
+    "page": "menu/settings.html",
+    "open_in_tab": true
+  },
   "content_scripts": [
     {
       "matches": ["https://*.edupage.org/*"],
+      "css": ["scripts/instant-theme.css"],
       "js": ["scripts/content.js", "scripts/grades-enhancer.js"],
       "run_at": "document_start",
-      "all_frames": true
+      "all_frames": true,
+      "match_about_blank": true
     }
   ]
 }
