@@ -82,11 +82,15 @@
     --accent-color: #246bca;
 }
 
+html,
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
     background: var(--page-bg);
     color: var(--text-main);
+}
+
+body {
+    font-family: Arial, sans-serif;
 }
 
 .menu {

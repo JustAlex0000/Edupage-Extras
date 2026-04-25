@@ -90,12 +90,16 @@
     --danger-color: #c53a5a;
 }
 
+html,
 body {
     margin: 0;
-    min-height: 100vh;
-    font-family: Arial, sans-serif;
     background: var(--page-bg);
     color: var(--text-main);
+}
+
+body {
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
 }
 
 .settings {
@@ -162,6 +166,27 @@ p {
 
 .setting-group {
     margin-bottom: 22px;
+}
+
+.setting-note {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--surface-bg);
+    margin-bottom: 12px;
+    padding: 14px 16px;
+}
+
+.setting-note strong {
+    display: block;
+    font-size: 13px;
+}
+
+.setting-note-warning {
+    border-color: var(--danger-color);
+}
+
+.setting-note-warning strong {
+    color: var(--danger-color);
 }
 
 .setting-row-stack {

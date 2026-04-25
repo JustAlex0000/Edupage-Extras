@@ -3,6 +3,9 @@ const themeSelect = document.getElementById("ThemeSelect");
 const cleanUiToggle = document.getElementById("CleanUiCheckbox");
 const hideHelpTextToggle = document.getElementById("HideHelpTextCheckbox");
 const gradeBadgesToggle = document.getElementById("GradeBadgesCheckbox");
+const gradesAttendanceToggle = document.getElementById("GradesAttendanceCheckbox");
+const gradesAttendanceDebugToggle = document.getElementById("GradesAttendanceDebugCheckbox");
+const attendancePercentagesToggle = document.getElementById("AttendancePercentagesCheckbox");
 const experimentalSettingsButton = document.getElementById("ExperimentalSettingsButton");
 const customThemePanel = document.getElementById("CustomThemePanel");
 const customThemeImport = document.getElementById("CustomThemeImport");
@@ -20,6 +23,9 @@ const CUSTOM_THEME_KEY = "customThemeColors";
 const CLEAN_UI_KEY = "cleanUiEnabled";
 const HIDE_HELP_TEXT_KEY = "hideHelpTextEnabled";
 const GRADE_BADGES_KEY = "gradeBadgesEnabled";
+const GRADES_ATTENDANCE_KEY = "gradesAttendanceStatsEnabled";
+const GRADES_ATTENDANCE_DEBUG_KEY = "gradesAttendanceDebugEnabled";
+const ATTENDANCE_PERCENTAGES_KEY = "attendancePercentagesEnabled";
 const UPDATE_STATUS_KEY = "eeUpdateStatus";
 const UPDATE_REMINDER_ENABLED_KEY = "eeUpdateReminderEnabled";
 const REPO_URL = "https://github.com/Alexosavrua/Edupage-Extras";
@@ -159,6 +165,8 @@ function notifyEdupageTabs() {
 					customTheme,
 					cleanUiEnabled,
 					hideHelpTextEnabled,
+				}, () => {
+					void chrome.runtime.lastError;
 				});
 			}
 		});
@@ -224,6 +232,9 @@ chrome.storage.local.get(
 		CLEAN_UI_KEY,
 		HIDE_HELP_TEXT_KEY,
 		GRADE_BADGES_KEY,
+		GRADES_ATTENDANCE_KEY,
+		GRADES_ATTENDANCE_DEBUG_KEY,
+		ATTENDANCE_PERCENTAGES_KEY,
 		UPDATE_STATUS_KEY,
 		UPDATE_REMINDER_ENABLED_KEY,
 	],
@@ -236,6 +247,9 @@ chrome.storage.local.get(
 		cleanUiToggle.checked = result[CLEAN_UI_KEY] === true;
 		hideHelpTextToggle.checked = result[HIDE_HELP_TEXT_KEY] === true;
 		gradeBadgesToggle.checked = result[GRADE_BADGES_KEY] === true;
+		gradesAttendanceToggle.checked = result[GRADES_ATTENDANCE_KEY] !== false;
+		gradesAttendanceDebugToggle.checked = result[GRADES_ATTENDANCE_DEBUG_KEY] === true;
+		attendancePercentagesToggle.checked = result[ATTENDANCE_PERCENTAGES_KEY] !== false;
 		updateReminderToggle.checked = result[UPDATE_REMINDER_ENABLED_KEY] === true;
 		syncCustomThemeInputs(customTheme);
 		customThemeImport.value = customThemeExportText(customTheme);
@@ -324,6 +338,18 @@ hideHelpTextToggle.addEventListener("change", () => {
 
 gradeBadgesToggle.addEventListener("change", () => {
 	chrome.storage.local.set({ [GRADE_BADGES_KEY]: gradeBadgesToggle.checked });
+});
+
+gradesAttendanceToggle.addEventListener("change", () => {
+	chrome.storage.local.set({ [GRADES_ATTENDANCE_KEY]: gradesAttendanceToggle.checked });
+});
+
+gradesAttendanceDebugToggle.addEventListener("change", () => {
+	chrome.storage.local.set({ [GRADES_ATTENDANCE_DEBUG_KEY]: gradesAttendanceDebugToggle.checked });
+});
+
+attendancePercentagesToggle.addEventListener("change", () => {
+	chrome.storage.local.set({ [ATTENDANCE_PERCENTAGES_KEY]: attendancePercentagesToggle.checked });
 });
 
 updateReminderToggle.addEventListener("change", () => {

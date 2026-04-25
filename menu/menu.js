@@ -93,6 +93,8 @@ toggle.addEventListener("change", () => {
 						customTheme,
 						cleanUiEnabled: result[CLEAN_UI_KEY] === true,
 						hideHelpTextEnabled: result[HIDE_HELP_TEXT_KEY] === true,
+					}, () => {
+						void chrome.runtime.lastError;
 					});
 				}
 			});

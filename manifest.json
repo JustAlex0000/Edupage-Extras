@@ -1,7 +1,7 @@
 {
   "name": "Edupage Extras",
   "description": "QoL extras for Edupage - themes, global grade tools, and update reminders.",
-  "version": "0.3.1",
+  "version": "0.3.5",
   "manifest_version": 3,
   "permissions": ["storage", "tabs", "alarms", "notifications"],
   "host_permissions": [
@@ -22,16 +22,13 @@
   "content_scripts": [
     {
       "matches": ["https://*.edupage.org/*"],
-      "js": ["scripts/activity-shield-main.js"],
-      "run_at": "document_start",
-      "all_frames": true,
-      "match_about_blank": true,
-      "world": "MAIN"
-    },
-    {
-      "matches": ["https://*.edupage.org/*"],
       "css": ["scripts/instant-theme.css"],
-      "js": ["scripts/activity-shield-bridge.js", "scripts/content.js", "scripts/grades-enhancer.js"],
+      "js": [
+        "scripts/activity-shield-bridge.js",
+        "scripts/content.js",
+        "scripts/grades-enhancer.js",
+        "scripts/attendance-enhancer.js"
+      ],
       "run_at": "document_start",
       "all_frames": true,
       "match_about_blank": true

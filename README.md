@@ -24,6 +24,12 @@ or any school using Edupage.
 - **Color-coded average bars** for subject averages.
 - **Overall average row** based on the averages Edupage already renders.
 
+### Attendance
+
+- **Halfyear absence percentage** inside Edupage's existing attendance summary.
+- Uses the official attendance data already embedded in the loaded Edupage page.
+- Highlights the currently active halfyear and shows the raw absent/total lesson ratio.
+
 The extension reads the values from Edupage's existing grade table. It does not
 log in, fetch grades from a server, or calculate hidden grade data.
 
@@ -104,6 +110,8 @@ The extension does not request access to all websites.
 - Settings are stored locally with `chrome.storage.local`.
 - Grade enhancements are generated from data already present in the currently
   loaded Edupage page.
+- Attendance percentages are generated from Edupage's existing attendance page
+  data and do not use an external API.
 
 ## Project Structure
 
@@ -128,6 +136,7 @@ Edupage-Extras/
     |-- instant-theme.css
     |-- content.js
     |-- grades-enhancer.js
+    |-- attendance-enhancer.js
     |-- activity-shield-main.js
     `-- activity-shield-bridge.js
 ```
@@ -139,6 +148,8 @@ Edupage-Extras/
 - `scripts/content.js` - themes, layout cleanup, and visual fixes.
 - `scripts/grades-enhancer.js` - grade badges, average bars, and the overall
   average row.
+- `scripts/attendance-enhancer.js` - injects current halfyear absence
+  percentages into Edupage's attendance summary.
 - `scripts/activity-shield-main.js` - page-world Experimental activity controls.
 - `scripts/activity-shield-bridge.js` - storage bridge for Experimental activity
   settings.
@@ -160,6 +171,7 @@ node --check menu\experimental.js
 node --check scripts\background.js
 node --check scripts\content.js
 node --check scripts\grades-enhancer.js
+node --check scripts\attendance-enhancer.js
 node --check scripts\activity-shield-main.js
 node --check scripts\activity-shield-bridge.js
 node -e "JSON.parse(require('fs').readFileSync('manifest.json','utf8')); console.log('manifest ok')"

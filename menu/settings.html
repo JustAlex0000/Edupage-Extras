@@ -1,18 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="UTF-8">
-    <script>
-      document.documentElement.dataset.theme = "light";
-    </script>
-    <style>
-      html,
-      body {
-        background: #f6f8fb;
-        color: #1f2937;
-      }
-    </style>
     <link rel="stylesheet" href="settings.css">
     <title>Edupage Extras Settings</title>
   </head>
@@ -58,6 +48,11 @@
               <option value="light">Light</option>
             </select>
           </label>
+        </div>
+
+        <div class="setting-note setting-note-warning" role="note" aria-label="Theme disclaimer">
+          <strong>Theme Disclaimer</strong>
+          <p>Avoid using color themes during tests or exams. The changed colors can stand out. Either disable the theme or use the default one.</p>
         </div>
 
         <div class="setting-row custom-theme-row" id="CustomThemePanel" hidden>
@@ -159,6 +154,39 @@
           </div>
           <label class="switch" for="GradeBadgesCheckbox">
             <input type="checkbox" id="GradeBadgesCheckbox">
+            <span>Enabled</span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <h3>Subject Attendance</h3>
+            <p>Show current-halfyear absence percentage and total lesson hours inside each grades row using official EduPage data.</p>
+          </div>
+          <label class="switch" for="GradesAttendanceCheckbox">
+            <input type="checkbox" id="GradesAttendanceCheckbox">
+            <span>Enabled</span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <h3>Grades Attendance Debug</h3>
+            <p>Print detailed fetch, parsing, matching, and rendering diagnostics for the grades attendance feature into the browser console.</p>
+          </div>
+          <label class="switch" for="GradesAttendanceDebugCheckbox">
+            <input type="checkbox" id="GradesAttendanceDebugCheckbox">
+            <span>Enabled</span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <h3>Attendance Percentages</h3>
+            <p>Show the current halfyear absence percentage inside Edupage's attendance summary table.</p>
+          </div>
+          <label class="switch" for="AttendancePercentagesCheckbox">
+            <input type="checkbox" id="AttendancePercentagesCheckbox">
             <span>Enabled</span>
           </label>
         </div>
