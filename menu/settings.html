@@ -171,17 +171,6 @@
 
         <div class="setting-row">
           <div>
-            <h3>Grades Attendance Debug</h3>
-            <p>Print detailed fetch, parsing, matching, and rendering diagnostics for the grades attendance feature into the browser console.</p>
-          </div>
-          <label class="switch" for="GradesAttendanceDebugCheckbox">
-            <input type="checkbox" id="GradesAttendanceDebugCheckbox">
-            <span>Enabled</span>
-          </label>
-        </div>
-
-        <div class="setting-row">
-          <div>
             <h3>Attendance Percentages</h3>
             <p>Show the current halfyear absence percentage inside Edupage's attendance summary table.</p>
           </div>
@@ -191,6 +180,35 @@
           </label>
         </div>
 
+      </section>
+
+      <section class="setting-group" aria-labelledby="debug-heading">
+        <h2 id="debug-heading">Debug</h2>
+
+        <div class="setting-row">
+          <div>
+            <h3>Second Halfyear Start Date</h3>
+            <p>Override when the second halfyear begins for attendance calculations. Leave this empty to use EduPage's default date for the current school year.</p>
+          </div>
+          <div class="date-setting-controls">
+            <label class="date-control" for="HalfyearStartDateInput">
+              <span>Date</span>
+              <input type="date" id="HalfyearStartDateInput">
+            </label>
+            <button class="secondary-button" id="ResetHalfyearStartDateButton" type="button">Use EduPage Default</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <h3>Grades Attendance Debug</h3>
+            <p>Print detailed fetch, parsing, matching, and rendering diagnostics for the grades attendance feature into the browser console.</p>
+          </div>
+          <label class="switch" for="GradesAttendanceDebugCheckbox">
+            <input type="checkbox" id="GradesAttendanceDebugCheckbox">
+            <span>Enabled</span>
+          </label>
+        </div>
       </section>
 
       <section class="setting-group" aria-labelledby="updates-heading">

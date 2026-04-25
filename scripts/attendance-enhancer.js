@@ -5,8 +5,10 @@
 
   const STYLE_ID = "ee-attendance-enhancer-style";
   const ATTENDANCE_PERCENTAGES_KEY = "attendancePercentagesEnabled";
+  const HALFYEAR_START_KEY = "eeHalfyearStartDate";
   let observerTimer = null;
   let attendancePercentagesEnabled = true;
+  let halfyearStartOverride = "";
 
   function normalizeText(value) {
     return String(value || "")
@@ -103,6 +105,23 @@
     const day = Number.parseInt(match[3], 10);
     const date = new Date(year, month, day);
     return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function normalizeDateInput(value) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")) ? String(value) : "";
+  }
+
+  function resolveSecondHalfStartDate(turnoverDate, overrideValue) {
+    const nextTurnover = new Date(
+      turnoverDate.getFullYear() + 1,
+      turnoverDate.getMonth(),
+      turnoverDate.getDate(),
+    );
+    const overrideDate = parseDateOnly(overrideValue);
+    if (overrideDate && overrideDate >= turnoverDate && overrideDate < nextTurnover) {
+      return overrideDate;
+    }
+    return new Date(turnoverDate.getFullYear() + 1, 1, 1);
   }
 
   function extractObjectLiteral(text, marker) {
@@ -205,7 +224,7 @@
     );
   }
 
-  function resolveCurrentHalfKey(payload, computedHalves) {
+  function resolveCurrentHalfKey(payload, computedHalves, secondHalfOverride) {
     const availableKeys = Object.keys(computedHalves || {});
     if (availableKeys.length === 0) return null;
 
@@ -215,16 +234,8 @@
     let preferredKey = null;
 
     if (turnoverDate) {
-      const secondHalfStart = new Date(
-        turnoverDate.getFullYear(),
-        turnoverDate.getMonth() + 5,
-        1,
-      );
-      const nextTurnover = new Date(
-        turnoverDate.getFullYear() + 1,
-        turnoverDate.getMonth(),
-        turnoverDate.getDate(),
-      );
+      const secondHalfStart = resolveSecondHalfStartDate(turnoverDate, secondHalfOverride);
+      const nextTurnover = new Date(turnoverDate.getFullYear() + 1, turnoverDate.getMonth(), turnoverDate.getDate());
 
       if (now >= turnoverDate && now < secondHalfStart) {
         preferredKey = "1";
@@ -372,7 +383,7 @@
       }
 
       const computedHalves = computeHalfStats(rawHalfStats);
-      const currentHalfKey = resolveCurrentHalfKey(payload, computedHalves);
+      const currentHalfKey = resolveCurrentHalfKey(payload, computedHalves, halfyearStartOverride);
       if (!currentHalfKey) {
         clearInjectedStats(summaryGrid);
         return;
@@ -403,14 +414,24 @@
   }
 
   function initStorage() {
-    chrome.storage.local.get([ATTENDANCE_PERCENTAGES_KEY], (result) => {
+    chrome.storage.local.get([ATTENDANCE_PERCENTAGES_KEY, HALFYEAR_START_KEY], (result) => {
       attendancePercentagesEnabled = result[ATTENDANCE_PERCENTAGES_KEY] !== false;
+      halfyearStartOverride = normalizeDateInput(result[HALFYEAR_START_KEY]);
       enhanceAttendanceTable();
     });
 
     chrome.storage.onChanged.addListener((changes, area) => {
-      if (area !== "local" || !changes[ATTENDANCE_PERCENTAGES_KEY]) return;
-      attendancePercentagesEnabled = changes[ATTENDANCE_PERCENTAGES_KEY].newValue !== false;
+      if (area !== "local") return;
+      let shouldEnhance = false;
+      if (changes[ATTENDANCE_PERCENTAGES_KEY]) {
+        attendancePercentagesEnabled = changes[ATTENDANCE_PERCENTAGES_KEY].newValue !== false;
+        shouldEnhance = true;
+      }
+      if (changes[HALFYEAR_START_KEY]) {
+        halfyearStartOverride = normalizeDateInput(changes[HALFYEAR_START_KEY].newValue);
+        shouldEnhance = true;
+      }
+      if (!shouldEnhance) return;
       enhanceAttendanceTable();
     });
   }

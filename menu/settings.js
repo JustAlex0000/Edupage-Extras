@@ -6,6 +6,8 @@ const gradeBadgesToggle = document.getElementById("GradeBadgesCheckbox");
 const gradesAttendanceToggle = document.getElementById("GradesAttendanceCheckbox");
 const gradesAttendanceDebugToggle = document.getElementById("GradesAttendanceDebugCheckbox");
 const attendancePercentagesToggle = document.getElementById("AttendancePercentagesCheckbox");
+const halfyearStartInput = document.getElementById("HalfyearStartDateInput");
+const resetHalfyearStartButton = document.getElementById("ResetHalfyearStartDateButton");
 const experimentalSettingsButton = document.getElementById("ExperimentalSettingsButton");
 const customThemePanel = document.getElementById("CustomThemePanel");
 const customThemeImport = document.getElementById("CustomThemeImport");
@@ -26,6 +28,8 @@ const GRADE_BADGES_KEY = "gradeBadgesEnabled";
 const GRADES_ATTENDANCE_KEY = "gradesAttendanceStatsEnabled";
 const GRADES_ATTENDANCE_DEBUG_KEY = "gradesAttendanceDebugEnabled";
 const ATTENDANCE_PERCENTAGES_KEY = "attendancePercentagesEnabled";
+const HALFYEAR_START_KEY = "eeHalfyearStartDate";
+const GRADES_ATTENDANCE_CACHE_KEY = "eeGradesAttendanceStatsCache";
 const UPDATE_STATUS_KEY = "eeUpdateStatus";
 const UPDATE_REMINDER_ENABLED_KEY = "eeUpdateReminderEnabled";
 const REPO_URL = "https://github.com/Alexosavrua/Edupage-Extras";
@@ -181,6 +185,10 @@ function formatCheckedAt(timestamp) {
 	});
 }
 
+function normalizeDateInput(value) {
+	return /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")) ? value : "";
+}
+
 function renderUpdateStatus(status) {
 	updateStatusText.dataset.state = "";
 	if (!status) {
@@ -235,6 +243,7 @@ chrome.storage.local.get(
 		GRADES_ATTENDANCE_KEY,
 		GRADES_ATTENDANCE_DEBUG_KEY,
 		ATTENDANCE_PERCENTAGES_KEY,
+		HALFYEAR_START_KEY,
 		UPDATE_STATUS_KEY,
 		UPDATE_REMINDER_ENABLED_KEY,
 	],
@@ -250,6 +259,7 @@ chrome.storage.local.get(
 		gradesAttendanceToggle.checked = result[GRADES_ATTENDANCE_KEY] !== false;
 		gradesAttendanceDebugToggle.checked = result[GRADES_ATTENDANCE_DEBUG_KEY] === true;
 		attendancePercentagesToggle.checked = result[ATTENDANCE_PERCENTAGES_KEY] !== false;
+		halfyearStartInput.value = normalizeDateInput(result[HALFYEAR_START_KEY]);
 		updateReminderToggle.checked = result[UPDATE_REMINDER_ENABLED_KEY] === true;
 		syncCustomThemeInputs(customTheme);
 		customThemeImport.value = customThemeExportText(customTheme);
@@ -350,6 +360,22 @@ gradesAttendanceDebugToggle.addEventListener("change", () => {
 
 attendancePercentagesToggle.addEventListener("change", () => {
 	chrome.storage.local.set({ [ATTENDANCE_PERCENTAGES_KEY]: attendancePercentagesToggle.checked });
+});
+
+halfyearStartInput.addEventListener("change", () => {
+	const value = normalizeDateInput(halfyearStartInput.value);
+	if (value) {
+		chrome.storage.local.set({ [HALFYEAR_START_KEY]: value }, () => {
+			chrome.storage.local.remove(GRADES_ATTENDANCE_CACHE_KEY);
+		});
+		return;
+	}
+	chrome.storage.local.remove([HALFYEAR_START_KEY, GRADES_ATTENDANCE_CACHE_KEY]);
+});
+
+resetHalfyearStartButton.addEventListener("click", () => {
+	halfyearStartInput.value = "";
+	chrome.storage.local.remove([HALFYEAR_START_KEY, GRADES_ATTENDANCE_CACHE_KEY]);
 });
 
 updateReminderToggle.addEventListener("change", () => {

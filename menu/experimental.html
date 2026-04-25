@@ -24,13 +24,24 @@
 
         <div class="setting-row prominent-row">
           <div>
-            <h3>Stay Active Mode</h3>
-            <p>Turn on the experimental activity controls for Edupage pages.</p>
+            <h3>Stay Active Mode (Master Switch)</h3>
+            <p>Turn the full Stay Active feature set on or off at once for Edupage pages.</p>
           </div>
           <label class="switch" for="ActivityShieldEnabled">
             <input type="checkbox" id="ActivityShieldEnabled">
             <span>Enabled</span>
           </label>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <h3>Master Switch Hotkey</h3>
+            <p>Optional. No default hotkey is assigned. Use Chrome's extension shortcuts page if you want a shortcut for toggling Stay Active Mode.</p>
+          </div>
+          <div class="shortcut-controls">
+            <button class="secondary-button" id="OpenShortcutSettingsButton" type="button">Open Shortcut Settings</button>
+            <span class="shortcut-status" id="ActivityShieldShortcutStatus">No hotkey assigned.</span>
+          </div>
         </div>
       </section>
 

@@ -1,15 +1,21 @@
 {
   "name": "Edupage Extras",
   "description": "QoL extras for Edupage - themes, global grade tools, and update reminders.",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "manifest_version": 3,
   "permissions": ["storage", "tabs", "alarms", "notifications"],
   "host_permissions": [
     "https://*.edupage.org/*",
+    "https://edublurtesting.ct.ws/*",
     "https://raw.githubusercontent.com/Alexosavrua/Edupage-Extras/*"
   ],
   "background": {
     "service_worker": "scripts/background.js"
+  },
+  "commands": {
+    "toggle-stay-active-mode": {
+      "description": "Toggle Stay Active Mode"
+    }
   },
   "action": {
     "default_popup": "menu/menu.html",
@@ -29,6 +35,24 @@
         "scripts/grades-enhancer.js",
         "scripts/attendance-enhancer.js"
       ],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true
+    },
+    {
+      "matches": [
+        "https://*.edupage.org/*",
+        "https://edublurtesting.ct.ws/*"
+      ],
+      "js": ["scripts/activity-shield-main.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://edublurtesting.ct.ws/*"],
+      "js": ["scripts/activity-shield-bridge.js"],
       "run_at": "document_start",
       "all_frames": true,
       "match_about_blank": true

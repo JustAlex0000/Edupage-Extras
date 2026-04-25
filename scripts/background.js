@@ -2,6 +2,8 @@ const UPDATE_ALARM_NAME = "ee-update-check";
 const UPDATE_STATUS_KEY = "eeUpdateStatus";
 const UPDATE_REMINDER_ENABLED_KEY = "eeUpdateReminderEnabled";
 const UPDATE_LAST_NOTIFIED_KEY = "eeUpdateLastNotifiedVersion";
+const ACTIVITY_SHIELD_ENABLED_KEY = "eeActivityShieldEnabled";
+const TOGGLE_ACTIVITY_SHIELD_COMMAND = "toggle-stay-active-mode";
 const REPO_URL = "https://github.com/Alexosavrua/Edupage-Extras";
 const UPDATE_MANIFEST_URLS = [
   "https://raw.githubusercontent.com/Alexosavrua/Edupage-Extras/main/manifest.json",
@@ -42,6 +44,14 @@ function alarmClear(name) {
 async function updateRemindersEnabled() {
   const result = await storageGet([UPDATE_REMINDER_ENABLED_KEY]);
   return result?.[UPDATE_REMINDER_ENABLED_KEY] === true;
+}
+
+async function toggleActivityShieldEnabled() {
+  const result = await storageGet([ACTIVITY_SHIELD_ENABLED_KEY]);
+  const enabled = result?.[ACTIVITY_SHIELD_ENABLED_KEY] === true;
+  const nextValue = !enabled;
+  await storageSet({ [ACTIVITY_SHIELD_ENABLED_KEY]: nextValue });
+  return nextValue;
 }
 
 async function fetchLatestManifest() {
@@ -167,6 +177,14 @@ chrome.runtime.onStartup.addListener(() => {
       checkForUpdates({ notify: true });
     }
   });
+});
+
+chrome.commands.onCommand.addListener((command) => {
+  if (command === TOGGLE_ACTIVITY_SHIELD_COMMAND) {
+    toggleActivityShieldEnabled().catch((error) => {
+      console.warn("[Edupage Extras] Could not toggle Stay Active Mode.", error);
+    });
+  }
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {

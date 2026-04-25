@@ -203,6 +203,18 @@ code {
     gap: 16px;
 }
 
+.shortcut-controls {
+    display: grid;
+    gap: 8px;
+    justify-items: end;
+}
+
+.shortcut-status {
+    color: var(--text-muted);
+    font-size: 13px;
+    text-align: right;
+}
+
 .save-status {
     color: var(--accent-color);
     min-height: 20px;
@@ -257,5 +269,14 @@ code {
 
     .switch {
         white-space: normal;
+    }
+
+    .shortcut-controls {
+        justify-items: stretch;
+        width: 100%;
+    }
+
+    .shortcut-status {
+        text-align: left;
     }
 }

@@ -1,7 +1,10 @@
 const backButton = document.getElementById("BackButton");
 const resetButton = document.getElementById("ResetActivityShieldButton");
 const reloadTabsButton = document.getElementById("ReloadEdupageTabsButton");
+const openShortcutSettingsButton = document.getElementById("OpenShortcutSettingsButton");
+const activityShieldShortcutStatus = document.getElementById("ActivityShieldShortcutStatus");
 const saveStatus = document.getElementById("SaveStatus");
+const ACTIVITY_SHIELD_COMMAND = "toggle-stay-active-mode";
 const THEME_KEY = "themeMode";
 const DARK_MODE_KEY = "darkModeEnabled";
 const CUSTOM_THEME_KEY = "customThemeColors";
@@ -36,17 +39,17 @@ const settings = [
 
 const defaults = {
 	eeActivityShieldEnabled: false,
-	eeActivityShieldVisibilityState: false,
-	eeActivityShieldHidden: false,
-	eeActivityShieldVisibilityEvents: false,
-	eeActivityShieldFocus: false,
-	eeActivityShieldBlur: false,
-	eeActivityShieldRedirect: false,
-	eeActivityShieldMouseleave: false,
-	eeActivityShieldMouseout: false,
-	eeActivityShieldPointercapture: false,
-	eeActivityShieldClipboard: false,
-	eeActivityShieldAnimationFrame: false,
+	eeActivityShieldVisibilityState: true,
+	eeActivityShieldHidden: true,
+	eeActivityShieldVisibilityEvents: true,
+	eeActivityShieldFocus: true,
+	eeActivityShieldBlur: true,
+	eeActivityShieldRedirect: true,
+	eeActivityShieldMouseleave: true,
+	eeActivityShieldMouseout: true,
+	eeActivityShieldPointercapture: true,
+	eeActivityShieldClipboard: true,
+	eeActivityShieldAnimationFrame: true,
 	eeActivityShieldVisualIndicator: false,
 	eeActivityShieldLog: false,
 };
@@ -100,6 +103,21 @@ function setStatus(message, isError = false) {
 	setStatus.timer = window.setTimeout(() => {
 		saveStatus.textContent = "";
 	}, 2200);
+}
+
+function renderShortcutStatus() {
+	if (!chrome.commands?.getAll) {
+		activityShieldShortcutStatus.textContent = "Shortcut status unavailable in this browser.";
+		return;
+	}
+
+	chrome.commands.getAll((commands) => {
+		const command = commands.find((entry) => entry.name === ACTIVITY_SHIELD_COMMAND);
+		const shortcut = command?.shortcut?.trim();
+		activityShieldShortcutStatus.textContent = shortcut
+			? `Current hotkey: ${shortcut}`
+			: "No hotkey assigned.";
+	});
 }
 
 function render(result) {
@@ -158,10 +176,22 @@ reloadTabsButton.addEventListener("click", () => {
 	});
 });
 
+openShortcutSettingsButton.addEventListener("click", () => {
+	chrome.tabs.create({ url: "chrome://extensions/shortcuts" }, () => {
+		if (chrome.runtime.lastError) {
+			setStatus("Could not open shortcut settings", true);
+			return;
+		}
+		setStatus("Shortcut settings opened");
+	});
+});
+
 chrome.storage.local.get(defaults, render);
 chrome.storage.local.get([THEME_KEY, DARK_MODE_KEY, CUSTOM_THEME_KEY], (result) => {
 	applyExperimentalTheme(result[THEME_KEY], result[DARK_MODE_KEY] === true, result[CUSTOM_THEME_KEY]);
 });
+renderShortcutStatus();
+window.addEventListener("focus", renderShortcutStatus);
 
 chrome.storage.onChanged.addListener((changes, area) => {
 	if (area !== "local") return;

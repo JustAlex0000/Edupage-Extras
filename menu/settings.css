@@ -276,6 +276,20 @@ p {
     white-space: nowrap;
 }
 
+.date-setting-controls {
+    display: grid;
+    gap: 10px;
+    justify-items: end;
+}
+
+.date-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
 input[type="checkbox"] {
     accent-color: var(--accent-color);
     height: 18px;
@@ -293,6 +307,16 @@ input[type="color"] {
 }
 
 select {
+    min-width: 150px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--control-bg);
+    color: var(--text-main);
+    font: inherit;
+    padding: 8px 10px;
+}
+
+input[type="date"] {
     min-width: 150px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -374,5 +398,15 @@ input[type="checkbox"]:disabled {
 
     .custom-theme-grid {
         grid-template-columns: 1fr;
+    }
+
+    .date-setting-controls {
+        justify-items: stretch;
+        width: 100%;
+    }
+
+    .date-control {
+        justify-content: space-between;
+        width: 100%;
     }
 }

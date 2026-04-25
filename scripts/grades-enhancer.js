@@ -18,13 +18,15 @@
   const GRADE_BADGES_KEY = "gradeBadgesEnabled";
   const GRADES_ATTENDANCE_KEY = "gradesAttendanceStatsEnabled";
   const GRADES_ATTENDANCE_DEBUG_KEY = "gradesAttendanceDebugEnabled";
+  const HALFYEAR_START_KEY = "eeHalfyearStartDate";
   const GRADES_ATTENDANCE_CACHE_KEY = "eeGradesAttendanceStatsCache";
-  const GRADES_ATTENDANCE_CACHE_VERSION = 7;
+  const GRADES_ATTENDANCE_CACHE_VERSION = 8;
   const CACHE_TTL_MS = 15 * 60 * 1000;
   const CLASSBOOK_RANGE_MAX_DAYS = 30;
   let gradeBadgesEnabled = false;
   let gradesAttendanceEnabled = true;
   let gradesAttendanceDebugEnabled = false;
+  let halfyearStartOverride = "";
   let observerTimer = null;
   let attendanceStatsCache = null;
   let attendanceStatsPromise = null;
@@ -44,6 +46,10 @@
     if (avg <= 3.5) return "#f57f17";
     if (avg <= 4.5) return "#e65100";
     return "#c62828";
+  }
+
+  function normalizeDateInput(value) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")) ? String(value) : "";
   }
 
   function gradePercentage(avg) {
@@ -825,7 +831,20 @@
     return entry;
   }
 
-  function resolveCurrentHalfWindow({ currentDate, yearTurnover, selectedYear, halves }) {
+  function resolveSecondHalfStartDate(turnoverDate, overrideValue) {
+    const nextTurnover = new Date(
+      turnoverDate.getFullYear() + 1,
+      turnoverDate.getMonth(),
+      turnoverDate.getDate(),
+    );
+    const overrideDate = parseDateOnly(overrideValue);
+    if (overrideDate && overrideDate >= turnoverDate && overrideDate < nextTurnover) {
+      return overrideDate;
+    }
+    return new Date(turnoverDate.getFullYear() + 1, 1, 1);
+  }
+
+  function resolveCurrentHalfWindow({ currentDate, yearTurnover, selectedYear, halves, secondHalfOverride }) {
     const today = parseDateOnly(currentDate) || new Date();
     const todayIso = formatDateISO(today);
 
@@ -839,7 +858,7 @@
       turnoverDate = new Date(fallbackYear, 8, 1);
     }
 
-    const secondHalfStart = new Date(turnoverDate.getFullYear() + 1, 1, 1);
+    const secondHalfStart = resolveSecondHalfStartDate(turnoverDate, secondHalfOverride);
     const halfKey = today < secondHalfStart ? "1" : "2";
     const startDate = halfKey === "1" ? turnoverDate : secondHalfStart;
     const now = new Date();
@@ -2152,6 +2171,7 @@
         yearTurnover: attendanceInfo.yearTurnover || ttdayInfo.yearTurnover,
         selectedYear: attendanceInfo.selectedYear || ttdayInfo.selectedYear,
         halves: attendanceInfo.halves,
+        secondHalfOverride: halfyearStartOverride,
       });
       const officialHalfSummary = resolveOfficialHalfSummary(attendanceInfo, halfWindow);
       debugLog("Resolved half window", halfWindow);
@@ -2392,10 +2412,11 @@
   }
 
   function initStorage() {
-    chrome.storage.local.get([GRADE_BADGES_KEY, GRADES_ATTENDANCE_KEY, GRADES_ATTENDANCE_DEBUG_KEY], (result) => {
+    chrome.storage.local.get([GRADE_BADGES_KEY, GRADES_ATTENDANCE_KEY, GRADES_ATTENDANCE_DEBUG_KEY, HALFYEAR_START_KEY], (result) => {
       gradeBadgesEnabled = result[GRADE_BADGES_KEY] === true;
       gradesAttendanceEnabled = result[GRADES_ATTENDANCE_KEY] !== false;
       gradesAttendanceDebugEnabled = result[GRADES_ATTENDANCE_DEBUG_KEY] === true;
+      halfyearStartOverride = normalizeDateInput(result[HALFYEAR_START_KEY]);
       enhanceGradesTable();
     });
 
@@ -2416,6 +2437,12 @@
 
       if (changes[GRADES_ATTENDANCE_DEBUG_KEY]) {
         gradesAttendanceDebugEnabled = changes[GRADES_ATTENDANCE_DEBUG_KEY].newValue === true;
+        attendanceStatsCache = null;
+        shouldEnhance = true;
+      }
+
+      if (changes[HALFYEAR_START_KEY]) {
+        halfyearStartOverride = normalizeDateInput(changes[HALFYEAR_START_KEY].newValue);
         attendanceStatsCache = null;
         shouldEnhance = true;
       }
