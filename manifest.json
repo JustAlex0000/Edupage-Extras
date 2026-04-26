@@ -1,7 +1,7 @@
 {
   "name": "Edupage Extras",
   "description": "QoL extras for Edupage - themes, global grade tools, and update reminders.",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "manifest_version": 3,
   "permissions": ["storage", "tabs", "alarms", "notifications"],
   "host_permissions": [

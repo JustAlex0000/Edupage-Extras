@@ -20,7 +20,7 @@
   const GRADES_ATTENDANCE_DEBUG_KEY = "gradesAttendanceDebugEnabled";
   const HALFYEAR_START_KEY = "eeHalfyearStartDate";
   const GRADES_ATTENDANCE_CACHE_KEY = "eeGradesAttendanceStatsCache";
-  const GRADES_ATTENDANCE_CACHE_VERSION = 8;
+  const GRADES_ATTENDANCE_CACHE_VERSION = 9;
   const CACHE_TTL_MS = 15 * 60 * 1000;
   const CLASSBOOK_RANGE_MAX_DAYS = 30;
   let gradeBadgesEnabled = false;
@@ -61,8 +61,39 @@
     return Number.isFinite(number) ? number : 0;
   }
 
-  function isMissedLessonRecord(record) {
-    return String(record?.presence || "") === "A";
+  function shouldCountAbsentType(typeMeta) {
+    if (!typeMeta) return true;
+
+    const category = String(typeMeta.et || "").trim().toLowerCase();
+    if (category) {
+      return category === "o" || category === "n";
+    }
+
+    const short = String(typeMeta.short || "").trim().toLowerCase();
+    const normalizedName = normalizeText(typeMeta.name || "");
+
+    if (short === "r" || normalizedName.includes("reprezent")) {
+      return false;
+    }
+
+    if (short === "o" || short === "n") {
+      return true;
+    }
+
+    if (normalizedName.includes("ospravedlnen") || normalizedName.includes("neospravedlnen")) {
+      return true;
+    }
+
+    return true;
+  }
+
+  function isMissedLessonRecord(record, absenceTypeMap = null) {
+    if (String(record?.presence || "") !== "A") return false;
+
+    const typeId = String(record?.studentabsent_typeid || "").trim();
+    if (!typeId) return true;
+
+    return shouldCountAbsentType(absenceTypeMap?.get(typeId));
   }
 
   function separateMergedWords(value) {
@@ -732,6 +763,43 @@
     }
   }
 
+  function parseAttendanceTypeMap(html) {
+    const candidateMarkers = [
+      "\"ciselnik0\":",
+      "\"studentabsent_types\":",
+    ];
+
+    for (const marker of candidateMarkers) {
+      const rawText = extractObjectLiteral(html, marker);
+      if (!rawText) continue;
+
+      try {
+        const parsed = JSON.parse(rawText);
+        const map = new Map();
+
+        Object.entries(parsed || {}).forEach(([id, value]) => {
+          const typeId = String(value?.id || id || "").trim();
+          if (!typeId) return;
+
+          map.set(typeId, {
+            id: typeId,
+            name: String(value?.name || "").trim(),
+            short: String(value?.short || "").trim(),
+            et: String(value?.et || "").trim(),
+          });
+        });
+
+        if (map.size > 0) {
+          return map;
+        }
+      } catch (error) {
+        console.warn("[Edupage Extras] Could not parse attendance type map.", error);
+      }
+    }
+
+    return new Map();
+  }
+
   function addAlias(set, value) {
     const normalized = normalizeText(value);
     if (normalized) {
@@ -918,6 +986,7 @@
     return {
       payload,
       halfStats: parseAttendanceHalfStats(html),
+      absenceTypeMap: parseAttendanceTypeMap(html),
       subjectMap: parseSubjectMap(ttdb?.subjects),
       yearTurnover: payload?.info?.year_turnover || (html.match(/"year_turnover":"(\d{4}-\d{2}-\d{2})"/)?.[1] || null),
       selectedYear: Number.parseInt(html.match(/"selectedYear":(\d{4})/)?.[1] || "", 10) || null,
@@ -1111,7 +1180,14 @@
     ).trim();
   }
 
-  function computeSubjectAbsences(attendancePayload, classbookData, subjectMap, halfWindow, diagnostics = []) {
+  function computeSubjectAbsences(
+    attendancePayload,
+    absenceTypeMap,
+    classbookData,
+    subjectMap,
+    halfWindow,
+    diagnostics = [],
+  ) {
     const entryMap = new Map();
     const studentId = attendancePayload?.order?.[0] || Object.keys(attendancePayload?.students || {})[0];
     const dailyRecords = attendancePayload?.students?.[studentId] || {};
@@ -1123,7 +1199,7 @@
 
       const countedPeriods = Object.entries(dayEntries || {}).filter(([periodKey, record]) =>
         periodKey !== "ad"
-        && isMissedLessonRecord(record),
+        && isMissedLessonRecord(record, absenceTypeMap),
       );
 
       if (countedPeriods.length > 0) {
@@ -1147,7 +1223,7 @@
 
       const allDayRecord = dayEntries?.ad;
       if (
-        isMissedLessonRecord(allDayRecord)
+        isMissedLessonRecord(allDayRecord, absenceTypeMap)
       ) {
         diagnostics.push({
           date: dateKey,
@@ -1751,7 +1827,7 @@
     };
   }
 
-  function countOverallAbsenceLessons(attendancePayload, halfWindow) {
+  function countOverallAbsenceLessons(attendancePayload, absenceTypeMap, halfWindow) {
     const studentId = attendancePayload?.order?.[0] || Object.keys(attendancePayload?.students || {})[0];
     const dailyRecords = attendancePayload?.students?.[studentId] || {};
     let absent = 0;
@@ -1761,7 +1837,7 @@
 
       const countedPeriods = Object.entries(dayEntries || {}).filter(([periodKey, record]) =>
         periodKey !== "ad"
-        && isMissedLessonRecord(record),
+        && isMissedLessonRecord(record, absenceTypeMap),
       );
 
       if (countedPeriods.length > 0) {
@@ -1771,7 +1847,7 @@
 
       const allDayRecord = dayEntries?.ad;
       if (
-        isMissedLessonRecord(allDayRecord)
+        isMissedLessonRecord(allDayRecord, absenceTypeMap)
       ) {
         absent += Math.max(1, numberValue(allDayRecord?.durationperiods));
       }
@@ -2212,9 +2288,14 @@
       );
 
       const absenceDiagnostics = [];
-      const rawAbsentLessons = countOverallAbsenceLessons(attendanceInfo.payload, halfWindow);
+      const rawAbsentLessons = countOverallAbsenceLessons(
+        attendanceInfo.payload,
+        attendanceInfo.absenceTypeMap,
+        halfWindow,
+      );
       let absentEntries = computeSubjectAbsences(
         attendanceInfo.payload,
+        attendanceInfo.absenceTypeMap,
         mergedClassbookData,
         subjectMap,
         halfWindow,
@@ -2252,6 +2333,7 @@
           absenceDiagnostics.length = 0;
           absentEntries = computeSubjectAbsences(
             attendanceInfo.payload,
+            attendanceInfo.absenceTypeMap,
             mergedClassbookData,
             subjectMap,
             halfWindow,
