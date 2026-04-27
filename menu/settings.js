@@ -21,6 +21,27 @@ const updateReminderToggle = document.getElementById("UpdateReminderCheckbox");
 const checkUpdatesButton = document.getElementById("CheckUpdatesButton");
 const openRepositoryButton = document.getElementById("OpenRepositoryButton");
 const updateStatusText = document.getElementById("UpdateStatusText");
+const googleCalendarEnabledToggle = document.getElementById("GoogleCalendarEnabledCheckbox");
+const googleCalendarDetails = document.getElementById("GoogleCalendarDetails");
+const googleCalendarRedirectUriInput = document.getElementById("GoogleCalendarRedirectUriInput");
+const googleCalendarClientIdInput = document.getElementById("GoogleCalendarClientIdInput");
+const googleCalendarClientSecretInput = document.getElementById("GoogleCalendarClientSecretInput");
+const googleCalendarNameInput = document.getElementById("GoogleCalendarNameInput");
+const googleCalendarSyncModeSelect = document.getElementById("GoogleCalendarSyncModeSelect");
+const googleCalendarHalfyearScopeRow = document.getElementById("GoogleCalendarHalfyearScopeRow");
+const googleCalendarHalfyearScopeSelect = document.getElementById("GoogleCalendarHalfyearScopeSelect");
+const googleCalendarColorModeSelect = document.getElementById("GoogleCalendarColorModeSelect");
+const googleCalendarSingleColorRow = document.getElementById("GoogleCalendarSingleColorRow");
+const googleCalendarSingleColorSelect = document.getElementById("GoogleCalendarSingleColorSelect");
+const googleCalendarSyncIntervalInput = document.getElementById("GoogleCalendarSyncIntervalInput");
+const googleCalendarRoomInTitleCheckbox = document.getElementById("GoogleCalendarRoomInTitleCheckbox");
+const googleCalendarTeacherInTitleCheckbox = document.getElementById("GoogleCalendarTeacherInTitleCheckbox");
+const googleCalendarUseDefaultRemindersCheckbox = document.getElementById("GoogleCalendarUseDefaultRemindersCheckbox");
+const googleCalendarConnectButton = document.getElementById("GoogleCalendarConnectButton");
+const googleCalendarDisconnectButton = document.getElementById("GoogleCalendarDisconnectButton");
+const googleCalendarClearButton = document.getElementById("GoogleCalendarClearButton");
+const googleCalendarSyncNowButton = document.getElementById("GoogleCalendarSyncNowButton");
+const googleCalendarStatusText = document.getElementById("GoogleCalendarStatusText");
 const STORAGE_KEY = "darkModeEnabled";
 const THEME_KEY = "themeMode";
 const CUSTOM_THEME_KEY = "customThemeColors";
@@ -34,9 +55,29 @@ const HALFYEAR_START_KEY = "eeHalfyearStartDate";
 const GRADES_ATTENDANCE_CACHE_KEY = "eeGradesAttendanceStatsCache";
 const UPDATE_STATUS_KEY = "eeUpdateStatus";
 const UPDATE_REMINDER_ENABLED_KEY = "eeUpdateReminderEnabled";
+const GOOGLE_CALENDAR_ENABLED_KEY = "eeGoogleCalendarEnabled";
+const GOOGLE_CALENDAR_CLIENT_ID_KEY = "eeGoogleCalendarOauthClientId";
+const GOOGLE_CALENDAR_CLIENT_SECRET_KEY = "eeGoogleCalendarOauthClientSecret";
+const GOOGLE_CALENDAR_NAME_KEY = "eeGoogleCalendarCalendarName";
+const GOOGLE_CALENDAR_SYNC_MODE_KEY = "eeGoogleCalendarSyncMode";
+const GOOGLE_CALENDAR_HALFYEAR_SCOPE_KEY = "eeGoogleCalendarHalfyearScope";
+const GOOGLE_CALENDAR_COLOR_MODE_KEY = "eeGoogleCalendarColorMode";
+const GOOGLE_CALENDAR_SINGLE_COLOR_KEY = "eeGoogleCalendarSingleColorId";
+const GOOGLE_CALENDAR_SYNC_INTERVAL_KEY = "eeGoogleCalendarSyncIntervalMinutes";
+const GOOGLE_CALENDAR_ROOM_IN_TITLE_KEY = "eeGoogleCalendarRoomInTitle";
+const GOOGLE_CALENDAR_TEACHER_IN_TITLE_KEY = "eeGoogleCalendarTeacherInTitle";
+const GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY = "eeGoogleCalendarUseDefaultReminders";
+const GOOGLE_CALENDAR_STATUS_KEY = "eeGoogleCalendarStatus";
 const THEME_TOGGLE_COMMAND = "toggle-theme-mode";
 const REPO_URL = "https://github.com/Alexosavrua/Edupage-Extras";
 const THEMES = ["dark", "ocean", "forest", "emerald", "pink", "purple", "custom", "light"];
+const GOOGLE_CALENDAR_SYNC_MODES = ["week", "halfyear"];
+const GOOGLE_CALENDAR_DEFAULT_NAME = "EduPage";
+const GOOGLE_CALENDAR_DEFAULT_SYNC_MODE = "week";
+const GOOGLE_CALENDAR_DEFAULT_HALFYEAR_SCOPE = "future";
+const GOOGLE_CALENDAR_DEFAULT_COLOR_MODE = "subject";
+const GOOGLE_CALENDAR_DEFAULT_SINGLE_COLOR = "9";
+const GOOGLE_CALENDAR_DEFAULT_SYNC_INTERVAL = 15;
 const DEFAULT_CUSTOM_THEME = {
 	bgBase: "#11111b",
 	bgRaised: "#181825",
@@ -251,6 +292,158 @@ function renderShortcutStatus() {
 	});
 }
 
+function normalizeGoogleCalendarName(value) {
+	const trimmed = String(value || "").trim();
+	return trimmed || GOOGLE_CALENDAR_DEFAULT_NAME;
+}
+
+function normalizeGoogleCalendarSyncMode(value) {
+	return GOOGLE_CALENDAR_SYNC_MODES.includes(value) ? value : GOOGLE_CALENDAR_DEFAULT_SYNC_MODE;
+}
+
+function normalizeGoogleCalendarHalfyearScope(value) {
+	return ["future", "full"].includes(value) ? value : GOOGLE_CALENDAR_DEFAULT_HALFYEAR_SCOPE;
+}
+
+function normalizeGoogleCalendarColorMode(value) {
+	return ["subject", "single", "changes", "none"].includes(value) ? value : GOOGLE_CALENDAR_DEFAULT_COLOR_MODE;
+}
+
+function normalizeGoogleCalendarSingleColor(value) {
+	return ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"].includes(String(value))
+		? String(value)
+		: GOOGLE_CALENDAR_DEFAULT_SINGLE_COLOR;
+}
+
+function normalizeGoogleCalendarSyncInterval(value) {
+	const parsed = Number.parseInt(value, 10);
+	if (!Number.isFinite(parsed)) return GOOGLE_CALENDAR_DEFAULT_SYNC_INTERVAL;
+	return Math.max(5, Math.min(120, parsed - (parsed % 5)));
+}
+
+function getGoogleCalendarRedirectUri() {
+	if (!chrome.identity?.getRedirectURL) return "";
+	return chrome.identity.getRedirectURL();
+}
+
+function setGoogleCalendarBusy(busy) {
+	googleCalendarConnectButton.disabled = busy;
+	googleCalendarDisconnectButton.disabled = busy;
+	googleCalendarClearButton.disabled = busy;
+	googleCalendarSyncNowButton.disabled = busy;
+}
+
+function renderGoogleCalendarStatus(status) {
+	googleCalendarStatusText.dataset.state = "";
+	if (!status) {
+		googleCalendarStatusText.textContent = "Google Calendar sync is disabled.";
+		return;
+	}
+
+	const parts = [];
+	if (status.message) {
+		parts.push(status.message);
+	}
+	if (status.lastSyncedAt) {
+		parts.push(`Last sync: ${new Date(status.lastSyncedAt).toLocaleString([], {
+			dateStyle: "medium",
+			timeStyle: "short",
+		})}.`);
+	}
+	if (status.calendarName) {
+		parts.push(`Calendar: ${status.calendarName}.`);
+	}
+	if (status.mode === "halfyear") {
+		parts.push(status.halfyearScope === "full"
+			? "Range: whole current halfyear."
+			: "Range: current halfyear from today forward.");
+	}
+	if (status.mode === "week") {
+		parts.push("Range: current week, or upcoming week on weekends.");
+	}
+
+	googleCalendarStatusText.textContent = parts.join(" ").trim() || "Google Calendar is configured.";
+	if (status.state === "error") {
+		googleCalendarStatusText.dataset.state = "error";
+		return;
+	}
+	if (status.state === "ok" || status.state === "connected" || status.state === "syncing") {
+		googleCalendarStatusText.dataset.state = "available";
+	}
+}
+
+function updateGoogleCalendarControls() {
+	const enabled = googleCalendarEnabledToggle.checked;
+	const hasClientId = googleCalendarClientIdInput.value.trim().length > 0;
+	const hasClientSecret = googleCalendarClientSecretInput.value.trim().length > 0;
+	const colorMode = normalizeGoogleCalendarColorMode(googleCalendarColorModeSelect.value);
+	const syncMode = normalizeGoogleCalendarSyncMode(googleCalendarSyncModeSelect.value);
+
+	googleCalendarDetails.hidden = !enabled;
+	googleCalendarClientIdInput.disabled = false;
+	googleCalendarClientSecretInput.disabled = false;
+	googleCalendarNameInput.disabled = !enabled;
+	googleCalendarSyncModeSelect.disabled = !enabled;
+	googleCalendarHalfyearScopeRow.hidden = !enabled || syncMode !== "halfyear";
+	googleCalendarHalfyearScopeSelect.disabled = !enabled || syncMode !== "halfyear";
+	googleCalendarColorModeSelect.disabled = !enabled;
+	googleCalendarSingleColorRow.hidden = !enabled || colorMode !== "single";
+	googleCalendarSingleColorSelect.disabled = !enabled || colorMode !== "single";
+	googleCalendarSyncIntervalInput.disabled = !enabled;
+	googleCalendarRoomInTitleCheckbox.disabled = !enabled;
+	googleCalendarTeacherInTitleCheckbox.disabled = !enabled;
+	googleCalendarUseDefaultRemindersCheckbox.disabled = !enabled;
+	googleCalendarConnectButton.disabled = !enabled || !hasClientId || !hasClientSecret;
+	googleCalendarDisconnectButton.disabled = !enabled;
+	googleCalendarClearButton.disabled = !enabled;
+	googleCalendarSyncNowButton.disabled = !enabled;
+}
+
+function syncGoogleCalendarSettingsToStorage() {
+	chrome.storage.local.set({
+		[GOOGLE_CALENDAR_ENABLED_KEY]: googleCalendarEnabledToggle.checked,
+		[GOOGLE_CALENDAR_CLIENT_ID_KEY]: googleCalendarClientIdInput.value.trim(),
+		[GOOGLE_CALENDAR_CLIENT_SECRET_KEY]: googleCalendarClientSecretInput.value.trim(),
+		[GOOGLE_CALENDAR_NAME_KEY]: normalizeGoogleCalendarName(googleCalendarNameInput.value),
+		[GOOGLE_CALENDAR_SYNC_MODE_KEY]: normalizeGoogleCalendarSyncMode(googleCalendarSyncModeSelect.value),
+		[GOOGLE_CALENDAR_HALFYEAR_SCOPE_KEY]: normalizeGoogleCalendarHalfyearScope(googleCalendarHalfyearScopeSelect.value),
+		[GOOGLE_CALENDAR_COLOR_MODE_KEY]: normalizeGoogleCalendarColorMode(googleCalendarColorModeSelect.value),
+		[GOOGLE_CALENDAR_SINGLE_COLOR_KEY]: normalizeGoogleCalendarSingleColor(googleCalendarSingleColorSelect.value),
+		[GOOGLE_CALENDAR_SYNC_INTERVAL_KEY]: normalizeGoogleCalendarSyncInterval(googleCalendarSyncIntervalInput.value),
+		[GOOGLE_CALENDAR_ROOM_IN_TITLE_KEY]: googleCalendarRoomInTitleCheckbox.checked,
+		[GOOGLE_CALENDAR_TEACHER_IN_TITLE_KEY]: googleCalendarTeacherInTitleCheckbox.checked,
+		[GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY]: googleCalendarUseDefaultRemindersCheckbox.checked,
+	});
+}
+
+function sendGoogleCalendarAction(message, onDone) {
+	setGoogleCalendarBusy(true);
+	chrome.runtime.sendMessage(message, (response) => {
+		setGoogleCalendarBusy(false);
+		updateGoogleCalendarControls();
+		if (chrome.runtime.lastError) {
+			renderGoogleCalendarStatus({
+				state: "error",
+				message: chrome.runtime.lastError.message,
+			});
+			return;
+		}
+		if (!response?.ok) {
+			renderGoogleCalendarStatus({
+				state: "error",
+				message: response?.error || "Google Calendar request failed.",
+			});
+			return;
+		}
+		if (response.status) {
+			renderGoogleCalendarStatus(response.status);
+		}
+		if (onDone) {
+			onDone(response);
+		}
+	});
+}
+
 chrome.storage.local.get(
 	[
 		STORAGE_KEY,
@@ -265,6 +458,19 @@ chrome.storage.local.get(
 		HALFYEAR_START_KEY,
 		UPDATE_STATUS_KEY,
 		UPDATE_REMINDER_ENABLED_KEY,
+		GOOGLE_CALENDAR_ENABLED_KEY,
+		GOOGLE_CALENDAR_CLIENT_ID_KEY,
+		GOOGLE_CALENDAR_CLIENT_SECRET_KEY,
+		GOOGLE_CALENDAR_NAME_KEY,
+		GOOGLE_CALENDAR_SYNC_MODE_KEY,
+		GOOGLE_CALENDAR_HALFYEAR_SCOPE_KEY,
+		GOOGLE_CALENDAR_COLOR_MODE_KEY,
+		GOOGLE_CALENDAR_SINGLE_COLOR_KEY,
+		GOOGLE_CALENDAR_SYNC_INTERVAL_KEY,
+		GOOGLE_CALENDAR_ROOM_IN_TITLE_KEY,
+		GOOGLE_CALENDAR_TEACHER_IN_TITLE_KEY,
+		GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY,
+		GOOGLE_CALENDAR_STATUS_KEY,
 	],
 	(result) => {
 		const enabled = result[STORAGE_KEY] === true;
@@ -280,11 +486,26 @@ chrome.storage.local.get(
 		attendancePercentagesToggle.checked = result[ATTENDANCE_PERCENTAGES_KEY] !== false;
 		halfyearStartInput.value = normalizeDateInput(result[HALFYEAR_START_KEY]);
 		updateReminderToggle.checked = result[UPDATE_REMINDER_ENABLED_KEY] === true;
+		googleCalendarEnabledToggle.checked = result[GOOGLE_CALENDAR_ENABLED_KEY] === true;
+		googleCalendarRedirectUriInput.value = getGoogleCalendarRedirectUri();
+		googleCalendarClientIdInput.value = String(result[GOOGLE_CALENDAR_CLIENT_ID_KEY] || "");
+		googleCalendarClientSecretInput.value = String(result[GOOGLE_CALENDAR_CLIENT_SECRET_KEY] || "");
+		googleCalendarNameInput.value = normalizeGoogleCalendarName(result[GOOGLE_CALENDAR_NAME_KEY]);
+		googleCalendarSyncModeSelect.value = normalizeGoogleCalendarSyncMode(result[GOOGLE_CALENDAR_SYNC_MODE_KEY]);
+		googleCalendarHalfyearScopeSelect.value = normalizeGoogleCalendarHalfyearScope(result[GOOGLE_CALENDAR_HALFYEAR_SCOPE_KEY]);
+		googleCalendarColorModeSelect.value = normalizeGoogleCalendarColorMode(result[GOOGLE_CALENDAR_COLOR_MODE_KEY]);
+		googleCalendarSingleColorSelect.value = normalizeGoogleCalendarSingleColor(result[GOOGLE_CALENDAR_SINGLE_COLOR_KEY]);
+		googleCalendarSyncIntervalInput.value = String(normalizeGoogleCalendarSyncInterval(result[GOOGLE_CALENDAR_SYNC_INTERVAL_KEY]));
+		googleCalendarRoomInTitleCheckbox.checked = result[GOOGLE_CALENDAR_ROOM_IN_TITLE_KEY] === true;
+		googleCalendarTeacherInTitleCheckbox.checked = result[GOOGLE_CALENDAR_TEACHER_IN_TITLE_KEY] === true;
+		googleCalendarUseDefaultRemindersCheckbox.checked = result[GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY] === true;
 		syncCustomThemeInputs(customTheme);
 		customThemeImport.value = customThemeExportText(customTheme);
 		applySettingsTheme(theme, enabled, customTheme);
 		updateDependentControls();
 		renderUpdateStatus(result[UPDATE_STATUS_KEY]);
+		renderGoogleCalendarStatus(result[GOOGLE_CALENDAR_STATUS_KEY]);
+		updateGoogleCalendarControls();
 	},
 );
 
@@ -401,6 +622,109 @@ updateReminderToggle.addEventListener("change", () => {
 	chrome.storage.local.set({ [UPDATE_REMINDER_ENABLED_KEY]: updateReminderToggle.checked });
 });
 
+googleCalendarEnabledToggle.addEventListener("change", () => {
+	syncGoogleCalendarSettingsToStorage();
+	updateGoogleCalendarControls();
+});
+
+googleCalendarClientIdInput.addEventListener("input", () => {
+	chrome.storage.local.set({ [GOOGLE_CALENDAR_CLIENT_ID_KEY]: googleCalendarClientIdInput.value.trim() });
+	updateGoogleCalendarControls();
+});
+
+googleCalendarClientSecretInput.addEventListener("input", () => {
+	chrome.storage.local.set({ [GOOGLE_CALENDAR_CLIENT_SECRET_KEY]: googleCalendarClientSecretInput.value.trim() });
+	updateGoogleCalendarControls();
+});
+
+googleCalendarNameInput.addEventListener("change", () => {
+	googleCalendarNameInput.value = normalizeGoogleCalendarName(googleCalendarNameInput.value);
+	chrome.storage.local.set({ [GOOGLE_CALENDAR_NAME_KEY]: googleCalendarNameInput.value });
+});
+
+googleCalendarSyncModeSelect.addEventListener("change", () => {
+	googleCalendarSyncModeSelect.value = normalizeGoogleCalendarSyncMode(googleCalendarSyncModeSelect.value);
+	chrome.storage.local.set({ [GOOGLE_CALENDAR_SYNC_MODE_KEY]: googleCalendarSyncModeSelect.value });
+	updateGoogleCalendarControls();
+});
+
+googleCalendarHalfyearScopeSelect.addEventListener("change", () => {
+	googleCalendarHalfyearScopeSelect.value = normalizeGoogleCalendarHalfyearScope(googleCalendarHalfyearScopeSelect.value);
+	chrome.storage.local.set({ [GOOGLE_CALENDAR_HALFYEAR_SCOPE_KEY]: googleCalendarHalfyearScopeSelect.value });
+});
+
+googleCalendarColorModeSelect.addEventListener("change", () => {
+	googleCalendarColorModeSelect.value = normalizeGoogleCalendarColorMode(googleCalendarColorModeSelect.value);
+	chrome.storage.local.set({ [GOOGLE_CALENDAR_COLOR_MODE_KEY]: googleCalendarColorModeSelect.value });
+	updateGoogleCalendarControls();
+});
+
+googleCalendarSingleColorSelect.addEventListener("change", () => {
+	googleCalendarSingleColorSelect.value = normalizeGoogleCalendarSingleColor(googleCalendarSingleColorSelect.value);
+	chrome.storage.local.set({ [GOOGLE_CALENDAR_SINGLE_COLOR_KEY]: googleCalendarSingleColorSelect.value });
+});
+
+googleCalendarSyncIntervalInput.addEventListener("change", () => {
+	googleCalendarSyncIntervalInput.value = String(normalizeGoogleCalendarSyncInterval(googleCalendarSyncIntervalInput.value));
+	chrome.storage.local.set({ [GOOGLE_CALENDAR_SYNC_INTERVAL_KEY]: Number.parseInt(googleCalendarSyncIntervalInput.value, 10) });
+});
+
+googleCalendarRoomInTitleCheckbox.addEventListener("change", () => {
+	chrome.storage.local.set({ [GOOGLE_CALENDAR_ROOM_IN_TITLE_KEY]: googleCalendarRoomInTitleCheckbox.checked });
+});
+
+googleCalendarTeacherInTitleCheckbox.addEventListener("change", () => {
+	chrome.storage.local.set({ [GOOGLE_CALENDAR_TEACHER_IN_TITLE_KEY]: googleCalendarTeacherInTitleCheckbox.checked });
+});
+
+googleCalendarUseDefaultRemindersCheckbox.addEventListener("change", () => {
+	chrome.storage.local.set({ [GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY]: googleCalendarUseDefaultRemindersCheckbox.checked });
+});
+
+googleCalendarConnectButton.addEventListener("click", () => {
+	const clientId = googleCalendarClientIdInput.value.trim();
+	const clientSecret = googleCalendarClientSecretInput.value.trim();
+	if (!clientId) {
+		renderGoogleCalendarStatus({
+			state: "error",
+			message: "Paste a Google OAuth Client ID first.",
+		});
+		return;
+	}
+	if (!clientSecret) {
+		renderGoogleCalendarStatus({
+			state: "error",
+			message: "Paste a Google OAuth Client Secret first.",
+		});
+		return;
+	}
+
+	syncGoogleCalendarSettingsToStorage();
+	sendGoogleCalendarAction({
+		type: "ee-google-calendar-connect",
+		clientId,
+		clientSecret,
+		halfyearScope: normalizeGoogleCalendarHalfyearScope(googleCalendarHalfyearScopeSelect.value),
+		calendarName: normalizeGoogleCalendarName(googleCalendarNameInput.value),
+	});
+});
+
+googleCalendarDisconnectButton.addEventListener("click", () => {
+	sendGoogleCalendarAction({ type: "ee-google-calendar-disconnect" });
+});
+
+googleCalendarClearButton.addEventListener("click", () => {
+	if (!window.confirm("Remove all EduPage Extras events from the selected Google calendar?")) {
+		return;
+	}
+	sendGoogleCalendarAction({ type: "ee-google-calendar-clear-events" });
+});
+
+googleCalendarSyncNowButton.addEventListener("click", () => {
+	syncGoogleCalendarSettingsToStorage();
+	sendGoogleCalendarAction({ type: "ee-google-calendar-sync-now" });
+});
+
 checkUpdatesButton.addEventListener("click", checkForUpdates);
 
 openRepositoryButton.addEventListener("click", () => {
@@ -422,5 +746,60 @@ chrome.storage.onChanged.addListener((changes, area) => {
 	if (area !== "local") return;
 	if (changes[UPDATE_STATUS_KEY]) {
 		renderUpdateStatus(changes[UPDATE_STATUS_KEY].newValue);
+	}
+	if (changes[GOOGLE_CALENDAR_STATUS_KEY]) {
+		renderGoogleCalendarStatus(changes[GOOGLE_CALENDAR_STATUS_KEY].newValue);
+	}
+	if (
+		changes[GOOGLE_CALENDAR_ENABLED_KEY]
+		|| changes[GOOGLE_CALENDAR_CLIENT_ID_KEY]
+		|| changes[GOOGLE_CALENDAR_CLIENT_SECRET_KEY]
+		|| changes[GOOGLE_CALENDAR_NAME_KEY]
+		|| changes[GOOGLE_CALENDAR_SYNC_MODE_KEY]
+		|| changes[GOOGLE_CALENDAR_HALFYEAR_SCOPE_KEY]
+		|| changes[GOOGLE_CALENDAR_COLOR_MODE_KEY]
+		|| changes[GOOGLE_CALENDAR_SINGLE_COLOR_KEY]
+		|| changes[GOOGLE_CALENDAR_SYNC_INTERVAL_KEY]
+		|| changes[GOOGLE_CALENDAR_ROOM_IN_TITLE_KEY]
+		|| changes[GOOGLE_CALENDAR_TEACHER_IN_TITLE_KEY]
+		|| changes[GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY]
+	) {
+		if (changes[GOOGLE_CALENDAR_ENABLED_KEY]) {
+			googleCalendarEnabledToggle.checked = changes[GOOGLE_CALENDAR_ENABLED_KEY].newValue === true;
+		}
+		if (changes[GOOGLE_CALENDAR_CLIENT_ID_KEY]) {
+			googleCalendarClientIdInput.value = String(changes[GOOGLE_CALENDAR_CLIENT_ID_KEY].newValue || "");
+		}
+		if (changes[GOOGLE_CALENDAR_CLIENT_SECRET_KEY]) {
+			googleCalendarClientSecretInput.value = String(changes[GOOGLE_CALENDAR_CLIENT_SECRET_KEY].newValue || "");
+		}
+		if (changes[GOOGLE_CALENDAR_NAME_KEY]) {
+			googleCalendarNameInput.value = normalizeGoogleCalendarName(changes[GOOGLE_CALENDAR_NAME_KEY].newValue);
+		}
+		if (changes[GOOGLE_CALENDAR_SYNC_MODE_KEY]) {
+			googleCalendarSyncModeSelect.value = normalizeGoogleCalendarSyncMode(changes[GOOGLE_CALENDAR_SYNC_MODE_KEY].newValue);
+		}
+		if (changes[GOOGLE_CALENDAR_HALFYEAR_SCOPE_KEY]) {
+			googleCalendarHalfyearScopeSelect.value = normalizeGoogleCalendarHalfyearScope(changes[GOOGLE_CALENDAR_HALFYEAR_SCOPE_KEY].newValue);
+		}
+		if (changes[GOOGLE_CALENDAR_COLOR_MODE_KEY]) {
+			googleCalendarColorModeSelect.value = normalizeGoogleCalendarColorMode(changes[GOOGLE_CALENDAR_COLOR_MODE_KEY].newValue);
+		}
+		if (changes[GOOGLE_CALENDAR_SINGLE_COLOR_KEY]) {
+			googleCalendarSingleColorSelect.value = normalizeGoogleCalendarSingleColor(changes[GOOGLE_CALENDAR_SINGLE_COLOR_KEY].newValue);
+		}
+		if (changes[GOOGLE_CALENDAR_SYNC_INTERVAL_KEY]) {
+			googleCalendarSyncIntervalInput.value = String(normalizeGoogleCalendarSyncInterval(changes[GOOGLE_CALENDAR_SYNC_INTERVAL_KEY].newValue));
+		}
+		if (changes[GOOGLE_CALENDAR_ROOM_IN_TITLE_KEY]) {
+			googleCalendarRoomInTitleCheckbox.checked = changes[GOOGLE_CALENDAR_ROOM_IN_TITLE_KEY].newValue === true;
+		}
+		if (changes[GOOGLE_CALENDAR_TEACHER_IN_TITLE_KEY]) {
+			googleCalendarTeacherInTitleCheckbox.checked = changes[GOOGLE_CALENDAR_TEACHER_IN_TITLE_KEY].newValue === true;
+		}
+		if (changes[GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY]) {
+			googleCalendarUseDefaultRemindersCheckbox.checked = changes[GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY].newValue === true;
+		}
+		updateGoogleCalendarControls();
 	}
 });

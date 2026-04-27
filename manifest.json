@@ -3,11 +3,14 @@
   "description": "QoL extras for Edupage - themes, global grade tools, and update reminders.",
   "version": "0.3.9",
   "manifest_version": 3,
-  "permissions": ["storage", "tabs", "alarms", "notifications"],
+  "permissions": ["storage", "tabs", "alarms", "notifications", "identity"],
   "host_permissions": [
     "https://*.edupage.org/*",
     "https://edublurtesting.ct.ws/*",
-    "https://raw.githubusercontent.com/Alexosavrua/Edupage-Extras/*"
+    "https://raw.githubusercontent.com/Alexosavrua/Edupage-Extras/*",
+    "https://accounts.google.com/*",
+    "https://oauth2.googleapis.com/*",
+    "https://www.googleapis.com/*"
   ],
   "background": {
     "service_worker": "scripts/background.js"
@@ -35,6 +38,7 @@
       "js": [
         "scripts/activity-shield-bridge.js",
         "scripts/content.js",
+        "scripts/timetable-sync.js",
         "scripts/grades-enhancer.js",
         "scripts/attendance-enhancer.js"
       ],

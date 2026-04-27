@@ -207,6 +207,140 @@
 
       </section>
 
+      <section class="setting-group" aria-labelledby="google-calendar-heading">
+        <h2 id="google-calendar-heading">Google Calendar</h2>
+
+        <div class="setting-row">
+          <div>
+            <h3>Google Calendar Sync</h3>
+            <p>Sync your EduPage timetable into a dedicated Google Calendar and keep the current week updated when rooms, teachers, or lessons change.</p>
+          </div>
+          <label class="switch" for="GoogleCalendarEnabledCheckbox">
+            <input type="checkbox" id="GoogleCalendarEnabledCheckbox">
+            <span>Enabled</span>
+          </label>
+        </div>
+
+        <div id="GoogleCalendarDetails" hidden>
+        <div class="setting-note setting-note-warning" role="note" aria-label="Google auth note">
+          <strong>OAuth Required</strong>
+          <p>Google Calendar writes do not work with a simple API key. Use a Google OAuth Client ID and Client Secret here instead. Because this is a public extension, each user should bring their own Google OAuth app credentials instead of relying on one shared secret.</p>
+        </div>
+
+        <div class="setting-row setting-row-stack">
+          <div>
+            <h3>Google Setup</h3>
+            <p>Create a Google Cloud OAuth Client ID, not an API key. You only need to do this once.</p>
+          </div>
+          <div class="tutorial-list">
+            <p>1. Open Google Cloud Console and create or select a project.</p>
+            <p>2. Enable the Google Calendar API for that project.</p>
+            <p>3. Open <strong>APIs &amp; Services</strong> → <strong>Credentials</strong>.</p>
+            <p>4. Create an <strong>OAuth client ID</strong> of type <strong>Web application</strong>.</p>
+            <p>5. Add the exact redirect URI shown below to <strong>Authorized redirect URIs</strong>.</p>
+            <p>6. Copy the Client ID and Client Secret, paste them below, then click <strong>Connect Google</strong>.</p>
+          </div>
+        </div>
+
+        <div class="setting-row setting-row-stack calendar-config-row">
+          <div class="calendar-config-heading">
+            <h3>Google Credentials</h3>
+            <p>Paste your Google OAuth Client ID and Client Secret here. API keys are not supported for calendar writes.</p>
+          </div>
+          <div class="calendar-config-controls">
+            <label class="text-control" for="GoogleCalendarRedirectUriInput">
+              <span>Authorized Redirect URI</span>
+              <input type="text" id="GoogleCalendarRedirectUriInput" readonly spellcheck="false" autocomplete="off">
+            </label>
+            <label class="text-control" for="GoogleCalendarClientIdInput">
+              <span>OAuth Client ID</span>
+              <input type="text" id="GoogleCalendarClientIdInput" placeholder="1234567890-abc123.apps.googleusercontent.com" spellcheck="false" autocomplete="off">
+            </label>
+            <label class="text-control" for="GoogleCalendarClientSecretInput">
+              <span>OAuth Client Secret</span>
+              <input type="password" id="GoogleCalendarClientSecretInput" placeholder="GOCSPX-..." spellcheck="false" autocomplete="off">
+            </label>
+            <label class="text-control" for="GoogleCalendarNameInput">
+              <span>Calendar Name</span>
+              <input type="text" id="GoogleCalendarNameInput" placeholder="EduPage">
+            </label>
+            <label class="select-control" for="GoogleCalendarSyncModeSelect">
+              <span>Sync Range</span>
+              <select id="GoogleCalendarSyncModeSelect">
+                <option value="week">Current week only</option>
+                <option value="halfyear">Current halfyear</option>
+              </select>
+            </label>
+            <label class="select-control" for="GoogleCalendarHalfyearScopeSelect" id="GoogleCalendarHalfyearScopeRow" hidden>
+              <span>Halfyear Coverage</span>
+              <select id="GoogleCalendarHalfyearScopeSelect">
+                <option value="future">From today forward</option>
+                <option value="full">Whole current halfyear</option>
+              </select>
+            </label>
+            <label class="select-control" for="GoogleCalendarColorModeSelect">
+              <span>Event Colors</span>
+              <select id="GoogleCalendarColorModeSelect">
+                <option value="subject">By subject</option>
+                <option value="single">Single color</option>
+                <option value="changes">Changed lessons only</option>
+                <option value="none">No colors</option>
+              </select>
+            </label>
+            <label class="select-control" for="GoogleCalendarSingleColorSelect" id="GoogleCalendarSingleColorRow" hidden>
+              <span>Single Event Color</span>
+              <select id="GoogleCalendarSingleColorSelect">
+                <option value="1">Lavender</option>
+                <option value="2">Sage</option>
+                <option value="3">Grape</option>
+                <option value="4">Flamingo</option>
+                <option value="5">Banana</option>
+                <option value="6">Tangerine</option>
+                <option value="7">Peacock</option>
+                <option value="8">Graphite</option>
+                <option value="9">Blueberry</option>
+                <option value="10">Basil</option>
+                <option value="11">Tomato</option>
+              </select>
+            </label>
+            <label class="number-control" for="GoogleCalendarSyncIntervalInput">
+              <span>Sync Every</span>
+              <div class="number-control-field">
+                <input type="number" id="GoogleCalendarSyncIntervalInput" min="5" max="120" step="5">
+                <span>minutes</span>
+              </div>
+            </label>
+            <div class="option-grid" aria-label="Google Calendar quality of life options">
+              <label class="switch" for="GoogleCalendarRoomInTitleCheckbox">
+                <input type="checkbox" id="GoogleCalendarRoomInTitleCheckbox">
+                <span>Show room in title</span>
+              </label>
+              <label class="switch" for="GoogleCalendarTeacherInTitleCheckbox">
+                <input type="checkbox" id="GoogleCalendarTeacherInTitleCheckbox">
+                <span>Show teacher in title</span>
+              </label>
+              <label class="switch" for="GoogleCalendarUseDefaultRemindersCheckbox">
+                <input type="checkbox" id="GoogleCalendarUseDefaultRemindersCheckbox">
+                <span>Use Google reminders</span>
+              </label>
+            </div>
+            <div class="actions-row">
+              <button class="secondary-button" id="GoogleCalendarConnectButton" type="button">Connect Google</button>
+              <button class="secondary-button" id="GoogleCalendarDisconnectButton" type="button">Disconnect</button>
+              <button class="secondary-button" id="GoogleCalendarClearButton" type="button">Clear Events</button>
+              <button class="secondary-button" id="GoogleCalendarSyncNowButton" type="button">Sync Now</button>
+            </div>
+            <p class="calendar-help-text">Put that redirect URI into your Google OAuth client exactly as shown. If Google says <strong>redirect_uri_mismatch</strong>, this field is the fix.</p>
+            <p class="calendar-help-text">Week mode syncs the current whole week. On Saturday and Sunday it syncs the upcoming week instead. Halfyear mode repeats the detected timetable template through the current halfyear and then keeps the active week updated from EduPage.</p>
+            <p class="calendar-help-text">Halfyear coverage defaults to future events only. Whole current halfyear is available too, but it is slower and may take noticeably longer to finish.</p>
+            <p class="calendar-help-text">The second halfyear ends on <strong>June 30</strong>, so this sync will not continue into July or August.</p>
+            <p class="calendar-help-text">Halfyear sync is intentionally throttled so Google is less likely to reject the extension with rate limits.</p>
+            <span class="save-status" id="GoogleCalendarStatusText" role="status">Google Calendar sync is disabled.</span>
+          </div>
+        </div>
+        </div>
+      </section>
+
       <section class="setting-group" aria-labelledby="debug-heading">
         <h2 id="debug-heading">Debug</h2>
 
