@@ -211,6 +211,74 @@ p {
     max-width: 430px;
 }
 
+.calendar-config-row {
+    align-items: stretch;
+}
+
+.calendar-config-controls {
+    display: grid;
+    gap: 12px;
+    justify-items: stretch;
+    max-width: none;
+    width: 100%;
+}
+
+.calendar-config-heading {
+    max-width: none;
+}
+
+.calendar-config-controls .text-control,
+.calendar-config-controls .number-control {
+    width: 100%;
+}
+
+.calendar-config-controls .select-control {
+    display: grid;
+    gap: 6px;
+    width: 100%;
+    color: var(--text-muted);
+    font-size: 13px;
+    white-space: normal;
+}
+
+.calendar-config-controls .select-control select {
+    width: 100%;
+}
+
+#GoogleCalendarDetails {
+    display: grid;
+    gap: 12px;
+}
+
+.option-grid {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+    justify-items: start;
+}
+
+.option-grid .switch {
+    width: 100%;
+}
+
+.calendar-config-controls .actions-row {
+    justify-content: flex-start;
+    width: 100%;
+}
+
+.calendar-config-controls .save-status {
+    text-align: left;
+}
+
+.tutorial-list {
+    display: grid;
+    gap: 6px;
+}
+
+.tutorial-list p {
+    margin-top: 0;
+}
+
 .custom-theme-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(150px, 1fr));
@@ -311,6 +379,26 @@ p {
     white-space: nowrap;
 }
 
+.text-control,
+.number-control {
+    display: grid;
+    gap: 6px;
+    width: 100%;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.number-control-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.calendar-help-text {
+    margin-top: 0;
+    font-size: 12px;
+}
+
 input[type="checkbox"] {
     accent-color: var(--accent-color);
     height: 18px;
@@ -347,6 +435,32 @@ input[type="date"] {
     padding: 8px 10px;
 }
 
+input[type="text"],
+input[type="password"],
+input[type="number"] {
+    width: 100%;
+    min-width: 150px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--control-bg);
+    color: var(--text-main);
+    font: inherit;
+    padding: 8px 10px;
+}
+
+input[type="text"]:focus-visible,
+input[type="password"]:focus-visible,
+input[type="number"]:focus-visible,
+input[type="date"]:focus-visible,
+select:focus-visible {
+    border-color: var(--accent-color);
+    outline: none;
+}
+
+input[readonly] {
+    opacity: 0.86;
+}
+
 select:disabled,
 input[type="checkbox"]:disabled {
     cursor: not-allowed;
@@ -363,6 +477,15 @@ input[type="checkbox"]:disabled {
 }
 
 #UpdateStatusText[data-state="error"] {
+    color: var(--danger-color);
+}
+
+#GoogleCalendarStatusText[data-state="available"] {
+    color: var(--accent-color);
+    font-weight: 700;
+}
+
+#GoogleCalendarStatusText[data-state="error"] {
     color: var(--danger-color);
 }
 
@@ -429,6 +552,10 @@ input[type="checkbox"]:disabled {
     .shortcut-controls {
         justify-items: stretch;
         width: 100%;
+    }
+
+    .calendar-config-controls {
+        max-width: none;
     }
 
     .shortcut-status {
