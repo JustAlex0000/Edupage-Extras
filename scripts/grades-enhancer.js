@@ -492,6 +492,18 @@
         line-height: 1.1;
       }
 
+      .ee-attendance-tone-good {
+        color: #2e7d32;
+      }
+
+      .ee-attendance-tone-warn {
+        color: #f57f17;
+      }
+
+      .ee-attendance-tone-danger {
+        color: #c62828;
+      }
+
       .ee-attendance-total {
         color: #263238;
       }
@@ -549,6 +561,18 @@
 
       html.ee-dark .ee-attendance-empty {
         color: var(--ee-text-muted) !important;
+      }
+
+      html.ee-dark .ee-attendance-tone-good {
+        color: var(--ee-accent) !important;
+      }
+
+      html.ee-dark .ee-attendance-tone-warn {
+        color: var(--ee-warning) !important;
+      }
+
+      html.ee-dark .ee-attendance-tone-danger {
+        color: var(--ee-danger) !important;
       }
     `;
     (document.head || document.documentElement).appendChild(style);
@@ -728,7 +752,11 @@
         : `Official current halfyear: ${attendanceSummary.absent}/${attendanceSummary.total} lessons absent in total.`;
       const percentValue = document.createElement("span");
       percentValue.className = "ee-attendance-stat";
-      percentValue.style.color = summaryTone.color;
+      if (summaryTone?.className) {
+        percentValue.classList.add(summaryTone.className);
+      } else {
+        percentValue.style.color = summaryTone.color;
+      }
       percentValue.textContent = formatPercent(attendanceSummary.percent);
       percentCell.appendChild(percentValue);
       percentCell.title = summaryTitle;
@@ -1653,12 +1681,24 @@
 
   function attendanceTone(percent) {
     if (!Number.isFinite(percent) || percent <= 5) {
-      return { background: "rgba(46, 125, 50, 0.12)", color: "#2e7d32" };
+      return {
+        background: "rgba(46, 125, 50, 0.12)",
+        color: "var(--ee-accent, #2e7d32)",
+        className: "ee-attendance-tone-good",
+      };
     }
     if (percent <= 15) {
-      return { background: "rgba(245, 127, 23, 0.12)", color: "#f57f17" };
+      return {
+        background: "rgba(245, 127, 23, 0.12)",
+        color: "var(--ee-warning, #f57f17)",
+        className: "ee-attendance-tone-warn",
+      };
     }
-    return { background: "rgba(198, 40, 40, 0.12)", color: "#c62828" };
+    return {
+      background: "rgba(198, 40, 40, 0.12)",
+      color: "var(--ee-danger, #c62828)",
+      className: "ee-attendance-tone-danger",
+    };
   }
 
   function findSubjectCell(row) {
@@ -1717,13 +1757,17 @@
       return;
     }
 
-    cell.style.transform = referenceCell.style.transform || "";
-    cell.style.height = referenceCell.style.height || "";
-    cell.style.top = referenceCell.style.top || "";
-    cell.style.bottom = referenceCell.style.bottom || "";
-    cell.style.position = referenceCell.style.position || "";
-    cell.style.zIndex = referenceCell.style.zIndex || "";
-    cell.style.verticalAlign = referenceCell.style.verticalAlign || "";
+    const existingWidth = cell.style.width;
+    const existingMinWidth = cell.style.minWidth;
+    const existingMaxWidth = cell.style.maxWidth;
+    const existingTextAlign = cell.style.textAlign;
+    const existingWhiteSpace = cell.style.whiteSpace;
+    cell.style.cssText = referenceCell.style.cssText;
+    cell.style.width = existingWidth;
+    cell.style.minWidth = existingMinWidth;
+    cell.style.maxWidth = existingMaxWidth;
+    cell.style.textAlign = existingTextAlign || "center";
+    cell.style.whiteSpace = existingWhiteSpace || "nowrap";
   }
 
   function syncAttendanceHeaderLayout(table) {
@@ -1827,7 +1871,12 @@
     if (cell.classList.contains("ee-attendance-total-cell") && !empty) {
       value.classList.add("ee-attendance-total");
     }
-    if (tone?.color && !empty) {
+    if (!empty) {
+      value.style.color = "";
+    }
+    if (tone?.className && !empty) {
+      value.classList.add(tone.className);
+    } else if (tone?.color && !empty) {
       value.style.color = tone.color;
     }
     value.textContent = text;
