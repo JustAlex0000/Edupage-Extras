@@ -8,7 +8,7 @@ function loadGradesEnhancerInternals() {
   const source = fs.readFileSync(scriptPath, "utf8");
   const instrumentedSource = source.replace(
     'if (document.readyState === "loading") {',
-    'globalThis.__eeTest = { parseAverage, gradeColor, gradePercentage, parseSubjectMap, computeSubjectAbsences, summarizeAttendance, summarizeRenderableAttendance, finalizeSubjectStats, resolveAttendanceBreakdown, matchSubjectStats }; if (document.readyState === "loading") {',
+    'globalThis.__eeTest = { parseAverage, gradeColor, gradePercentage, parseSubjectMap, computeSubjectAbsences, summarizeAttendance, summarizeRenderableAttendance, finalizeSubjectStats, resolveAttendanceBreakdown, matchSubjectStats, parseGradeTitleSegments, buildGradeOriginalTitleHtml, buildGradeTitleOverrideKey, gradeTableRowCount }; if (document.readyState === "loading") {',
   );
 
   const context = {
@@ -213,4 +213,42 @@ runTest("attendance-only events stay unmatched instead of pretending to belong t
   assert.equal(renderedSummary.absent, 0);
   assert.equal(renderedSummary.total, 10);
   assert.equal(breakdown.unmatched.absent, 6);
+});
+
+runTest("grade title overrides preserve the date details and replace only the title", () => {
+  const { parseGradeTitleSegments, buildGradeOriginalTitleHtml } = loadGradesEnhancerInternals();
+  const original = "<b>Písomná odpoveď</b><br>Dátum známky: 12.02.2026";
+
+  const parsed = parseGradeTitleSegments(original);
+  const rebuilt = buildGradeOriginalTitleHtml("Esej", parsed.detailHtml);
+
+  assert.equal(parsed.title, "Písomná odpoveď");
+  assert.equal(parsed.detailHtml, "Dátum známky: 12.02.2026");
+  assert.equal(rebuilt, "<b>Esej</b><br>Dátum známky: 12.02.2026");
+});
+
+runTest("grade title override keys stay stable for the same subject, date, grade, column, and default title", () => {
+  const { buildGradeTitleOverrideKey } = loadGradesEnhancerInternals();
+
+  const key = buildGradeTitleOverrideKey("34704", "12.02.2026", "2", 3, "Písomná odpoveď");
+
+  assert.equal(key, "34704|12.02.2026|2|3|Písomná odpoveď");
+});
+
+runTest("primary grades table scoring prefers the table with subject rows over a header-only clone", () => {
+  const { gradeTableRowCount } = loadGradesEnhancerInternals();
+
+  const headerOnlyTable = {
+    querySelectorAll(selector) {
+      return selector === "tr.predmetRow" ? [] : [];
+    },
+  };
+  const fullTable = {
+    querySelectorAll(selector) {
+      return selector === "tr.predmetRow" ? [{}, {}, {}] : [];
+    },
+  };
+
+  assert.equal(gradeTableRowCount(headerOnlyTable), 0);
+  assert.equal(gradeTableRowCount(fullTable), 3);
 });

@@ -16,6 +16,7 @@
   const AVERAGE_RENDER_SIGNATURE_ATTR = "data-ee-average-render-signature";
   const ATTENDANCE_RENDER_SIGNATURE_ATTR = "data-ee-attendance-render-signature";
   const GRADE_BADGES_KEY = "gradeBadgesEnabled";
+  const GRADE_TITLE_OVERRIDES_KEY = "eeGradeTitleOverrides";
   const GRADES_ATTENDANCE_KEY = "gradesAttendanceStatsEnabled";
   const GRADES_ATTENDANCE_DEBUG_KEY = "gradesAttendanceDebugEnabled";
   const HALFYEAR_START_KEY = "eeHalfyearStartDate";
@@ -28,10 +29,13 @@
   let gradesAttendanceDebugEnabled = false;
   let halfyearStartOverride = "";
   let observerTimer = null;
+  let headerSyncTimer = null;
   let attendanceStatsCache = null;
   let attendanceStatsPromise = null;
   let attendanceLoadToken = 0;
   let ignoreMutationsUntil = 0;
+  let gradeTitleOverrides = {};
+  let gradeTitleOverridesPromise = null;
 
   function parseAverage(text) {
     if (!text) return Number.NaN;
@@ -178,6 +182,169 @@
     } catch (error) {
       debugWarn("Could not sync attendance debug dataset.", error);
     }
+  }
+
+  function decodeHtmlEntities(value) {
+    if (typeof document?.createElement !== "function") {
+      return String(value || "")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&amp;/g, "&")
+        .replace(/&quot;/g, "\"")
+        .replace(/&#39;/g, "'");
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.innerHTML = String(value || "");
+    return textarea.value;
+  }
+
+  function stripHtmlTags(value) {
+    return decodeHtmlEntities(String(value || "").replace(/<[^>]+>/g, " "));
+  }
+
+  function normalizeWhitespace(value) {
+    return String(value || "").replace(/\s+/g, " ").trim();
+  }
+
+  function parseGradeTitleSegments(originalTitleHtml) {
+    const html = String(originalTitleHtml || "").trim();
+    if (!html) {
+      return { title: "", detailHtml: "" };
+    }
+
+    const titleMatch = html.match(/<b>([\s\S]*?)<\/b>/i);
+    const title = normalizeWhitespace(stripHtmlTags(titleMatch?.[1] || ""));
+    const withoutTitle = titleMatch
+      ? `${html.slice(0, titleMatch.index)}${html.slice((titleMatch.index || 0) + titleMatch[0].length)}`
+      : html;
+    const detailHtml = withoutTitle.replace(/^(<br\s*\/?>|\s)+/i, "").trim();
+
+    return { title, detailHtml };
+  }
+
+  function buildGradeOriginalTitleHtml(title, detailHtml = "") {
+    const safeTitle = normalizeWhitespace(title);
+    const safeDetail = String(detailHtml || "").trim();
+    if (!safeTitle && !safeDetail) return "";
+    if (!safeTitle) return safeDetail;
+    if (!safeDetail) return `<b>${safeTitle}</b>`;
+    return `<b>${safeTitle}</b><br>${safeDetail}`;
+  }
+
+  function gradeCellColumnIndex(cell) {
+    if (!(cell instanceof HTMLTableCellElement) || !(cell.parentElement instanceof HTMLTableRowElement)) {
+      return -1;
+    }
+
+    const cells = Array.from(cell.parentElement.cells);
+    return cells.indexOf(cell);
+  }
+
+  function buildGradeTitleOverrideKey(subjectId, dateText, gradeValue, columnIndex, defaultTitle) {
+    return [
+      String(subjectId || "").trim(),
+      normalizeWhitespace(dateText),
+      normalizeWhitespace(gradeValue),
+      Number.isInteger(columnIndex) ? columnIndex : -1,
+      normalizeWhitespace(defaultTitle),
+    ].join("|");
+  }
+
+  function extractGradeCellMeta(gradeTip) {
+    if (!(gradeTip instanceof Element)) return null;
+
+    const row = gradeTip.closest("tr[data-predmetid]");
+    const cell = gradeTip.closest("td");
+    const originalTitle = String(gradeTip.getAttribute("data-ee-original-grade-title") || gradeTip.getAttribute("original-title") || "").trim();
+    const gradeValue = normalizeWhitespace(gradeTip.querySelector(".znZnamka")?.textContent || gradeTip.textContent || "");
+    const { title, detailHtml } = parseGradeTitleSegments(originalTitle);
+    const dateMatch = stripHtmlTags(detailHtml).match(/D[aá]tum známky:\s*([0-9]{2}\.[0-9]{2}\.[0-9]{4})/i);
+    const dateText = dateMatch?.[1] || "";
+    const subjectId = String(row?.dataset?.predmetid || "").trim();
+    const columnIndex = gradeCellColumnIndex(cell);
+
+    if (!subjectId || !gradeValue || !dateText || columnIndex < 0) {
+      return null;
+    }
+
+    return {
+      subjectId,
+      gradeValue,
+      dateText,
+      columnIndex,
+      defaultTitle: title,
+      detailHtml,
+      storageKey: buildGradeTitleOverrideKey(subjectId, dateText, gradeValue, columnIndex, title),
+    };
+  }
+
+  async function loadGradeTitleOverrides() {
+    if (gradeTitleOverridesPromise) {
+      return gradeTitleOverridesPromise;
+    }
+
+    gradeTitleOverridesPromise = storageGet([GRADE_TITLE_OVERRIDES_KEY])
+      .then((result) => {
+        gradeTitleOverrides = result[GRADE_TITLE_OVERRIDES_KEY] && typeof result[GRADE_TITLE_OVERRIDES_KEY] === "object"
+          ? result[GRADE_TITLE_OVERRIDES_KEY]
+          : {};
+        return gradeTitleOverrides;
+      })
+      .finally(() => {
+        gradeTitleOverridesPromise = null;
+      });
+
+    return gradeTitleOverridesPromise;
+  }
+
+  async function saveGradeTitleOverrides() {
+    await storageSet({ [GRADE_TITLE_OVERRIDES_KEY]: gradeTitleOverrides });
+  }
+
+  function applyStoredGradeTitles(table) {
+    Array.from(table.querySelectorAll("span.tips")).forEach((gradeTip) => {
+      if (!(gradeTip instanceof Element) || !gradeTip.querySelector(".znZnamka")) return;
+      if (!gradeTip.hasAttribute("data-ee-original-grade-title")) {
+        gradeTip.setAttribute("data-ee-original-grade-title", gradeTip.getAttribute("original-title") || "");
+      }
+
+      const meta = extractGradeCellMeta(gradeTip);
+      if (!meta) return;
+
+      const overrideTitle = normalizeWhitespace(gradeTitleOverrides[meta.storageKey] || "");
+      const finalTitle = overrideTitle || meta.defaultTitle;
+      const updatedTitleHtml = buildGradeOriginalTitleHtml(finalTitle, meta.detailHtml);
+      if (updatedTitleHtml) {
+        gradeTip.setAttribute("original-title", updatedTitleHtml);
+        gradeTip.setAttribute("title", `${finalTitle}${meta.dateText ? `\nDátum známky: ${meta.dateText}` : ""}`);
+      }
+    });
+  }
+
+  async function handleGradeTitleEdit(event) {
+    const gradeTip = event.target instanceof Element ? event.target.closest("span.tips") : null;
+    if (!(gradeTip instanceof Element) || !gradeTip.querySelector(".znZnamka")) return;
+
+    const meta = extractGradeCellMeta(gradeTip);
+    if (!meta) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const currentValue = normalizeWhitespace(gradeTitleOverrides[meta.storageKey] || meta.defaultTitle);
+    const updatedTitle = window.prompt("Grade title", currentValue);
+    if (updatedTitle === null) return;
+
+    const normalizedTitle = normalizeWhitespace(updatedTitle);
+    if (!normalizedTitle || normalizedTitle === meta.defaultTitle) {
+      delete gradeTitleOverrides[meta.storageKey];
+    } else {
+      gradeTitleOverrides[meta.storageKey] = normalizedTitle;
+    }
+
+    await saveGradeTitleOverrides();
+    enhanceGradesTable();
   }
 
   function parseDateOnly(value) {
@@ -1545,6 +1712,42 @@
     return cell;
   }
 
+  function syncHeaderCellLayout(cell, referenceCell) {
+    if (!(cell instanceof HTMLTableCellElement) || !(referenceCell instanceof HTMLTableCellElement)) {
+      return;
+    }
+
+    cell.style.transform = referenceCell.style.transform || "";
+    cell.style.height = referenceCell.style.height || "";
+    cell.style.top = referenceCell.style.top || "";
+    cell.style.bottom = referenceCell.style.bottom || "";
+    cell.style.position = referenceCell.style.position || "";
+    cell.style.zIndex = referenceCell.style.zIndex || "";
+    cell.style.verticalAlign = referenceCell.style.verticalAlign || "";
+  }
+
+  function syncAttendanceHeaderLayout(table) {
+    const headerRow = table?.querySelector?.("thead tr");
+    if (!headerRow) return;
+
+    const averageHeaderCell = findAverageHeaderCell(headerRow);
+    const percentHeader = headerRow.querySelector(".ee-attendance-percent-header");
+    const totalHeader = headerRow.querySelector(".ee-attendance-total-header");
+    const notesHeader = Array.from(headerRow.cells).find((cell) =>
+      !cell.classList.contains("ee-attendance-header")
+      && normalizeText(cell.textContent) === "poznamky",
+    );
+    const referenceCell = averageHeaderCell || notesHeader || headerRow.cells[0] || null;
+    if (!(referenceCell instanceof HTMLTableCellElement)) return;
+
+    if (percentHeader instanceof HTMLTableCellElement) {
+      syncHeaderCellLayout(percentHeader, referenceCell);
+    }
+    if (totalHeader instanceof HTMLTableCellElement) {
+      syncHeaderCellLayout(totalHeader, referenceCell);
+    }
+  }
+
   function ensureAttendanceDataCell(row, className, afterCell) {
     let cell = row.querySelector(`.${className}`);
     if (!cell) {
@@ -1586,6 +1789,7 @@
         "Current halfyear absent lessons / lessons held so far per subject.",
         percentHeader,
       );
+      syncAttendanceHeaderLayout(table);
     }
 
     Array.from(table.querySelectorAll("tr.predmetRow")).forEach((row) => {
@@ -2053,6 +2257,27 @@
 
   function currentOrigin() {
     return window.location.origin;
+  }
+
+  function getGradesTables() {
+    return Array.from(document.querySelectorAll("table.znamkyTable"));
+  }
+
+  function gradeTableRowCount(table) {
+    return table?.querySelectorAll ? table.querySelectorAll("tr.predmetRow").length : 0;
+  }
+
+  function getPrimaryGradesTable() {
+    const tables = getGradesTables();
+    if (tables.length <= 1) {
+      return tables[0] || null;
+    }
+
+    return tables.reduce((bestTable, currentTable) => {
+      const bestScore = bestTable ? gradeTableRowCount(bestTable) : -1;
+      const currentScore = gradeTableRowCount(currentTable);
+      return currentScore > bestScore ? currentTable : bestTable;
+    }, null);
   }
 
   function weekStartISO(dateText) {
@@ -2597,16 +2822,18 @@
   }
 
   function enhanceGradesTable() {
-    const table = document.querySelector("table.znamkyTable");
-    if (!table) return;
+    const tables = getGradesTables();
+    const table = getPrimaryGradesTable();
+    if (!table || tables.length === 0) return;
 
     markInternalMutation();
     injectStyles();
+    tables.forEach((gradesTable) => applyStoredGradeTitles(gradesTable));
 
     if (gradesAttendanceEnabled) {
-      ensureAttendanceColumns(table);
+      tables.forEach((gradesTable) => ensureAttendanceColumns(gradesTable));
     } else {
-      clearSubjectAttendance(table);
+      tables.forEach((gradesTable) => clearSubjectAttendance(gradesTable));
     }
 
     if (gradeBadgesEnabled) {
@@ -2634,7 +2861,7 @@
     }
 
     if (!gradesAttendanceEnabled) {
-      clearSubjectAttendance(table);
+      tables.forEach((gradesTable) => clearSubjectAttendance(gradesTable));
       return;
     }
 
@@ -2643,10 +2870,14 @@
       .then((data) => {
         if (!gradesAttendanceEnabled || loadToken !== attendanceLoadToken) return;
 
-        const liveTable = document.querySelector("table.znamkyTable");
+        const liveTable = getPrimaryGradesTable();
         if (!liveTable) return;
 
         renderSubjectAttendance(liveTable, data);
+
+        getGradesTables()
+          .filter((gradesTable) => gradesTable !== liveTable)
+          .forEach((gradesTable) => ensureAttendanceColumns(gradesTable));
 
         if (gradeBadgesEnabled) {
           const liveAverages = collectAverages(liveTable);
@@ -2667,10 +2898,13 @@
       })
       .catch(() => {
         if (loadToken !== attendanceLoadToken) return;
-        const liveTable = document.querySelector("table.znamkyTable");
+        const liveTable = getPrimaryGradesTable();
         if (liveTable && gradesAttendanceEnabled) {
           populateAttendancePlaceholders(liveTable);
         }
+        getGradesTables()
+          .filter((gradesTable) => gradesTable !== liveTable)
+          .forEach((gradesTable) => ensureAttendanceColumns(gradesTable));
       });
   }
 
@@ -2679,9 +2913,21 @@
     observerTimer = window.setTimeout(enhanceGradesTable, 160);
   }
 
+  function syncAllAttendanceHeaderLayouts() {
+    getGradesTables().forEach((table) => syncAttendanceHeaderLayout(table));
+  }
+
+  function scheduleHeaderSync() {
+    window.clearTimeout(headerSyncTimer);
+    headerSyncTimer = window.setTimeout(syncAllAttendanceHeaderLayouts, 0);
+  }
+
   function initStorage() {
-    chrome.storage.local.get([GRADE_BADGES_KEY, GRADES_ATTENDANCE_KEY, GRADES_ATTENDANCE_DEBUG_KEY, HALFYEAR_START_KEY], (result) => {
+    chrome.storage.local.get([GRADE_BADGES_KEY, GRADE_TITLE_OVERRIDES_KEY, GRADES_ATTENDANCE_KEY, GRADES_ATTENDANCE_DEBUG_KEY, HALFYEAR_START_KEY], (result) => {
       gradeBadgesEnabled = result[GRADE_BADGES_KEY] === true;
+      gradeTitleOverrides = result[GRADE_TITLE_OVERRIDES_KEY] && typeof result[GRADE_TITLE_OVERRIDES_KEY] === "object"
+        ? result[GRADE_TITLE_OVERRIDES_KEY]
+        : {};
       gradesAttendanceEnabled = result[GRADES_ATTENDANCE_KEY] !== false;
       gradesAttendanceDebugEnabled = result[GRADES_ATTENDANCE_DEBUG_KEY] === true;
       halfyearStartOverride = normalizeDateInput(result[HALFYEAR_START_KEY]);
@@ -2695,6 +2941,13 @@
 
       if (changes[GRADE_BADGES_KEY]) {
         gradeBadgesEnabled = changes[GRADE_BADGES_KEY].newValue === true;
+        shouldEnhance = true;
+      }
+
+      if (changes[GRADE_TITLE_OVERRIDES_KEY]) {
+        gradeTitleOverrides = changes[GRADE_TITLE_OVERRIDES_KEY].newValue && typeof changes[GRADE_TITLE_OVERRIDES_KEY].newValue === "object"
+          ? changes[GRADE_TITLE_OVERRIDES_KEY].newValue
+          : {};
         shouldEnhance = true;
       }
 
@@ -2757,6 +3010,10 @@
 
   function init() {
     injectStyles();
+    loadGradeTitleOverrides();
+    document.addEventListener("dblclick", handleGradeTitleEdit, true);
+    window.addEventListener("scroll", scheduleHeaderSync, { passive: true });
+    window.addEventListener("resize", scheduleHeaderSync, { passive: true });
     initStorage();
     enhanceGradesTable();
     initObserver();
