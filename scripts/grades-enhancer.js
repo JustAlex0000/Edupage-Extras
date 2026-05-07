@@ -20,7 +20,7 @@
   const GRADES_ATTENDANCE_DEBUG_KEY = "gradesAttendanceDebugEnabled";
   const HALFYEAR_START_KEY = "eeHalfyearStartDate";
   const GRADES_ATTENDANCE_CACHE_KEY = "eeGradesAttendanceStatsCache";
-  const GRADES_ATTENDANCE_CACHE_VERSION = 9;
+  const GRADES_ATTENDANCE_CACHE_VERSION = 10;
   const CACHE_TTL_MS = 15 * 60 * 1000;
   const CLASSBOOK_RANGE_MAX_DAYS = 30;
   let gradeBadgesEnabled = false;
@@ -162,6 +162,22 @@
       percent: Number.isFinite(entry.percent) ? Number(entry.percent.toFixed(2)) : null,
       aliases: Array.from(entry.aliases || []).sort(),
     }));
+  }
+
+  function syncAttendanceDebug(debug) {
+    const value = debug ? JSON.stringify(debug) : "";
+
+    try {
+      if (document?.documentElement) {
+        if (value) {
+          document.documentElement.dataset.eeGradesAttendanceDebug = value;
+        } else {
+          delete document.documentElement.dataset.eeGradesAttendanceDebug;
+        }
+      }
+    } catch (error) {
+      debugWarn("Could not sync attendance debug dataset.", error);
+    }
   }
 
   function parseDateOnly(value) {
@@ -439,16 +455,18 @@
       .join("|");
   }
 
-  function buildSummaryRenderSignature(averageSignature, attendanceColumnsEnabled, attendanceSummary) {
+  function buildSummaryRenderSignature(averageSignature, attendanceColumnsEnabled, attendanceBreakdown) {
     if (!attendanceColumnsEnabled) {
       return `${averageSignature}|attendance:off`;
     }
 
-    if (!attendanceSummary) {
+    if (!attendanceBreakdown) {
       return `${averageSignature}|attendance:pending`;
     }
 
-    return `${averageSignature}|attendance:${attendanceSummary.absent}:${attendanceSummary.total}`;
+    const summary = attendanceBreakdown.summary || attendanceBreakdown;
+    const unmatched = attendanceBreakdown.unmatched || { absent: 0, total: 0 };
+    return `${averageSignature}|attendance:${summary.absent}:${summary.total}:${unmatched.absent}:${unmatched.total}`;
   }
 
   function tableColumnCount(table) {
@@ -463,7 +481,7 @@
     return Math.max(5, table.querySelector("tr")?.cells.length || 5);
   }
 
-  function ensureSummaryRow(table, averages, renderSignature, { attendanceColumns = false, attendanceSummary = null } = {}) {
+  function ensureSummaryRow(table, averages, renderSignature, { attendanceColumns = false, attendanceSummary = null, attendanceBreakdown = null } = {}) {
     const existing = table.querySelector("tr.ee-overall-row");
     if (existing?.dataset.eeSignature === renderSignature) return;
     if (existing) existing.remove();
@@ -499,6 +517,17 @@
     labelCell.appendChild(label);
     labelCell.appendChild(meta);
 
+    const unmatchedSummary = attendanceBreakdown?.unmatched || null;
+    if (unmatchedSummary && (unmatchedSummary.total > 0 || unmatchedSummary.absent > 0)) {
+      const note = document.createElement("span");
+      note.className = "ee-overall-meta ee-overall-note";
+      note.textContent = unmatchedSummary.absent > 0
+        ? `+ ${unmatchedSummary.absent}/${unmatchedSummary.total} unmatched lessons`
+        : `+ ${unmatchedSummary.total} unmatched lessons`;
+      note.title = "Official attendance includes lessons that are not mapped to the current grades rows yet.";
+      labelCell.appendChild(note);
+    }
+
     const avgCell = document.createElement("td");
     avgCell.className = "ee-overall-value-cell";
     avgCell.appendChild(createBadgeElement(overallAvg, formatAverageDisplay(overallAvg, averageScale), {
@@ -527,18 +556,21 @@
     totalCell.className = "ee-overall-attendance-cell ee-attendance-total-cell";
 
     if (attendanceSummary && Number.isFinite(attendanceSummary.percent)) {
+      const summaryTitle = unmatchedSummary && (unmatchedSummary.total > 0 || unmatchedSummary.absent > 0)
+        ? `Official current halfyear: ${attendanceSummary.absent}/${attendanceSummary.total} lessons absent in total. ${unmatchedSummary.absent}/${unmatchedSummary.total} additional lessons are not mapped to grades rows yet.`
+        : `Official current halfyear: ${attendanceSummary.absent}/${attendanceSummary.total} lessons absent in total.`;
       const percentValue = document.createElement("span");
       percentValue.className = "ee-attendance-stat";
       percentValue.style.color = summaryTone.color;
       percentValue.textContent = formatPercent(attendanceSummary.percent);
       percentCell.appendChild(percentValue);
-      percentCell.title = `Current halfyear: ${attendanceSummary.absent}/${attendanceSummary.total} lessons absent in total.`;
+      percentCell.title = summaryTitle;
 
       const totalValue = document.createElement("span");
       totalValue.className = "ee-attendance-stat ee-attendance-total";
       totalValue.textContent = `${attendanceSummary.absent}/${attendanceSummary.total}`;
       totalCell.appendChild(totalValue);
-      totalCell.title = `Current halfyear: absent / lessons held so far across all matched subjects.`;
+      totalCell.title = summaryTitle;
     } else {
       const percentEmpty = document.createElement("span");
       percentEmpty.className = "ee-attendance-empty";
@@ -1235,57 +1267,95 @@
     const studentId = attendancePayload?.order?.[0] || Object.keys(attendancePayload?.students || {})[0];
     const dailyRecords = attendancePayload?.students?.[studentId] || {};
 
-    const absentDatesMap = new Map();
+    const unresolvedAbsencesByDate = new Map();
 
     Object.entries(dailyRecords).forEach(([dateKey, dayEntries]) => {
       if (!isDateInRange(dateKey, halfWindow.startDate, halfWindow.endDate)) return;
 
-      const countedPeriods = Object.entries(dayEntries || {}).filter(([periodKey, record]) =>
-        periodKey !== "ad"
-        && isMissedLessonRecord(record, absenceTypeMap),
-      );
+      const unresolvedPeriods = new Set();
+      let hasDirectPeriodMapping = false;
 
-      if (countedPeriods.length > 0) {
-        const periods = new Set();
-        countedPeriods.forEach(([periodKey, record]) => {
-          if (/^\d+$/.test(periodKey)) {
-            periods.add(Number.parseInt(periodKey, 10));
-          }
+      Object.entries(dayEntries || {}).forEach(([periodKey, record]) => {
+        if (periodKey === "ad" || !isMissedLessonRecord(record, absenceTypeMap)) {
+          return;
+        }
+
+        const directEntry = ensureSubjectEntry(entryMap, record?.subjectid, subjectMap);
+        if (directEntry) {
+          directEntry.absent += 1;
+          hasDirectPeriodMapping = true;
           diagnostics.push({
             date: dateKey,
-            source: "period",
-            subjectid: String(record?.subjectid || ""),
-            mapped: false,
-            displayName: "",
+            source: "period-direct",
+            subjectid: directEntry.rawId,
+            mapped: true,
+            displayName: directEntry.displayName,
+            period: /^\d+$/.test(periodKey) ? Number.parseInt(periodKey, 10) : null,
+            absentUnits: 1,
             typeId: String(record?.studentabsent_typeid || ""),
           });
+          return;
+        }
+
+        if (/^\d+$/.test(periodKey)) {
+          unresolvedPeriods.add(Number.parseInt(periodKey, 10));
+        }
+
+        diagnostics.push({
+          date: dateKey,
+          source: "period-unresolved",
+          subjectid: String(record?.subjectid || ""),
+          mapped: false,
+          displayName: "",
+          period: /^\d+$/.test(periodKey) ? Number.parseInt(periodKey, 10) : null,
+          typeId: String(record?.studentabsent_typeid || ""),
         });
-        absentDatesMap.set(dateKey, periods);
+      });
+
+      if (unresolvedPeriods.size > 0) {
+        unresolvedAbsencesByDate.set(dateKey, { periods: unresolvedPeriods });
         return;
       }
 
       const allDayRecord = dayEntries?.ad;
-      if (
-        isMissedLessonRecord(allDayRecord, absenceTypeMap)
-      ) {
+      if (hasDirectPeriodMapping || !isMissedLessonRecord(allDayRecord, absenceTypeMap)) {
+        return;
+      }
+
+      const directAllDayEntry = ensureSubjectEntry(entryMap, allDayRecord?.subjectid, subjectMap);
+      if (directAllDayEntry) {
+        const duration = Math.max(1, numberValue(allDayRecord?.durationperiods));
+        directAllDayEntry.absent += duration;
         diagnostics.push({
           date: dateKey,
-          source: "all-day",
-          subjectid: String(allDayRecord?.subjectid || ""),
-          mapped: false,
-          displayName: "",
-          durationperiods: Math.max(1, numberValue(allDayRecord?.durationperiods)),
+          source: "all-day-direct",
+          subjectid: directAllDayEntry.rawId,
+          mapped: true,
+          displayName: directAllDayEntry.displayName,
+          absentUnits: duration,
+          durationperiods: duration,
           typeId: String(allDayRecord?.studentabsent_typeid || ""),
         });
-        absentDatesMap.set(dateKey, true);
+        return;
       }
+
+      diagnostics.push({
+        date: dateKey,
+        source: "all-day-unresolved",
+        subjectid: String(allDayRecord?.subjectid || ""),
+        mapped: false,
+        displayName: "",
+        durationperiods: Math.max(1, numberValue(allDayRecord?.durationperiods)),
+        typeId: String(allDayRecord?.studentabsent_typeid || ""),
+      });
+      unresolvedAbsencesByDate.set(dateKey, { allDay: true });
     });
 
     Object.entries(classbookData?.dates || {}).forEach(([dateKey, dateEntry]) => {
       if (!isDateInRange(dateKey, halfWindow.startDate, halfWindow.endDate)) return;
 
-      const absenteeStatus = absentDatesMap.get(dateKey);
-      if (!absenteeStatus) return;
+      const unresolvedAbsence = unresolvedAbsencesByDate.get(dateKey);
+      if (!unresolvedAbsence) return;
 
       const plan = Array.isArray(dateEntry?.plan) ? dateEntry.plan : [];
       plan.forEach((item) => {
@@ -1295,18 +1365,18 @@
         if (!entry) return;
 
         let absentUnits = 0;
-        if (absenteeStatus === true) {
+        if (unresolvedAbsence.allDay) {
           absentUnits = lessonDurationUnits(item);
-        } else if (absenteeStatus instanceof Set) {
+        } else if (unresolvedAbsence.periods instanceof Set) {
           const lessonPeriods = extractLessonPeriods(item);
-          absentUnits = lessonPeriods.filter((period) => absenteeStatus.has(period)).length;
+          absentUnits = lessonPeriods.filter((period) => unresolvedAbsence.periods.has(period)).length;
         }
 
         if (absentUnits > 0) {
           entry.absent += absentUnits;
           diagnostics.push({
             date: dateKey,
-            source: absenteeStatus === true ? "lesson-from-all-day" : "lesson-from-periods",
+            source: unresolvedAbsence.allDay ? "lesson-from-all-day" : "lesson-from-periods",
             subjectid: entry.rawId,
             mapped: true,
             displayName: entry.displayName,
@@ -1647,6 +1717,10 @@
     return meaningfulLine || firstLine || lines[0] || "";
   }
 
+  function readRowSubjectId(row) {
+    return String(row?.dataset?.predmetid || "").trim();
+  }
+
   function buildRowAliases(rowText) {
     return new Set(buildNameAliases(rowText));
   }
@@ -1676,17 +1750,24 @@
     };
   }
 
-  function findMatchingSubjectEntries(rowText, subjectStats) {
+  function findMatchingSubjectEntries(rowText, subjectStats, rowSubjectId = "") {
     const rowAliases = buildRowAliases(rowText);
     const normalizedRowText = normalizeText(rowText);
-    if (rowAliases.size === 0 && !normalizedRowText) return [];
+    const directMatches = rowSubjectId
+      ? subjectStats.filter((entry) => String(entry?.rawId || "").trim() === rowSubjectId)
+      : [];
+    if (rowAliases.size === 0 && !normalizedRowText) {
+      return Array.from(
+        new Map(directMatches.map((entry) => [entry.key, entry])).values(),
+      );
+    }
 
-    let matches = subjectStats.filter((entry) =>
+    let aliasMatches = subjectStats.filter((entry) =>
       isExactSubjectAliasMatch(rowAliases, entry),
     );
 
-    if (matches.length === 0 && normalizedRowText) {
-      matches = subjectStats.filter((entry) =>
+    if (aliasMatches.length === 0 && normalizedRowText) {
+      aliasMatches = subjectStats.filter((entry) =>
         Array.from(entry.aliases || []).some((alias) =>
           alias && (
             normalizedRowText === alias
@@ -1697,46 +1778,46 @@
       );
     }
 
-    if (matches.length === 0) {
-      return [];
-    }
-
-    const longestAliasLength = matches.reduce((maxLength, entry) => {
-      const entryMax = Array.from(entry.aliases || []).reduce((entryLength, alias) => {
-        if (!alias) return entryLength;
-        if (
-          normalizedRowText === alias
-          || normalizedRowText.startsWith(`${alias} `)
-          || alias.startsWith(`${normalizedRowText} `)
-        ) {
-          return Math.max(entryLength, alias.length);
-        }
-        return entryLength;
-      }, 0);
-      return Math.max(maxLength, entryMax);
-    }, 0);
-
-    if (longestAliasLength > 0) {
-      matches = matches.filter((entry) =>
-        Array.from(entry.aliases || []).some((alias) =>
-          alias
-          && alias.length === longestAliasLength
-          && (
+    if (aliasMatches.length > 0) {
+      const longestAliasLength = aliasMatches.reduce((maxLength, entry) => {
+        const entryMax = Array.from(entry.aliases || []).reduce((entryLength, alias) => {
+          if (!alias) return entryLength;
+          if (
             normalizedRowText === alias
             || normalizedRowText.startsWith(`${alias} `)
             || alias.startsWith(`${normalizedRowText} `)
+          ) {
+            return Math.max(entryLength, alias.length);
+          }
+          return entryLength;
+        }, 0);
+        return Math.max(maxLength, entryMax);
+      }, 0);
+
+      if (longestAliasLength > 0) {
+        aliasMatches = aliasMatches.filter((entry) =>
+          Array.from(entry.aliases || []).some((alias) =>
+            alias
+            && alias.length === longestAliasLength
+            && (
+              normalizedRowText === alias
+              || normalizedRowText.startsWith(`${alias} `)
+              || alias.startsWith(`${normalizedRowText} `)
+            ),
           ),
-        ),
-      );
+        );
+      }
     }
 
+    const combinedMatches = [...directMatches, ...aliasMatches];
+
     return Array.from(
-      new Map(matches.map((entry) => [entry.key, entry])).values(),
+      new Map(combinedMatches.map((entry) => [entry.key, entry])).values(),
     );
   }
 
-  function matchSubjectStats(rowText, subjectStats) {
-    const matches = findMatchingSubjectEntries(rowText, subjectStats);
+  function matchSubjectStats(rowText, subjectStats, rowSubjectId = "") {
+    const matches = findMatchingSubjectEntries(rowText, subjectStats, rowSubjectId);
     if (matches.length === 0) {
       return null;
     }
@@ -1769,7 +1850,8 @@
       if (!percentCell || !totalCell) return;
 
       const rowText = readPrimaryRowSubjectText(row);
-      const matchedStats = matchSubjectStats(rowText, data.subjects);
+      const rowSubjectId = readRowSubjectId(row);
+      const matchedStats = matchSubjectStats(rowText, data.subjects, rowSubjectId);
       if (!matchedStats) {
         setAttendanceCellValue(
           percentCell,
@@ -1867,6 +1949,60 @@
       absent,
       total,
       percent: total > 0 ? (absent / total) * 100 : Number.NaN,
+    };
+  }
+
+  function summarizeRenderableAttendance(subjects) {
+    return summarizeAttendance(
+      (subjects || []).filter((entry) => numberValue(entry.total) > 0),
+    );
+  }
+
+  function listAttendanceOnlyAbsentSubjects(subjects) {
+    return (subjects || [])
+      .filter((entry) => numberValue(entry.absent) > 0 && numberValue(entry.total) <= 0)
+      .map((entry) => ({
+        key: entry.key,
+        rawId: entry.rawId,
+        displayName: entry.displayName,
+        shortName: entry.shortName,
+        absent: entry.absent,
+        total: entry.total,
+        percent: Number.isFinite(entry.percent) ? Number(entry.percent.toFixed(2)) : null,
+        aliases: Array.from(entry.aliases || []).sort(),
+      }));
+  }
+
+  function resolveAttendanceBreakdown(renderedSummary, officialHalfSummary, rawAbsentLessons) {
+    const matchedAbsent = numberValue(renderedSummary?.absent);
+    const matchedTotal = numberValue(renderedSummary?.total);
+    const officialAbsent = Math.max(
+      numberValue(rawAbsentLessons),
+      numberValue(officialHalfSummary?.absent),
+    );
+    const officialTotal = numberValue(officialHalfSummary?.total);
+
+    const summaryAbsent = Math.max(matchedAbsent, officialAbsent);
+    const summaryTotal = Math.max(matchedTotal, officialTotal);
+    const unmatchedAbsent = Math.max(0, summaryAbsent - matchedAbsent);
+    const unmatchedTotal = Math.max(0, summaryTotal - matchedTotal);
+
+    return {
+      matched: {
+        absent: matchedAbsent,
+        total: matchedTotal,
+        percent: matchedTotal > 0 ? (matchedAbsent / matchedTotal) * 100 : Number.NaN,
+      },
+      unmatched: {
+        absent: unmatchedAbsent,
+        total: unmatchedTotal,
+        percent: unmatchedTotal > 0 ? (unmatchedAbsent / unmatchedTotal) * 100 : Number.NaN,
+      },
+      summary: {
+        absent: summaryAbsent,
+        total: summaryTotal,
+        percent: summaryTotal > 0 ? (summaryAbsent / summaryTotal) * 100 : Number.NaN,
+      },
     };
   }
 
@@ -2268,6 +2404,7 @@
       if (cached) {
         attendanceStatsCache = cached;
         window.__eeGradesAttendanceDebug = cached.debug || null;
+        syncAttendanceDebug(cached.debug || null);
         return cached;
       }
 
@@ -2346,7 +2483,7 @@
       );
       let totalEntries = computeSubjectTotals(mergedClassbookData, subjectMap, halfWindow);
       let subjects = finalizeSubjectStats(absentEntries, totalEntries);
-      let renderedAttendanceSummary = summarizeAttendance(subjects);
+      let renderedAttendanceSummary = summarizeRenderableAttendance(subjects);
       const expectedSchoolDays = countSchoolDaysInRange(halfWindow.startDate, halfWindow.endDate);
       const expectedAbsentLessons = Math.max(
         rawAbsentLessons,
@@ -2384,20 +2521,17 @@
           );
           totalEntries = computeSubjectTotals(mergedClassbookData, subjectMap, halfWindow);
           subjects = finalizeSubjectStats(absentEntries, totalEntries);
-          renderedAttendanceSummary = summarizeAttendance(subjects);
+          renderedAttendanceSummary = summarizeRenderableAttendance(subjects);
         }
       }
 
-      const summaryAbsent = renderedAttendanceSummary.absent > 0
-        ? renderedAttendanceSummary.absent
-        : expectedAbsentLessons;
-      const attendanceSummary = {
-        absent: summaryAbsent,
-        total: renderedAttendanceSummary.total,
-        percent: renderedAttendanceSummary.total > 0
-          ? (summaryAbsent / renderedAttendanceSummary.total) * 100
-          : Number.NaN,
-      };
+      const attendanceBreakdown = resolveAttendanceBreakdown(
+        renderedAttendanceSummary,
+        officialHalfSummary,
+        expectedAbsentLessons,
+      );
+      const attendanceSummary = attendanceBreakdown.summary;
+      const attendanceOnlyAbsentSubjects = listAttendanceOnlyAbsentSubjects(subjects);
       const debug = {
         currentDate: halfWindow.currentDate,
         ttdayRenderDate: ttdayInfo.renderDate,
@@ -2414,6 +2548,9 @@
         absentLessons: attendanceSummary.absent,
         rawAbsentLessons,
         renderedAbsentLessons: renderedAttendanceSummary.absent,
+        unmatchedLessons: attendanceBreakdown.unmatched.total,
+        unmatchedAbsentLessons: attendanceBreakdown.unmatched.absent,
+        attendanceOnlyAbsentSubjects,
         officialHalfSummary,
         absenceDiagnostics,
         rangedResponseInfo,
@@ -2431,11 +2568,13 @@
         halfLabel: halfWindow.halfLabel,
         subjects,
         attendanceSummary,
+        attendanceBreakdown,
         debug,
       };
 
       attendanceStatsCache = stats;
       window.__eeGradesAttendanceDebug = debug;
+      syncAttendanceDebug(debug);
       debugLog("Final attendance stats", debug);
       if (attendanceSummary.total < 100 || debug.mergedDateCount <= embeddedDateCount) {
         console.warn("[Edupage Extras] Grades attendance diagnostic", debug);
@@ -2516,8 +2655,12 @@
           ensureSummaryRow(
             liveTable,
             liveAverages,
-            buildSummaryRenderSignature(liveAverageSignature, true, attendanceSummary),
-            { attendanceColumns: true, attendanceSummary },
+            buildSummaryRenderSignature(liveAverageSignature, true, data.attendanceBreakdown || attendanceSummary),
+            {
+              attendanceColumns: true,
+              attendanceSummary,
+              attendanceBreakdown: data.attendanceBreakdown || null,
+            },
           );
           liveTable.setAttribute(AVERAGE_RENDER_SIGNATURE_ATTR, liveAverageSignature);
         }
