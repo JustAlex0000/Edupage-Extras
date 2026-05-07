@@ -39,7 +39,23 @@
     return match ? Number.parseFloat(match[1].replace(",", ".")) : Number.NaN;
   }
 
-  function gradeColor(avg) {
+  function detectAverageScale(rawText, avg) {
+    if (!Number.isFinite(avg)) return null;
+    if (/%/.test(String(rawText || ""))) return "percent";
+    return avg > 5 ? "percent" : "grade";
+  }
+
+  function gradeColor(avg, scale = null) {
+    const resolvedScale = scale || (avg > 5 ? "percent" : "grade");
+    if (resolvedScale === "percent") {
+      if (Number.isNaN(avg)) return "#888";
+      if (avg >= 90) return "#2e7d32";
+      if (avg >= 75) return "#558b2f";
+      if (avg >= 60) return "#f57f17";
+      if (avg >= 40) return "#e65100";
+      return "#c62828";
+    }
+
     if (Number.isNaN(avg)) return "#888";
     if (avg <= 1.5) return "#2e7d32";
     if (avg <= 2.5) return "#558b2f";
@@ -52,7 +68,12 @@
     return /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")) ? String(value) : "";
   }
 
-  function gradePercentage(avg) {
+  function gradePercentage(avg, scale = null) {
+    const resolvedScale = scale || (avg > 5 ? "percent" : "grade");
+    if (resolvedScale === "percent") {
+      return Math.max(0, Math.min(100, avg));
+    }
+
     return Math.max(4, Math.min(100, ((5 - avg) / 4) * 96 + 4));
   }
 
@@ -167,13 +188,26 @@
     return Number.parseInt(match[1], 10) * 60 + Number.parseInt(match[2], 10);
   }
 
-  function createBadgeElement(avg, displayText, { largeValue = false } = {}) {
+  function formatAverageDisplay(value, scale) {
+    if (!Number.isFinite(value)) return "-";
+    if (scale === "percent") {
+      const formatter = new Intl.NumberFormat(document.documentElement.lang || navigator.language || "en-US", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      });
+      return `${formatter.format(value)} %`;
+    }
+
+    return value.toFixed(2);
+  }
+
+  function createBadgeElement(avg, displayText, { largeValue = false, scale = "grade" } = {}) {
     if (Number.isNaN(avg)) return null;
 
     const badge = document.createElement("div");
     badge.className = "ee-avg-badge";
-    badge.style.setProperty("--avg-color", gradeColor(avg));
-    badge.style.setProperty("--avg-pct", `${gradePercentage(avg).toFixed(1)}%`);
+    badge.style.setProperty("--avg-color", gradeColor(avg, scale));
+    badge.style.setProperty("--avg-pct", `${gradePercentage(avg, scale).toFixed(1)}%`);
 
     const value = document.createElement("span");
     value.className = "ee-avg-value";
@@ -353,14 +387,15 @@
 
     const rawText = readAverageText(priemerCell);
     const avg = parseAverage(rawText);
+    const scale = detectAverageScale(rawText, avg);
     if (Number.isNaN(avg)) return null;
     if (priemerCell.querySelector(".ee-avg-badge")) {
-      return { avg, displayText: rawText };
+      return { avg, displayText: rawText, scale };
     }
 
     priemerCell.dataset.eeOriginalAverage = rawText;
-    const badge = createBadgeElement(avg, rawText);
-    if (!badge) return { avg, displayText: rawText };
+    const badge = createBadgeElement(avg, rawText, { scale });
+    if (!badge) return { avg, displayText: rawText, scale };
 
     const link = priemerCell.querySelector("a");
     if (link) {
@@ -371,7 +406,7 @@
       priemerCell.appendChild(badge);
     }
 
-    return { avg, displayText: rawText };
+    return { avg, displayText: rawText, scale };
   }
 
   function restoreAverageCells(table) {
@@ -400,7 +435,7 @@
 
   function buildAverageRenderSignature(averages) {
     return averages
-      .map(({ avg, displayText }) => `${displayText}:${avg.toFixed(2)}`)
+      .map(({ avg, displayText, scale }) => `${scale || "grade"}:${displayText}:${avg.toFixed(2)}`)
       .join("|");
   }
 
@@ -437,6 +472,11 @@
     const tbody = table.querySelector("tbody");
     if (!tbody) return;
 
+    const averageScale = averages[0]?.scale || "grade";
+    if (averages.some((entry) => (entry.scale || "grade") !== averageScale)) {
+      return;
+    }
+
     const colCount = tableColumnCount(table);
     const overallAvg = averages.reduce((sum, entry) => sum + entry.avg, 0) / averages.length;
 
@@ -461,7 +501,10 @@
 
     const avgCell = document.createElement("td");
     avgCell.className = "ee-overall-value-cell";
-    avgCell.appendChild(createBadgeElement(overallAvg, overallAvg.toFixed(2), { largeValue: true }));
+    avgCell.appendChild(createBadgeElement(overallAvg, formatAverageDisplay(overallAvg, averageScale), {
+      largeValue: true,
+      scale: averageScale,
+    }));
 
     if (!attendanceColumns) {
       labelCell.colSpan = Math.max(1, colCount - 2);
