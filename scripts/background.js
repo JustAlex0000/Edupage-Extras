@@ -1306,35 +1306,100 @@ function countTemplateEligibleLessons(weekData) {
     : 0;
 }
 
-function chooseBestTemplateWeek(existingWeek, candidateWeek) {
-  if (!existingWeek) return candidateWeek;
+function buildTemplateLessonSlotKey(lesson) {
+  return [
+    Number(lesson?.dayIndex) || 0,
+    String(lesson?.period || ""),
+    String(lesson?.startTime || ""),
+    String(lesson?.endTime || ""),
+    Number(lesson?.slotIndex) || 0,
+    Number(lesson?.duration) || 0,
+  ].join("|");
+}
 
-  const existingScore = countTemplateEligibleLessons(existingWeek);
-  const candidateScore = countTemplateEligibleLessons(candidateWeek);
-  if (candidateScore > existingScore) {
-    return candidateWeek;
-  }
-  if (candidateScore < existingScore) {
-    return existingWeek;
-  }
+function buildTemplateLessonValueKey(lesson) {
+  return [
+    normalizeKeyText(lesson?.title),
+    normalizeKeyText(lesson?.group),
+    normalizeKeyText(lesson?.room),
+    normalizeKeyText(lesson?.teacher),
+  ].join("|");
+}
 
-  const existingChanged = existingWeek.lessons.filter((lesson) => lesson.changed).length;
-  const candidateChanged = candidateWeek.lessons.filter((lesson) => lesson.changed).length;
-  if (candidateChanged < existingChanged) {
-    return candidateWeek;
-  }
+function scoreTemplateLessonMetadata(lesson) {
+  return [
+    lesson?.title,
+    lesson?.group,
+    lesson?.room,
+    lesson?.teacher,
+  ].filter((value) => String(value || "").trim()).length;
+}
 
-  return existingWeek;
+function mergeTemplateWeekSamples(weekSamples) {
+  const samples = (weekSamples || []).filter((weekData) => Array.isArray(weekData?.lessons));
+  if (samples.length === 0) return null;
+  if (samples.length === 1) return samples[0];
+
+  const slots = new Map();
+  samples.forEach((weekData, sampleIndex) => {
+    weekData.lessons
+      .filter(shouldUseLessonInHalfyearTemplate)
+      .forEach((lesson) => {
+        const slotKey = buildTemplateLessonSlotKey(lesson);
+        const valueKey = buildTemplateLessonValueKey(lesson);
+        if (!slots.has(slotKey)) {
+          slots.set(slotKey, new Map());
+        }
+
+        const variants = slots.get(slotKey);
+        const current = variants.get(valueKey);
+        variants.set(valueKey, {
+          lesson,
+          count: (current?.count || 0) + 1,
+          lastSampleIndex: sampleIndex,
+          metadataScore: scoreTemplateLessonMetadata(lesson),
+        });
+      });
+  });
+
+  const baseWeek = samples[samples.length - 1];
+  const lessons = Array.from(slots.values())
+    .map((variants) => Array.from(variants.values()).sort((left, right) => {
+      if (right.count !== left.count) return right.count - left.count;
+      if (right.lastSampleIndex !== left.lastSampleIndex) return right.lastSampleIndex - left.lastSampleIndex;
+      if (right.metadataScore !== left.metadataScore) return right.metadataScore - left.metadataScore;
+      return String(left.lesson?.eventKey || "").localeCompare(String(right.lesson?.eventKey || ""));
+    })[0]?.lesson)
+    .filter(Boolean)
+    .sort((left, right) => {
+      const dayDiff = (Number(left.dayIndex) || 0) - (Number(right.dayIndex) || 0);
+      if (dayDiff !== 0) return dayDiff;
+      const periodDiff = (Number.parseInt(left.period, 10) || 0) - (Number.parseInt(right.period, 10) || 0);
+      if (periodDiff !== 0) return periodDiff;
+      return (Number(left.slotIndex) || 0) - (Number(right.slotIndex) || 0);
+    });
+
+  return {
+    ...baseWeek,
+    lessons,
+  };
 }
 
 function buildTemplateWeekMap(sampleWeeks) {
-  const templateWeeks = new Map();
+  const groupedWeeks = new Map();
 
   for (const weekData of sampleWeeks || []) {
     if (!weekData?.weekLabel || !Array.isArray(weekData.lessons)) continue;
-    const current = templateWeeks.get(weekData.weekLabel);
-    templateWeeks.set(weekData.weekLabel, chooseBestTemplateWeek(current, weekData));
+    if (!groupedWeeks.has(weekData.weekLabel)) {
+      groupedWeeks.set(weekData.weekLabel, []);
+    }
+    groupedWeeks.get(weekData.weekLabel).push(weekData);
   }
+
+  const templateWeeks = new Map();
+  groupedWeeks.forEach((weeks, weekLabel) => {
+    templateWeeks.set(weekLabel, mergeTemplateWeekSamples(weeks));
+  });
 
   return templateWeeks;
 }

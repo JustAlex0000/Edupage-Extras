@@ -8,7 +8,7 @@ function loadBackgroundInternals() {
   const source = fs.readFileSync(scriptPath, "utf8");
   const instrumentedSource = source.replace(
     "chrome.runtime.onInstalled.addListener(() => {",
-    "globalThis.__eeBackgroundTest = { shouldEnableGoogleCalendarAlarm, buildGoogleCalendarConnectedStatus, normalizeGoogleCalendarSyncMode, normalizeGoogleCalendarHalfyearScope, normalizeGoogleCalendarName, parseDateOnly, toRfc3339 }; chrome.runtime.onInstalled.addListener(() => {",
+    "globalThis.__eeBackgroundTest = { shouldEnableGoogleCalendarAlarm, buildGoogleCalendarConnectedStatus, normalizeGoogleCalendarSyncMode, normalizeGoogleCalendarHalfyearScope, normalizeGoogleCalendarName, parseDateOnly, toRfc3339, buildTemplateWeekMap, buildHalfyearDesiredEvents }; chrome.runtime.onInstalled.addListener(() => {",
   );
 
   const noop = () => {};
@@ -159,4 +159,56 @@ runTest("google calendar date helpers reject calendar overflow dates", () => {
   assert.equal(parseDateOnly("2026-00-10"), null);
   assert.equal(toRfc3339("2026-02-31", "08:00"), null);
   assert.match(toRfc3339("2026-02-28", "08:00"), /^2026-02-28T08:00:00[+-]\d{2}:\d{2}$/);
+});
+
+runTest("template weeks prefer a later recurring slot over an earlier one-off variant", () => {
+  const { buildTemplateWeekMap } = loadBackgroundInternals();
+
+  const earlyChangedWeek = {
+    weekLabel: "A",
+    classLabel: "3.A",
+    dayHeaders: [{ date: "2026-05-11" }],
+    lessons: [{
+      date: "2026-05-11",
+      dayIndex: 0,
+      period: "1",
+      startTime: "08:00",
+      endTime: "08:45",
+      duration: 1,
+      title: "Substitute Math",
+      group: "",
+      room: "101",
+      teacher: "Teacher A",
+      changed: false,
+      slotIndex: 0,
+      eventKey: "2026-05-11|1|0|substitute-math|",
+    }],
+  };
+
+  const laterStaticWeek = {
+    weekLabel: "A",
+    classLabel: "3.A",
+    dayHeaders: [{ date: "2026-05-25" }],
+    lessons: [{
+      date: "2026-05-25",
+      dayIndex: 0,
+      period: "1",
+      startTime: "08:00",
+      endTime: "08:45",
+      duration: 1,
+      title: "Math",
+      group: "",
+      room: "101",
+      teacher: "Teacher A",
+      changed: false,
+      slotIndex: 0,
+      eventKey: "2026-05-25|1|0|math|",
+    }],
+  };
+
+  const templates = buildTemplateWeekMap([earlyChangedWeek, laterStaticWeek]);
+  const lessons = templates.get("A")?.lessons || [];
+
+  assert.equal(lessons.length, 1);
+  assert.equal(lessons[0].title, "Math");
 });

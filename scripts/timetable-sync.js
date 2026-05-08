@@ -4,6 +4,8 @@
   if (window.top !== window) return;
 
   const DAY_TOKENS = ["Po", "Ut", "St", "St", "Št", "Pi", "So", "Ne"];
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  let lastResolvedWeekStart = null;
 
   function delay(ms) {
     return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -27,19 +29,93 @@
     return parsePx(element?.style?.[propertyName] || "");
   }
 
-  function resolveDisplayedDate(dayText, monthText) {
+  function parseDateOnly(value) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+    if (!match) return null;
+
+    const year = Number.parseInt(match[1], 10);
+    const month = Number.parseInt(match[2], 10);
+    const day = Number.parseInt(match[3], 10);
+    const date = new Date(year, month - 1, day);
+    if (
+      Number.isNaN(date.getTime())
+      || date.getFullYear() !== year
+      || date.getMonth() !== month - 1
+      || date.getDate() !== day
+    ) {
+      return null;
+    }
+
+    return date;
+  }
+
+  function resolveDisplayedDate(dayText, monthText, anchorDate = new Date()) {
     const day = Number.parseInt(String(dayText || "").replace(/\D+/g, ""), 10);
     const month = Number.parseInt(String(monthText || "").replace(/\D+/g, ""), 10);
     if (!Number.isFinite(day) || !Number.isFinite(month)) return null;
 
-    const today = new Date();
+    const reference = anchorDate instanceof Date && !Number.isNaN(anchorDate.getTime())
+      ? anchorDate
+      : new Date();
     const candidates = [
-      new Date(today.getFullYear() - 1, month - 1, day),
-      new Date(today.getFullYear(), month - 1, day),
-      new Date(today.getFullYear() + 1, month - 1, day),
+      new Date(reference.getFullYear() - 1, month - 1, day),
+      new Date(reference.getFullYear(), month - 1, day),
+      new Date(reference.getFullYear() + 1, month - 1, day),
     ];
-    candidates.sort((left, right) => Math.abs(left.getTime() - today.getTime()) - Math.abs(right.getTime() - today.getTime()));
+    candidates.sort((left, right) => Math.abs(left.getTime() - reference.getTime()) - Math.abs(right.getTime() - reference.getTime()));
     return candidates[0];
+  }
+
+  function resolveDisplayedWeekDates(entries, anchorDate = new Date()) {
+    const resolvedEntries = [];
+    let previousDate = null;
+
+    entries.forEach((entry) => {
+      const dateMatch = String(entry?.dateText || "").match(/(\d+)\.\s*(\d+)\./);
+      if (!dateMatch) {
+        resolvedEntries.push({
+          ...entry,
+          date: "",
+        });
+        return;
+      }
+
+      const baseDate = resolveDisplayedDate(dateMatch[1], dateMatch[2], previousDate || anchorDate);
+      if (!baseDate) {
+        resolvedEntries.push({
+          ...entry,
+          date: "",
+        });
+        return;
+      }
+
+      const candidates = [-1, 0, 1].map((yearOffset) => new Date(
+        baseDate.getFullYear() + yearOffset,
+        baseDate.getMonth(),
+        baseDate.getDate(),
+      ));
+      candidates.sort((left, right) => {
+        if (!previousDate) {
+          return Math.abs(left.getTime() - anchorDate.getTime()) - Math.abs(right.getTime() - anchorDate.getTime());
+        }
+
+        const leftDiffDays = Math.round((left.getTime() - previousDate.getTime()) / DAY_MS);
+        const rightDiffDays = Math.round((right.getTime() - previousDate.getTime()) / DAY_MS);
+        const leftPenalty = leftDiffDays <= 0 ? (1000 + Math.abs(leftDiffDays)) : Math.abs(leftDiffDays - 1);
+        const rightPenalty = rightDiffDays <= 0 ? (1000 + Math.abs(rightDiffDays)) : Math.abs(rightDiffDays - 1);
+        if (leftPenalty !== rightPenalty) return leftPenalty - rightPenalty;
+        return Math.abs(left.getTime() - previousDate.getTime()) - Math.abs(right.getTime() - previousDate.getTime());
+      });
+
+      const resolvedDate = candidates[0];
+      previousDate = resolvedDate;
+      resolvedEntries.push({
+        ...entry,
+        date: formatDate(resolvedDate),
+      });
+    });
+
+    return resolvedEntries;
   }
 
   function formatDate(date) {
@@ -136,15 +212,20 @@
       const dateMatch = parts[1].match(/(\d+)\.\s*(\d+)\./);
       if (!dateMatch) return;
 
-      const resolvedDate = resolveDisplayedDate(dateMatch[1], dateMatch[2]);
       headers.push({
         label: dayToken,
         top: readStyleNumber(element, "top"),
-        date: formatDate(resolvedDate),
+        dateText: parts[1],
       });
     });
 
-    return headers.sort((left, right) => left.top - right.top);
+    const orderedHeaders = headers.sort((left, right) => left.top - right.top);
+    const anchorDate = lastResolvedWeekStart || new Date();
+    return resolveDisplayedWeekDates(orderedHeaders, anchorDate).map(({ label, top, date }) => ({
+      label,
+      top,
+      date,
+    }));
   }
 
   function parseWeeklyTimetable() {
@@ -300,7 +381,8 @@
         const direction = steps > 0 ? 1 : -1;
         for (let index = 0; index < Math.abs(steps); index += 1) {
           await clickWeekNavigator(direction);
-          await waitForTimetableReady();
+          const navigatedWeek = await waitForTimetableReady();
+          lastResolvedWeekStart = parseDateOnly(navigatedWeek?.dayHeaders?.[0]?.date);
         }
       }
 
@@ -308,6 +390,7 @@
       if (!parsed) {
         throw new Error("EduPage timetable did not finish rendering.");
       }
+      lastResolvedWeekStart = parseDateOnly(parsed.dayHeaders?.[0]?.date);
 
       sendResponse({
         ok: true,

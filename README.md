@@ -215,6 +215,7 @@ node --check scripts\timetable-sync.js
 node tests\grades-enhancer.test.js
 node tests\attendance-enhancer.test.js
 node tests\background.test.js
+node tests\timetable-sync.test.js
 node -e "JSON.parse(require('fs').readFileSync('manifest.json','utf8')); console.log('manifest ok')"
 ```
 
