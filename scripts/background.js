@@ -145,6 +145,26 @@ function normalizeGoogleCalendarSyncInterval(value) {
   return Math.max(5, Math.min(120, parsed - (parsed % 5)));
 }
 
+function shouldEnableGoogleCalendarAlarm(config) {
+  return Boolean(
+    config?.enabled
+    && !config?.paused
+    && String(config?.clientId || "").trim()
+    && config?.hasRefreshToken === true
+    && String(config?.lastEdupageOrigin || "").trim(),
+  );
+}
+
+function buildGoogleCalendarConnectedStatus(config = {}) {
+  return {
+    state: "connected",
+    message: "Google Calendar connected. Run Sync Now after opening EduPage once.",
+    mode: normalizeGoogleCalendarSyncMode(config.syncMode),
+    halfyearScope: normalizeGoogleCalendarHalfyearScope(config.halfyearScope),
+    calendarName: normalizeGoogleCalendarName(config.calendarName),
+  };
+}
+
 function normalizeKeyText(value) {
   return String(value || "")
     .normalize("NFD")
@@ -620,7 +640,10 @@ async function readFreshTimetableBundle(origin, requestedWeekStart, requireAdjac
 
 async function syncGoogleCalendarAlarm() {
   const config = await getGoogleCalendarConfig();
-  if (config.enabled && !config.paused) {
+  const stored = await storageGet([GOOGLE_CALENDAR_TOKENS_KEY]);
+  const hasRefreshToken = Boolean(stored?.[GOOGLE_CALENDAR_TOKENS_KEY]?.refreshToken);
+
+  if (shouldEnableGoogleCalendarAlarm({ ...config, hasRefreshToken })) {
     chrome.alarms.create(GOOGLE_CALENDAR_SYNC_ALARM_NAME, {
       delayInMinutes: 1,
       periodInMinutes: config.syncIntervalMinutes,
@@ -1684,13 +1707,11 @@ async function connectGoogleCalendar(message) {
   });
   await syncGoogleCalendarAlarm();
 
-  const status = {
-    state: "connected",
-    message: "Google Calendar connected. Run Sync Now after opening EduPage once.",
-    mode: normalizeGoogleCalendarSyncMode(message?.syncMode),
-    halfyearScope: normalizeGoogleCalendarHalfyearScope(message?.halfyearScope),
-    calendarName: normalizeGoogleCalendarName(message?.calendarName),
-  };
+  const status = buildGoogleCalendarConnectedStatus({
+    syncMode: message?.syncMode,
+    halfyearScope: message?.halfyearScope,
+    calendarName: message?.calendarName,
+  });
   await setGoogleCalendarStatus(status);
   return status;
 }

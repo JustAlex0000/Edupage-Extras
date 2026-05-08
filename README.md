@@ -2,8 +2,9 @@
 
 Edupage Extras is a Chromium Manifest V3 browser extension that improves the
 Edupage web portal with small quality-of-life features. It runs only on
-`https://*.edupage.org/*` pages and changes Edupage's existing interface in
-place.
+`https://*.edupage.org/*` pages for its main features, uses
+`https://edublurtesting.ct.ws/*` for the Experimental Stay Active Mode testing
+page, and changes Edupage's existing interface in place.
 
 This project is not affiliated with Edupage, aSc Applied Software Consultants,
 or any school using Edupage.
@@ -67,6 +68,14 @@ state, timing, full-screen behavior, or other browser mechanisms.
   `chrome://extensions/`.
 - Update checks do not send Edupage data anywhere.
 
+### Google Calendar Sync
+
+- **Google Calendar sync** can mirror the current EduPage timetable to a
+  dedicated Google Calendar.
+- Supports **current week** sync or **current halfyear** sync.
+- Uses a user-provided Google OAuth client and browser-based sign-in.
+- Stores Google OAuth tokens locally in the browser for background sync.
+
 ## Installation
 
 ### Load unpacked in Chrome or Edge
@@ -107,10 +116,20 @@ Edupage Extras requests:
 - `alarms` - checks for updates on a daily schedule.
 - `notifications` - shows an unpacked-version update reminder when a newer
   GitHub version is available.
+- `identity` - completes the optional Google OAuth sign-in flow for Google
+  Calendar sync.
 - `https://*.edupage.org/*` host access - injects the extension scripts only on
-  Edupage pages.
+  Edupage pages and reads timetable/attendance data already present in Edupage.
+- `https://edublurtesting.ct.ws/*` host access - enables the Experimental Stay
+  Active Mode testing page.
 - `https://raw.githubusercontent.com/Alexosavrua/Edupage-Extras/*` host access -
   reads the public project manifest for update checks.
+- `https://accounts.google.com/*` host access - opens the Google sign-in and
+  consent screens for the optional Google Calendar feature.
+- `https://oauth2.googleapis.com/*` host access - exchanges and refreshes
+  Google OAuth tokens for the optional Google Calendar feature.
+- `https://www.googleapis.com/*` host access - creates and updates Google
+  Calendar events for the optional Google Calendar feature.
 
 The extension does not request access to all websites.
 
@@ -119,13 +138,17 @@ The extension does not request access to all websites.
 - No backend server.
 - No analytics.
 - No external requests made by the extension except the optional public GitHub
-  manifest update check.
-- No credentials are collected.
+  manifest update check and the optional Google Calendar sync flow.
+- No Edupage credentials are collected.
 - Settings are stored locally with `chrome.storage.local`.
 - Grade enhancements are generated from data already present in the currently
   loaded Edupage page.
 - Attendance percentages are generated from Edupage's existing attendance page
   data and do not use an external API.
+- Google Calendar OAuth tokens, if configured, are stored locally in the
+  browser profile to support manual and scheduled sync.
+- Google OAuth client details, if configured for Calendar sync, are also stored
+  locally in the browser profile.
 
 ## Project Structure
 

@@ -704,6 +704,7 @@ googleCalendarConnectButton.addEventListener("click", () => {
 		type: "ee-google-calendar-connect",
 		clientId,
 		clientSecret,
+		syncMode: normalizeGoogleCalendarSyncMode(googleCalendarSyncModeSelect.value),
 		halfyearScope: normalizeGoogleCalendarHalfyearScope(googleCalendarHalfyearScopeSelect.value),
 		calendarName: normalizeGoogleCalendarName(googleCalendarNameInput.value),
 	});
