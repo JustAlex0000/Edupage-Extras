@@ -873,7 +873,94 @@ chrome.storage.onChanged.addListener((changes, area) => {
   });
 });
 
-chrome.runtime.onMessage.addListener((message) => {
+function normalizeSchoolEventText(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function normalizeSchoolEventKey(value) {
+  return normalizeSchoolEventText(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function parseSchoolEventDate(text, anchorDate = new Date()) {
+  const match = String(text || "").match(/(\d{1,2})\.\s*(\d{1,2})\.(?:\s*(\d{4}))?/);
+  if (!match) return "";
+
+  const day = Number.parseInt(match[1], 10);
+  const month = Number.parseInt(match[2], 10);
+  const explicitYear = Number.parseInt(match[3], 10);
+  const candidateYears = Number.isFinite(explicitYear)
+    ? [explicitYear]
+    : [anchorDate.getFullYear(), anchorDate.getFullYear() + 1];
+
+  const candidates = candidateYears
+    .map((year) => new Date(year, month - 1, day))
+    .filter((candidate) => candidate.getMonth() === month - 1 && candidate.getDate() === day);
+
+  if (candidates.length === 0) return "";
+
+  candidates.sort((left, right) => {
+    const leftDelta = left.getTime() - anchorDate.getTime();
+    const rightDelta = right.getTime() - anchorDate.getTime();
+    const leftPenalty = leftDelta < (-30 * 24 * 60 * 60 * 1000) ? Number.MAX_SAFE_INTEGER : Math.abs(leftDelta);
+    const rightPenalty = rightDelta < (-30 * 24 * 60 * 60 * 1000) ? Number.MAX_SAFE_INTEGER : Math.abs(rightDelta);
+    return leftPenalty - rightPenalty;
+  });
+
+  const resolved = candidates[0];
+  const year = String(resolved.getFullYear()).padStart(4, "0");
+  const resolvedMonth = String(resolved.getMonth() + 1).padStart(2, "0");
+  const resolvedDay = String(resolved.getDate()).padStart(2, "0");
+  return `${year}-${resolvedMonth}-${resolvedDay}`;
+}
+
+function detectSchoolEventKind(text, enabledTypes = {}) {
+  const normalized = normalizeSchoolEventKey(text);
+  if (enabledTypes.tests !== false && /(test|exam|quiz|pisomk|písomk|previerk|skusk|skúšk|skusani|skúšani)/.test(normalized)) {
+    return "test";
+  }
+  return "";
+}
+
+function extractSchoolEventsFromPage(types = {}) {
+  const seen = new Set();
+  const events = [];
+  const candidates = Array.from(document.querySelectorAll(".events li, .timeline-item, .event.schoolevent"));
+
+  candidates.forEach((element) => {
+    const rawText = normalizeSchoolEventText(element.textContent || "");
+    if (!rawText) return;
+
+    const kind = detectSchoolEventKind(rawText, types);
+    if (!kind) return;
+
+    const date = parseSchoolEventDate(rawText);
+    if (!date) return;
+
+    const title = normalizeSchoolEventText(
+      element.querySelector("b, strong, a")?.textContent
+      || rawText,
+    );
+    const href = element.querySelector("a[href]")?.href || "";
+    const key = `${kind}|${date}|${normalizeSchoolEventKey(title)}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+
+    events.push({
+      kind,
+      title,
+      date,
+      details: rawText,
+      href,
+    });
+  });
+
+  return events;
+}
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message && message.type === "ee-set-dark-mode") {
     applyDarkMode(Boolean(message.enabled));
   }
@@ -886,4 +973,14 @@ chrome.runtime.onMessage.addListener((message) => {
       helpHidden: message.hideHelpTextEnabled === true,
     });
   }
+  if (message && message.type === "ee-extract-school-events") {
+    sendResponse({
+      ok: true,
+      data: {
+        events: extractSchoolEventsFromPage(message.types || {}),
+      },
+    });
+    return false;
+  }
+  return false;
 });

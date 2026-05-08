@@ -8,7 +8,7 @@ function loadBackgroundInternals() {
   const source = fs.readFileSync(scriptPath, "utf8");
   const instrumentedSource = source.replace(
     "chrome.runtime.onInstalled.addListener(() => {",
-    "globalThis.__eeBackgroundTest = { shouldEnableGoogleCalendarAlarm, buildGoogleCalendarConnectedStatus, normalizeGoogleCalendarSyncMode, normalizeGoogleCalendarHalfyearScope, normalizeGoogleCalendarName, parseDateOnly, toRfc3339, buildTemplateWeekMap, buildHalfyearDesiredEvents }; chrome.runtime.onInstalled.addListener(() => {",
+    "globalThis.__eeBackgroundTest = { shouldEnableGoogleCalendarAlarm, buildGoogleCalendarConnectedStatus, normalizeGoogleCalendarSyncMode, normalizeGoogleCalendarHalfyearScope, normalizeGoogleCalendarName, parseDateOnly, toRfc3339, buildTemplateWeekMap, buildHalfyearDesiredEvents, buildSchoolEventDesiredEvents }; chrome.runtime.onInstalled.addListener(() => {",
   );
 
   const noop = () => {};
@@ -211,4 +211,43 @@ runTest("template weeks prefer a later recurring slot over an earlier one-off va
 
   assert.equal(lessons.length, 1);
   assert.equal(lessons[0].title, "Math");
+});
+
+runTest("school event desired events stay off until the event toggles are enabled", () => {
+  const { buildSchoolEventDesiredEvents } = loadBackgroundInternals();
+
+  const desired = buildSchoolEventDesiredEvents([{
+    kind: "test",
+    title: "Math test",
+    date: "2026-05-20",
+  }], {
+    schoolEventsEnabled: false,
+    testEventsEnabled: true,
+  });
+
+  assert.deepEqual(Array.from(desired), []);
+});
+
+runTest("school event desired events create managed all-day exam events", () => {
+  const { buildSchoolEventDesiredEvents } = loadBackgroundInternals();
+
+  const desired = buildSchoolEventDesiredEvents([{
+    kind: "test",
+    title: "Math test",
+    subject: "Mathematics",
+    date: "2026-05-20",
+    details: "Chapter 8",
+    href: "https://school.edupage.org/event/123",
+  }], {
+    schoolEventsEnabled: true,
+    testEventsEnabled: true,
+  });
+
+  assert.equal(desired.length, 1);
+  assert.equal(desired[0].key, "school:test:2026-05-20:math-test");
+  assert.equal(desired[0].payload.summary, "Test: Math test");
+  assert.equal(desired[0].payload.start.date, "2026-05-20");
+  assert.equal(desired[0].payload.end.date, "2026-05-21");
+  assert.equal(desired[0].payload.extendedProperties.private.eeManaged, "1");
+  assert.equal(desired[0].payload.extendedProperties.private.eeType, "school-event");
 });

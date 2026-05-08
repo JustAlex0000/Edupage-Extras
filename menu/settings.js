@@ -37,6 +37,9 @@ const googleCalendarSyncIntervalInput = document.getElementById("GoogleCalendarS
 const googleCalendarRoomInTitleCheckbox = document.getElementById("GoogleCalendarRoomInTitleCheckbox");
 const googleCalendarTeacherInTitleCheckbox = document.getElementById("GoogleCalendarTeacherInTitleCheckbox");
 const googleCalendarUseDefaultRemindersCheckbox = document.getElementById("GoogleCalendarUseDefaultRemindersCheckbox");
+const googleCalendarSchoolEventsCheckbox = document.getElementById("GoogleCalendarSchoolEventsCheckbox");
+const googleCalendarSchoolEventKinds = document.getElementById("GoogleCalendarSchoolEventKinds");
+const googleCalendarTestEventsCheckbox = document.getElementById("GoogleCalendarTestEventsCheckbox");
 const googleCalendarConnectButton = document.getElementById("GoogleCalendarConnectButton");
 const googleCalendarDisconnectButton = document.getElementById("GoogleCalendarDisconnectButton");
 const googleCalendarClearButton = document.getElementById("GoogleCalendarClearButton");
@@ -67,6 +70,8 @@ const GOOGLE_CALENDAR_SYNC_INTERVAL_KEY = "eeGoogleCalendarSyncIntervalMinutes";
 const GOOGLE_CALENDAR_ROOM_IN_TITLE_KEY = "eeGoogleCalendarRoomInTitle";
 const GOOGLE_CALENDAR_TEACHER_IN_TITLE_KEY = "eeGoogleCalendarTeacherInTitle";
 const GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY = "eeGoogleCalendarUseDefaultReminders";
+const GOOGLE_CALENDAR_SCHOOL_EVENTS_ENABLED_KEY = "eeGoogleCalendarSchoolEventsEnabled";
+const GOOGLE_CALENDAR_TEST_EVENTS_KEY = "eeGoogleCalendarTestEventsEnabled";
 const GOOGLE_CALENDAR_STATUS_KEY = "eeGoogleCalendarStatus";
 const THEME_TOGGLE_COMMAND = "toggle-theme-mode";
 const REPO_URL = "https://github.com/Alexosavrua/Edupage-Extras";
@@ -78,6 +83,8 @@ const GOOGLE_CALENDAR_DEFAULT_HALFYEAR_SCOPE = "future";
 const GOOGLE_CALENDAR_DEFAULT_COLOR_MODE = "subject";
 const GOOGLE_CALENDAR_DEFAULT_SINGLE_COLOR = "9";
 const GOOGLE_CALENDAR_DEFAULT_SYNC_INTERVAL = 15;
+const GOOGLE_CALENDAR_DEFAULT_SCHOOL_EVENTS_ENABLED = false;
+const GOOGLE_CALENDAR_DEFAULT_TEST_EVENTS_ENABLED = true;
 const DEFAULT_CUSTOM_THEME = {
 	bgBase: "#11111b",
 	bgRaised: "#181825",
@@ -393,6 +400,9 @@ function updateGoogleCalendarControls() {
 	googleCalendarRoomInTitleCheckbox.disabled = !enabled;
 	googleCalendarTeacherInTitleCheckbox.disabled = !enabled;
 	googleCalendarUseDefaultRemindersCheckbox.disabled = !enabled;
+	googleCalendarSchoolEventsCheckbox.disabled = !enabled;
+	googleCalendarSchoolEventKinds.hidden = !enabled || !googleCalendarSchoolEventsCheckbox.checked;
+	googleCalendarTestEventsCheckbox.disabled = !enabled || !googleCalendarSchoolEventsCheckbox.checked;
 	googleCalendarConnectButton.disabled = !enabled || !hasClientId || !hasClientSecret;
 	googleCalendarDisconnectButton.disabled = !enabled;
 	googleCalendarClearButton.disabled = !enabled;
@@ -413,6 +423,8 @@ function syncGoogleCalendarSettingsToStorage() {
 		[GOOGLE_CALENDAR_ROOM_IN_TITLE_KEY]: googleCalendarRoomInTitleCheckbox.checked,
 		[GOOGLE_CALENDAR_TEACHER_IN_TITLE_KEY]: googleCalendarTeacherInTitleCheckbox.checked,
 		[GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY]: googleCalendarUseDefaultRemindersCheckbox.checked,
+		[GOOGLE_CALENDAR_SCHOOL_EVENTS_ENABLED_KEY]: googleCalendarSchoolEventsCheckbox.checked,
+		[GOOGLE_CALENDAR_TEST_EVENTS_KEY]: googleCalendarTestEventsCheckbox.checked,
 	});
 }
 
@@ -470,6 +482,8 @@ chrome.storage.local.get(
 		GOOGLE_CALENDAR_ROOM_IN_TITLE_KEY,
 		GOOGLE_CALENDAR_TEACHER_IN_TITLE_KEY,
 		GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY,
+		GOOGLE_CALENDAR_SCHOOL_EVENTS_ENABLED_KEY,
+		GOOGLE_CALENDAR_TEST_EVENTS_KEY,
 		GOOGLE_CALENDAR_STATUS_KEY,
 	],
 	(result) => {
@@ -499,6 +513,8 @@ chrome.storage.local.get(
 		googleCalendarRoomInTitleCheckbox.checked = result[GOOGLE_CALENDAR_ROOM_IN_TITLE_KEY] === true;
 		googleCalendarTeacherInTitleCheckbox.checked = result[GOOGLE_CALENDAR_TEACHER_IN_TITLE_KEY] === true;
 		googleCalendarUseDefaultRemindersCheckbox.checked = result[GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY] === true;
+		googleCalendarSchoolEventsCheckbox.checked = result[GOOGLE_CALENDAR_SCHOOL_EVENTS_ENABLED_KEY] === true;
+		googleCalendarTestEventsCheckbox.checked = result[GOOGLE_CALENDAR_TEST_EVENTS_KEY] !== false;
 		syncCustomThemeInputs(customTheme);
 		customThemeImport.value = customThemeExportText(customTheme);
 		applySettingsTheme(theme, enabled, customTheme);
@@ -681,6 +697,15 @@ googleCalendarUseDefaultRemindersCheckbox.addEventListener("change", () => {
 	chrome.storage.local.set({ [GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY]: googleCalendarUseDefaultRemindersCheckbox.checked });
 });
 
+googleCalendarSchoolEventsCheckbox.addEventListener("change", () => {
+	chrome.storage.local.set({ [GOOGLE_CALENDAR_SCHOOL_EVENTS_ENABLED_KEY]: googleCalendarSchoolEventsCheckbox.checked });
+	updateGoogleCalendarControls();
+});
+
+googleCalendarTestEventsCheckbox.addEventListener("change", () => {
+	chrome.storage.local.set({ [GOOGLE_CALENDAR_TEST_EVENTS_KEY]: googleCalendarTestEventsCheckbox.checked });
+});
+
 googleCalendarConnectButton.addEventListener("click", () => {
 	const clientId = googleCalendarClientIdInput.value.trim();
 	const clientSecret = googleCalendarClientSecretInput.value.trim();
@@ -764,6 +789,8 @@ chrome.storage.onChanged.addListener((changes, area) => {
 		|| changes[GOOGLE_CALENDAR_ROOM_IN_TITLE_KEY]
 		|| changes[GOOGLE_CALENDAR_TEACHER_IN_TITLE_KEY]
 		|| changes[GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY]
+		|| changes[GOOGLE_CALENDAR_SCHOOL_EVENTS_ENABLED_KEY]
+		|| changes[GOOGLE_CALENDAR_TEST_EVENTS_KEY]
 	) {
 		if (changes[GOOGLE_CALENDAR_ENABLED_KEY]) {
 			googleCalendarEnabledToggle.checked = changes[GOOGLE_CALENDAR_ENABLED_KEY].newValue === true;
@@ -800,6 +827,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
 		}
 		if (changes[GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY]) {
 			googleCalendarUseDefaultRemindersCheckbox.checked = changes[GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY].newValue === true;
+		}
+		if (changes[GOOGLE_CALENDAR_SCHOOL_EVENTS_ENABLED_KEY]) {
+			googleCalendarSchoolEventsCheckbox.checked = changes[GOOGLE_CALENDAR_SCHOOL_EVENTS_ENABLED_KEY].newValue === true;
+		}
+		if (changes[GOOGLE_CALENDAR_TEST_EVENTS_KEY]) {
+			googleCalendarTestEventsCheckbox.checked = changes[GOOGLE_CALENDAR_TEST_EVENTS_KEY].newValue !== false;
 		}
 		updateGoogleCalendarControls();
 	}

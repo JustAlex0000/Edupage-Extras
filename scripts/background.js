@@ -26,6 +26,8 @@ const GOOGLE_CALENDAR_SYNC_INTERVAL_KEY = "eeGoogleCalendarSyncIntervalMinutes";
 const GOOGLE_CALENDAR_ROOM_IN_TITLE_KEY = "eeGoogleCalendarRoomInTitle";
 const GOOGLE_CALENDAR_TEACHER_IN_TITLE_KEY = "eeGoogleCalendarTeacherInTitle";
 const GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY = "eeGoogleCalendarUseDefaultReminders";
+const GOOGLE_CALENDAR_SCHOOL_EVENTS_ENABLED_KEY = "eeGoogleCalendarSchoolEventsEnabled";
+const GOOGLE_CALENDAR_TEST_EVENTS_KEY = "eeGoogleCalendarTestEventsEnabled";
 const GOOGLE_CALENDAR_STATUS_KEY = "eeGoogleCalendarStatus";
 const GOOGLE_CALENDAR_TOKENS_KEY = "eeGoogleCalendarTokens";
 const GOOGLE_CALENDAR_CALENDAR_ID_KEY = "eeGoogleCalendarCalendarId";
@@ -38,6 +40,8 @@ const GOOGLE_CALENDAR_DEFAULT_HALFYEAR_SCOPE = "future";
 const GOOGLE_CALENDAR_DEFAULT_COLOR_MODE = "subject";
 const GOOGLE_CALENDAR_DEFAULT_SINGLE_COLOR = "9";
 const GOOGLE_CALENDAR_DEFAULT_SYNC_INTERVAL = 15;
+const GOOGLE_CALENDAR_DEFAULT_SCHOOL_EVENTS_ENABLED = false;
+const GOOGLE_CALENDAR_DEFAULT_TEST_EVENTS_ENABLED = true;
 const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar";
 const GOOGLE_CALENDAR_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Bratislava";
 const TIMETABLE_LIVE_CACHE_TTL_MS = 10 * 60 * 1000;
@@ -487,6 +491,8 @@ async function getGoogleCalendarConfig() {
     GOOGLE_CALENDAR_ROOM_IN_TITLE_KEY,
     GOOGLE_CALENDAR_TEACHER_IN_TITLE_KEY,
     GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY,
+    GOOGLE_CALENDAR_SCHOOL_EVENTS_ENABLED_KEY,
+    GOOGLE_CALENDAR_TEST_EVENTS_KEY,
     GOOGLE_CALENDAR_CALENDAR_ID_KEY,
     GOOGLE_CALENDAR_LAST_ORIGIN_KEY,
   ]);
@@ -505,6 +511,8 @@ async function getGoogleCalendarConfig() {
     roomInTitle: result?.[GOOGLE_CALENDAR_ROOM_IN_TITLE_KEY] === true,
     teacherInTitle: result?.[GOOGLE_CALENDAR_TEACHER_IN_TITLE_KEY] === true,
     useDefaultReminders: result?.[GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY] === true,
+    schoolEventsEnabled: result?.[GOOGLE_CALENDAR_SCHOOL_EVENTS_ENABLED_KEY] === true,
+    testEventsEnabled: result?.[GOOGLE_CALENDAR_TEST_EVENTS_KEY] !== false,
     calendarId: String(result?.[GOOGLE_CALENDAR_CALENDAR_ID_KEY] || "").trim(),
     lastEdupageOrigin: String(result?.[GOOGLE_CALENDAR_LAST_ORIGIN_KEY] || "").trim(),
   };
@@ -1009,6 +1017,66 @@ function buildDesiredEvent({ lesson, classLabel, weekLabel, mode, config }) {
   };
 }
 
+function buildSchoolEventKey(event) {
+  return `school:${normalizeKeyText(event?.kind || "event")}:${String(event?.date || "").trim()}:${normalizeKeyText(event?.title || "event")}`;
+}
+
+function buildSchoolEventSummary(event) {
+  const kind = normalizeKeyText(event?.kind);
+  const prefix = kind === "test" ? "Test" : "Event";
+  return `${prefix}: ${String(event?.title || "").trim()}`.trim();
+}
+
+function buildSchoolEventDescription(event) {
+  const lines = [];
+  if (event?.subject) lines.push(`Subject: ${event.subject}`);
+  if (event?.details) lines.push(String(event.details).trim());
+  if (event?.href) lines.push(`Source: ${event.href}`);
+  lines.push("Source: EduPage school events");
+  return lines.join("\n");
+}
+
+function buildSchoolEventDesiredEvents(events, config = {}) {
+  if (!config.schoolEventsEnabled || !config.testEventsEnabled) {
+    return [];
+  }
+
+  return (events || [])
+    .filter((event) => event?.kind === "test" && parseDateOnly(event?.date))
+    .map((event) => {
+      const startDate = String(event.date).trim();
+      const endDate = formatDate(addDays(parseDateOnly(startDate), 1));
+      const key = buildSchoolEventKey(event);
+
+      return {
+        key,
+        startDateTime: `${startDate}T00:00:00`,
+        endDateTime: `${endDate}T00:00:00`,
+        payload: {
+          summary: buildSchoolEventSummary(event),
+          description: buildSchoolEventDescription(event),
+          start: {
+            date: startDate,
+          },
+          end: {
+            date: endDate,
+          },
+          extendedProperties: {
+            private: {
+              eeManaged: "1",
+              eeType: "school-event",
+              eeKey: key,
+              eeDate: startDate,
+            },
+          },
+          reminders: config.useDefaultReminders === true
+            ? { useDefault: true }
+            : { useDefault: false },
+        },
+      };
+    });
+}
+
 function managedEventMatchesDesired(current, desiredPayload) {
   const currentPrivate = current?.extendedProperties?.private || {};
   const desiredPrivate = desiredPayload?.extendedProperties?.private || {};
@@ -1018,11 +1086,14 @@ function managedEventMatchesDesired(current, desiredPayload) {
     && String(current?.description || "") === String(desiredPayload?.description || "")
     && String(current?.colorId || "") === String(desiredPayload?.colorId || "")
     && String(current?.start?.dateTime || "") === String(desiredPayload?.start?.dateTime || "")
+    && String(current?.start?.date || "") === String(desiredPayload?.start?.date || "")
     && String(current?.end?.dateTime || "") === String(desiredPayload?.end?.dateTime || "")
+    && String(current?.end?.date || "") === String(desiredPayload?.end?.date || "")
     && String(current?.start?.timeZone || "") === String(desiredPayload?.start?.timeZone || "")
     && String(current?.end?.timeZone || "") === String(desiredPayload?.end?.timeZone || "")
     && Boolean(current?.reminders?.useDefault) === Boolean(desiredPayload?.reminders?.useDefault)
     && String(currentPrivate.eeManaged || "") === String(desiredPrivate.eeManaged || "")
+    && String(currentPrivate.eeType || "") === String(desiredPrivate.eeType || "")
     && String(currentPrivate.eeKey || "") === String(desiredPrivate.eeKey || "")
     && String(currentPrivate.eeDate || "") === String(desiredPrivate.eeDate || "");
 }
@@ -1578,6 +1649,50 @@ async function extractWeekFromHiddenTab(tabId, steps = 0) {
   return response.data;
 }
 
+async function extractSchoolEventsFromHiddenTab(tabId, types = {}) {
+  const response = await sendTabMessageRetry(tabId, {
+    type: "ee-extract-school-events",
+    types,
+  });
+  if (!response?.ok || !Array.isArray(response.data?.events)) {
+    throw new Error(response?.error || "EduPage school event extraction failed.");
+  }
+  return response.data.events;
+}
+
+async function collectUpcomingSchoolEvents(config) {
+  if (!config.lastEdupageOrigin || !config.schoolEventsEnabled || !config.testEventsEnabled) {
+    return [];
+  }
+
+  const candidateUrls = [
+    `${config.lastEdupageOrigin}/`,
+    `${config.lastEdupageOrigin}/user/`,
+  ];
+
+  for (const url of candidateUrls) {
+    const tab = await createTab(url);
+    try {
+      await waitForTabComplete(tab.id);
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const events = await extractSchoolEventsFromHiddenTab(tab.id, {
+          tests: config.testEventsEnabled === true,
+        });
+        if (events.length > 0) {
+          return events;
+        }
+        await delay(400);
+      }
+    } catch (error) {
+      console.warn("[Edupage Extras] Could not extract school events from hidden tab.", error);
+    } finally {
+      await removeTab(tab.id);
+    }
+  }
+
+  return [];
+}
+
 async function collectLiveEdupageWeek(config) {
   if (!config.lastEdupageOrigin) {
     throw new Error("Open any EduPage page once so the extension can learn your school URL.");
@@ -1710,9 +1825,14 @@ async function performGoogleCalendarSync({ source = "background" } = {}) {
 
   await updateGoogleCalendarProgress(baseStatus, { phase: "calendar" });
   const calendarId = await ensureManagedGoogleCalendar(config);
-  const desiredEvents = config.syncMode === "halfyear"
+  const timetableEvents = config.syncMode === "halfyear"
     ? buildHalfyearDesiredEvents(liveWeek, adjacentWeek)
     : buildWeeklyDesiredEvents(liveWeek);
+  const schoolEvents = await collectUpcomingSchoolEvents(config);
+  const desiredEvents = [
+    ...timetableEvents,
+    ...buildSchoolEventDesiredEvents(schoolEvents, config),
+  ];
 
   const syncStats = await upsertCalendarEvents(calendarId, desiredEvents, async (progress) => {
     await updateGoogleCalendarProgress(baseStatus, progress);

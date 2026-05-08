@@ -224,7 +224,7 @@
         <div id="GoogleCalendarDetails" hidden>
         <div class="setting-note setting-note-warning" role="note" aria-label="Google auth note">
           <strong>OAuth Required</strong>
-          <p>Google Calendar writes do not work with a simple API key. Use a Google OAuth Client ID and Client Secret here instead. Because this is a public extension, each user should bring their own Google OAuth app credentials instead of relying on one shared secret.</p>
+          <p>Google Calendar writes do not work with a simple API key. Use a Google OAuth Client ID and Client Secret here instead. For a hobby setup, a free personal Google account and a free Google Cloud project are enough. You do not need Chrome Web Store publishing for the current setup.</p>
         </div>
 
         <div class="setting-row setting-row-stack">
@@ -239,6 +239,7 @@
             <p>4. Create an <strong>OAuth client ID</strong> of type <strong>Web application</strong>.</p>
             <p>5. Add the exact redirect URI shown below to <strong>Authorized redirect URIs</strong>.</p>
             <p>6. Copy the Client ID and Client Secret, paste them below, then click <strong>Connect Google</strong>.</p>
+            <p>7. No payment is required for normal hobby use.</p>
           </div>
         </div>
 
@@ -324,6 +325,18 @@
                 <span>Use Google reminders</span>
               </label>
             </div>
+            <div class="option-grid" aria-label="Google Calendar school event options">
+              <label class="switch" for="GoogleCalendarSchoolEventsCheckbox">
+                <input type="checkbox" id="GoogleCalendarSchoolEventsCheckbox">
+                <span>Sync school events</span>
+              </label>
+            </div>
+            <div class="option-grid" id="GoogleCalendarSchoolEventKinds" aria-label="Google Calendar school event kinds" hidden>
+              <label class="switch" for="GoogleCalendarTestEventsCheckbox">
+                <input type="checkbox" id="GoogleCalendarTestEventsCheckbox">
+                <span>Tests / Exams</span>
+              </label>
+            </div>
             <div class="actions-row">
               <button class="secondary-button" id="GoogleCalendarConnectButton" type="button">Connect Google</button>
               <button class="secondary-button" id="GoogleCalendarDisconnectButton" type="button">Disconnect</button>
@@ -332,6 +345,7 @@
             </div>
             <p class="calendar-help-text">Put that redirect URI into your Google OAuth client exactly as shown. If Google says <strong>redirect_uri_mismatch</strong>, this field is the fix.</p>
             <p class="calendar-help-text">Week mode syncs the current whole week. On Saturday and Sunday it syncs the upcoming week instead. Halfyear mode repeats the detected timetable template through the current halfyear and then keeps the active week updated from EduPage.</p>
+            <p class="calendar-help-text">School events are currently conservative: only explicitly marked tests and exams are added when that toggle is enabled.</p>
             <p class="calendar-help-text">Halfyear coverage defaults to future events only. Whole current halfyear is available too, but it is slower and may take noticeably longer to finish.</p>
             <p class="calendar-help-text">The second halfyear ends on <strong>June 30</strong>, so this sync will not continue into July or August.</p>
             <p class="calendar-help-text">Halfyear sync is intentionally throttled so Google is less likely to reject the extension with rate limits.</p>
