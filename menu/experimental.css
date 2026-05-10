@@ -181,27 +181,82 @@ p {
 }
 
 .switch {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    white-space: nowrap;
     color: var(--text-main);
-    font-weight: 700;
+    cursor: pointer;
+    gap: 12px;
+    position: relative;
+    white-space: nowrap;
 }
 
-input[type="checkbox"] {
-    accent-color: var(--accent-color);
-    height: 18px;
-    width: 18px;
+.switch-compact {
+    justify-content: flex-end;
+    min-width: 52px;
 }
 
-input[type="checkbox"]:disabled {
-    cursor: not-allowed;
-    opacity: 0.55;
+.switch-track {
+    background: #5b6470;
+    border: 1px solid #7b8592;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 28px;
+    position: relative;
+    transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+    width: 48px;
 }
 
-.setting-row:has(:disabled) {
-    opacity: 0.72;
+.switch-track::after {
+    background: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.3);
+    content: "";
+    height: 22px;
+    left: 2px;
+    position: absolute;
+    top: 2px;
+    transition: transform 140ms ease;
+    width: 22px;
+}
+
+.sr-only {
+    border: 0;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+}
+
+.switch input[type="checkbox"] {
+    height: 1px;
+    margin: 0;
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+    width: 1px;
+}
+
+.switch input[type="checkbox"]:checked + .switch-track {
+    background: #34c759;
+    border-color: #34c759;
+}
+
+.switch input[type="checkbox"]:checked + .switch-track::after {
+    transform: translateX(20px);
+}
+
+.switch input[type="checkbox"]:focus-visible + .switch-track {
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.28);
+}
+
+.switch input[type="checkbox"]:disabled + .switch-track {
+    opacity: 0.6;
+    box-shadow: none;
 }
 
 code {

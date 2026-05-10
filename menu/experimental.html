@@ -28,9 +28,10 @@
             <h3>Stay Active Mode (Master Switch)</h3>
             <p>Turn the full Stay Active feature set on or off at once for Edupage pages.</p>
           </div>
-          <label class="switch" for="ActivityShieldEnabled">
+          <label class="switch switch-compact" for="ActivityShieldEnabled">
             <input type="checkbox" id="ActivityShieldEnabled">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle Stay Active Mode</span>
           </label>
         </div>
 
@@ -56,9 +57,10 @@
             <h3>Keep Tab Marked Visible</h3>
             <p>Make Edupage read the tab as <code>visible</code> even after switching away.</p>
           </div>
-          <label class="switch" for="ActivityVisibilityState">
+          <label class="switch switch-compact" for="ActivityVisibilityState">
             <input type="checkbox" id="ActivityVisibilityState">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle keep tab marked visible</span>
           </label>
         </div>
 
@@ -67,9 +69,10 @@
             <h3>Keep Tab Marked Not Hidden</h3>
             <p>Make Edupage read <code>document.hidden</code> as <code>false</code>.</p>
           </div>
-          <label class="switch" for="ActivityHidden">
+          <label class="switch switch-compact" for="ActivityHidden">
             <input type="checkbox" id="ActivityHidden">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle keep tab marked not hidden</span>
           </label>
         </div>
 
@@ -78,9 +81,10 @@
             <h3>Hide Tab-Switch Events</h3>
             <p>Stop Edupage scripts from receiving visibility and page-hide events.</p>
           </div>
-          <label class="switch" for="ActivityVisibilityEvents">
+          <label class="switch switch-compact" for="ActivityVisibilityEvents">
             <input type="checkbox" id="ActivityVisibilityEvents">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle hide tab-switch events</span>
           </label>
         </div>
 
@@ -89,9 +93,10 @@
             <h3>Keep Page Marked Focused</h3>
             <p>Make Edupage read the page as focused and hide focus-in events.</p>
           </div>
-          <label class="switch" for="ActivityFocus">
+          <label class="switch switch-compact" for="ActivityFocus">
             <input type="checkbox" id="ActivityFocus">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle keep page marked focused</span>
           </label>
         </div>
 
@@ -100,9 +105,10 @@
             <h3>Hide Focus Loss</h3>
             <p>Stop Edupage scripts from receiving blur and focus-out events.</p>
           </div>
-          <label class="switch" for="ActivityBlur">
+          <label class="switch switch-compact" for="ActivityBlur">
             <input type="checkbox" id="ActivityBlur">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle hide focus loss</span>
           </label>
         </div>
       </section>
@@ -117,9 +123,10 @@
             <h3>Hide Cursor Leaving The Page</h3>
             <p>Stop Edupage scripts from seeing mouse enter and leave events.</p>
           </div>
-          <label class="switch" for="ActivityMouseleave">
+          <label class="switch switch-compact" for="ActivityMouseleave">
             <input type="checkbox" id="ActivityMouseleave">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle hide cursor leaving the page</span>
           </label>
         </div>
 
@@ -128,9 +135,10 @@
             <h3>Hide Cursor Moving Between Areas</h3>
             <p>Stop Edupage scripts from seeing mouse over and out events.</p>
           </div>
-          <label class="switch" for="ActivityMouseout">
+          <label class="switch switch-compact" for="ActivityMouseout">
             <input type="checkbox" id="ActivityMouseout">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle hide cursor moving between areas</span>
           </label>
         </div>
 
@@ -139,9 +147,10 @@
             <h3>Hide Pointer Capture Changes</h3>
             <p>Stop Edupage scripts from seeing pointer capture and release events.</p>
           </div>
-          <label class="switch" for="ActivityPointercapture">
+          <label class="switch switch-compact" for="ActivityPointercapture">
             <input type="checkbox" id="ActivityPointercapture">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle hide pointer capture changes</span>
           </label>
         </div>
 
@@ -150,9 +159,10 @@
             <h3>Hide Copy, Paste, Selection, And Dragging</h3>
             <p>Stop Edupage scripts from seeing clipboard, context menu, selection, drag, and drop events.</p>
           </div>
-          <label class="switch" for="ActivityClipboard">
+          <label class="switch switch-compact" for="ActivityClipboard">
             <input type="checkbox" id="ActivityClipboard">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle hide copy paste selection and dragging</span>
           </label>
         </div>
       </section>
@@ -167,9 +177,10 @@
             <h3>Stop Hidden-Tab Reload Redirects</h3>
             <p>Try to block reload redirects that start after Edupage becomes hidden.</p>
           </div>
-          <label class="switch" for="ActivityRedirect">
+          <label class="switch switch-compact" for="ActivityRedirect">
             <input type="checkbox" id="ActivityRedirect">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle hidden-tab reload redirects</span>
           </label>
         </div>
 
@@ -178,9 +189,10 @@
             <h3>Keep Page Animation Running In Background</h3>
             <p>Keep <code>requestAnimationFrame</code> callbacks moving while the tab is hidden.</p>
           </div>
-          <label class="switch" for="ActivityAnimationFrame">
+          <label class="switch switch-compact" for="ActivityAnimationFrame">
             <input type="checkbox" id="ActivityAnimationFrame">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle keep page animation running in background</span>
           </label>
         </div>
 
@@ -189,9 +201,10 @@
             <h3>Show Status Dot On Edupage</h3>
             <p>Show a small dot so users can see whether Stay Active Mode is active or paused.</p>
           </div>
-          <label class="switch" for="ActivityVisualIndicator">
+          <label class="switch switch-compact" for="ActivityVisualIndicator">
             <input type="checkbox" id="ActivityVisualIndicator">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle status dot on Edupage</span>
           </label>
         </div>
 
@@ -200,9 +213,10 @@
             <h3>Show Console Debug Messages</h3>
             <p>Print technical diagnostics in the page console when something cannot be changed.</p>
           </div>
-          <label class="switch" for="ActivityLog">
+          <label class="switch switch-compact" for="ActivityLog">
             <input type="checkbox" id="ActivityLog">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle console debug messages</span>
           </label>
         </div>
       </section>

@@ -24,9 +24,10 @@
             <h3>Themes</h3>
             <p>Apply Edupage Extras colors across Edupage and the extension menus.</p>
           </div>
-          <label class="switch" for="DarkModeCheckbox">
+          <label class="switch switch-compact" for="DarkModeCheckbox">
             <input type="checkbox" id="DarkModeCheckbox">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle themes</span>
           </label>
         </div>
 
@@ -136,9 +137,10 @@
             <h3>Centered Layout</h3>
             <p>Keep the top schedule and main content aligned in the middle.</p>
           </div>
-          <label class="switch" for="CleanUiCheckbox">
+          <label class="switch switch-compact" for="CleanUiCheckbox">
             <input type="checkbox" id="CleanUiCheckbox">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle centered layout</span>
           </label>
         </div>
 
@@ -147,9 +149,10 @@
             <h3>Help Text</h3>
             <p>Hide the top-right Edupage help greeting.</p>
           </div>
-          <label class="switch" for="HideHelpTextCheckbox">
+          <label class="switch switch-compact" for="HideHelpTextCheckbox">
             <input type="checkbox" id="HideHelpTextCheckbox">
-            <span>Hidden</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle help text</span>
           </label>
         </div>
 
@@ -163,9 +166,10 @@
             <h3>Grade Badges</h3>
             <p>Show average badges, bars, and the overall average row on the grades page.</p>
           </div>
-          <label class="switch" for="GradeBadgesCheckbox">
+          <label class="switch switch-compact" for="GradeBadgesCheckbox">
             <input type="checkbox" id="GradeBadgesCheckbox">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle grade badges</span>
           </label>
         </div>
 
@@ -174,9 +178,10 @@
             <h3>Subject Attendance</h3>
             <p>Show current-halfyear absence percentage and total lesson hours inside each grades row using official EduPage data.</p>
           </div>
-          <label class="switch" for="GradesAttendanceCheckbox">
+          <label class="switch switch-compact" for="GradesAttendanceCheckbox">
             <input type="checkbox" id="GradesAttendanceCheckbox">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle subject attendance</span>
           </label>
         </div>
 
@@ -185,9 +190,10 @@
             <h3>More Accurate Predicted Attendance</h3>
             <p>Scan upcoming timetable changes and planned events to subtract cancelled lessons from the prediction. Slower to load.</p>
           </div>
-          <label class="switch" for="AccuratePredictedAttendanceCheckbox">
+          <label class="switch switch-compact" for="AccuratePredictedAttendanceCheckbox">
             <input type="checkbox" id="AccuratePredictedAttendanceCheckbox">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle more accurate predicted attendance</span>
           </label>
         </div>
 
@@ -196,9 +202,10 @@
             <h3>Attendance Percentages</h3>
             <p>Show the current halfyear absence percentage inside Edupage's attendance summary table.</p>
           </div>
-          <label class="switch" for="AttendancePercentagesCheckbox">
+          <label class="switch switch-compact" for="AttendancePercentagesCheckbox">
             <input type="checkbox" id="AttendancePercentagesCheckbox">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle attendance percentages</span>
           </label>
         </div>
 
@@ -240,9 +247,10 @@
             <h3>Google Calendar Sync</h3>
             <p>Sync your EduPage timetable into a dedicated Google Calendar and keep the current week updated when rooms, teachers, or lessons change.</p>
           </div>
-          <label class="switch" for="GoogleCalendarEnabledCheckbox">
+          <label class="switch switch-compact" for="GoogleCalendarEnabledCheckbox">
             <input type="checkbox" id="GoogleCalendarEnabledCheckbox">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle Google Calendar sync</span>
           </label>
         </div>
 
@@ -339,27 +347,32 @@
             <div class="option-grid" aria-label="Google Calendar quality of life options">
               <label class="switch" for="GoogleCalendarRoomInTitleCheckbox">
                 <input type="checkbox" id="GoogleCalendarRoomInTitleCheckbox">
-                <span>Show room in title</span>
+                <span class="switch-track" aria-hidden="true"></span>
+                <span class="switch-text">Show room in title</span>
               </label>
               <label class="switch" for="GoogleCalendarTeacherInTitleCheckbox">
                 <input type="checkbox" id="GoogleCalendarTeacherInTitleCheckbox">
-                <span>Show teacher in title</span>
+                <span class="switch-track" aria-hidden="true"></span>
+                <span class="switch-text">Show teacher in title</span>
               </label>
               <label class="switch" for="GoogleCalendarUseDefaultRemindersCheckbox">
                 <input type="checkbox" id="GoogleCalendarUseDefaultRemindersCheckbox">
-                <span>Use Google reminders</span>
+                <span class="switch-track" aria-hidden="true"></span>
+                <span class="switch-text">Use Google reminders</span>
               </label>
             </div>
             <div class="option-grid" aria-label="Google Calendar school event options">
               <label class="switch" for="GoogleCalendarSchoolEventsCheckbox">
                 <input type="checkbox" id="GoogleCalendarSchoolEventsCheckbox">
-                <span>Sync school events</span>
+                <span class="switch-track" aria-hidden="true"></span>
+                <span class="switch-text">Sync school events</span>
               </label>
             </div>
             <div class="option-grid" id="GoogleCalendarSchoolEventKinds" aria-label="Google Calendar school event kinds" hidden>
               <label class="switch" for="GoogleCalendarTestEventsCheckbox">
                 <input type="checkbox" id="GoogleCalendarTestEventsCheckbox">
-                <span>Tests / Exams</span>
+                <span class="switch-track" aria-hidden="true"></span>
+                <span class="switch-text">Tests / Exams</span>
               </label>
             </div>
             <div class="actions-row">
@@ -388,9 +401,10 @@
             <h3>Grades Attendance Debug</h3>
             <p>Print detailed fetch, parsing, matching, and rendering diagnostics for the grades attendance feature into the browser console.</p>
           </div>
-          <label class="switch" for="GradesAttendanceDebugCheckbox">
+          <label class="switch switch-compact" for="GradesAttendanceDebugCheckbox">
             <input type="checkbox" id="GradesAttendanceDebugCheckbox">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle grades attendance debug</span>
           </label>
         </div>
       </section>
@@ -403,9 +417,10 @@
             <h3>Update Reminders</h3>
             <p>Check the public GitHub project for a newer unpacked version.</p>
           </div>
-          <label class="switch" for="UpdateReminderCheckbox">
+          <label class="switch switch-compact" for="UpdateReminderCheckbox">
             <input type="checkbox" id="UpdateReminderCheckbox">
-            <span>Enabled</span>
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only">Toggle update reminders</span>
           </label>
         </div>
 
