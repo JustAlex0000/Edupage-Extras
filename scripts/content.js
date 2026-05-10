@@ -759,6 +759,21 @@ function normalizeTheme(theme) {
   return ["dark", "ocean", "forest", "emerald", "pink", "purple", "custom", "light"].includes(theme) ? theme : "dark";
 }
 
+function shouldSuppressThemeForPath(pathname = window.location.pathname) {
+  return /^\/login(?:\/|$)/i.test(String(pathname || ""));
+}
+
+function resolveAppliedTheme({
+  darkModeEnabled = false,
+  theme = currentTheme,
+  pathname = window.location.pathname,
+} = {}) {
+  if (!darkModeEnabled || shouldSuppressThemeForPath(pathname)) {
+    return "light";
+  }
+  return normalizeTheme(theme);
+}
+
 function normalizeColor(value, fallback) {
   return /^#[0-9a-f]{6}$/i.test(String(value || "")) ? value : fallback;
 }
@@ -803,8 +818,13 @@ function applyTheme({
   cleanEnabled = cleanUiEnabled,
   helpHidden = hideHelpTextEnabled,
 } = {}) {
-  const selectedTheme = darkModeEnabled ? normalizeTheme(theme) : "light";
-  currentTheme = selectedTheme === "light" ? normalizeTheme(theme) : selectedTheme;
+  const normalizedTheme = normalizeTheme(theme);
+  const selectedTheme = resolveAppliedTheme({
+    darkModeEnabled,
+    theme: normalizedTheme,
+    pathname: window.location.pathname,
+  });
+  currentTheme = normalizedTheme;
   currentCustomTheme = normalizeCustomTheme(customTheme);
   cleanUiEnabled = cleanEnabled;
   hideHelpTextEnabled = helpHidden;
