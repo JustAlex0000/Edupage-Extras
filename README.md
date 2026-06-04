@@ -1,13 +1,21 @@
 # Edupage Extras
 
-Edupage Extras is a Chromium Manifest V3 browser extension that improves the
-Edupage web portal with small quality-of-life features. It runs only on
-`https://*.edupage.org/*` pages for its main features, uses
-`https://edublurtesting.ct.ws/*` for the Experimental Stay Active Mode testing
-page, and changes Edupage's existing interface in place.
+Edupage Extras is a Chromium browser extension that improves the
+Edupage web portal with small (and big) quality-of-life features. 
 
-This project is not affiliated with Edupage, aSc Applied Software Consultants,
-or any school using Edupage.
+**This project is not affiliated with Edupage, aSc Applied Software Consultants,
+or any school using Edupage.**
+
+## Installation
+
+### Load unpacked in Chrome or Edge
+
+1. Download or clone this repository. (Do not forget to extract it if downloading directly)
+2. Open `chrome://extensions` in any Chromium browser.
+3. Enable **Developer mode**.
+4. Click **Load unpacked**.
+5. Select the project folder: `Edupage-Extras/`.
+6. Open an Edupage page such as `https://your-school.edupage.org/`, or reload an already opened page.
 
 ## Features
 
@@ -26,8 +34,9 @@ or any school using Edupage.
 - **Grade badges** on the Edupage grades page.
 - **Color-coded average bars** for subject averages.
 - **Overall average row** based on the averages Edupage already renders.
-- **CSV export** of the grades table (subject, average, and attendance columns
-  when enabled) via an Export CSV button above the table.
+- **JSON export** of the grades table (subject, average, and attendance fields
+  when enabled) via an Export JSON button above the table. The file is
+  human-readable, self-documenting, and easy to feed back into scripts.
 
 ### Attendance
 
@@ -39,27 +48,7 @@ or any school using Edupage.
 - Highlights the currently active halfyear and shows the raw absent/total lesson ratio.
 
 The extension reads the values from Edupage's existing grade table. It does not
-log in, fetch grades from a server, or calculate hidden grade data.
-
-### Experimental
-
-The Experimental page contains **Stay Active Mode**. This is an Edupage-only
-experimental feature that reduces page interruptions caused by common browser
-activity signals such as:
-
-- tab visibility changes
-- hidden-tab state
-- focus and blur events
-- mouse leaving the page
-- clipboard, selection, drag, and drop events
-- background animation throttling
-
-Experimental also includes a direct link to the local testing site:
-`https://edublurtesting.ct.ws/`
-
-This feature is intentionally kept in the Experimental page. It may not affect
-every Edupage behavior, and some Edupage features can still depend on server-side
-state, timing, full-screen behavior, or other browser mechanisms.
+log in, use credentials, fetch grades from a server, or calculate hidden grade data.
 
 ### Languages
 
@@ -70,7 +59,7 @@ state, timing, full-screen behavior, or other browser mechanisms.
 
 ### Updates
 
-- **Update reminders** check the public GitHub project manifest and compare it
+- **Update reminders** checks the public GitHub project manifest and compares it
   with the installed unpacked extension version.
 - If a newer version is available, the extension shows a reminder to pull the
   latest project from GitHub and reload the unpacked extension from
@@ -84,20 +73,7 @@ state, timing, full-screen behavior, or other browser mechanisms.
 - Supports **current week** sync or **current halfyear** sync.
 - Uses a user-provided Google OAuth client and browser-based sign-in.
 - Stores Google OAuth tokens locally in the browser for background sync.
-
-## Installation
-
-### Load unpacked in Chrome or Edge
-
-1. Download or clone this repository.
-2. Open `chrome://extensions` in Chrome, or `edge://extensions` in Edge.
-3. Enable **Developer mode**.
-4. Click **Load unpacked**.
-5. Select the project folder: `Edupage-Extras/`.
-6. Open an Edupage page such as `https://your-school.edupage.org/`.
-
-After changing `manifest.json` or content scripts, reload the extension from the
-extensions page.
+- **This feature is WIP**
 
 ## Usage
 
@@ -109,11 +85,6 @@ extensions page.
 - Use **Check For Updates** in Settings to manually check the public GitHub
   version. If an update is available, pull the latest project and reload the
   unpacked extension in `chrome://extensions/`.
-- Open **Experimental** from Settings for Stay Active Mode controls.
-- Use the testing site link on the Experimental page to verify Stay Active Mode
-  behavior outside EduPage.
-- If Experimental settings were changed while Edupage tabs are already open, use
-  **Reload Edupage Tabs** from the Experimental page for the cleanest result.
 
 ## Permissions
 
@@ -129,16 +100,15 @@ Edupage Extras requests:
   Calendar sync.
 - `https://*.edupage.org/*` host access - injects the extension scripts only on
   Edupage pages and reads timetable/attendance data already present in Edupage.
-- `https://edublurtesting.ct.ws/*` host access - enables the Experimental Stay
-  Active Mode testing page.
+- `https://edublurtesting.ct.ws/*` - testing purposes
 - `https://raw.githubusercontent.com/Alexosavrua/Edupage-Extras/*` host access -
   reads the public project manifest for update checks.
 - `https://accounts.google.com/*` host access - opens the Google sign-in and
-  consent screens for the optional Google Calendar feature.
+  consent screens for the optional Google Calendar feature. - not mandatory only used when google sync is used you can turn it off manually.
 - `https://oauth2.googleapis.com/*` host access - exchanges and refreshes
-  Google OAuth tokens for the optional Google Calendar feature.
+  Google OAuth tokens for the optional Google Calendar feature. - not mandatory only used when google sync is used you can turn it off manually.
 - `https://www.googleapis.com/*` host access - creates and updates Google
-  Calendar events for the optional Google Calendar feature.
+  Calendar events for the optional Google Calendar feature. - not mandatory only used when google sync is used you can turn it off manually.
 
 The extension does not request access to all websites.
 
@@ -159,38 +129,6 @@ The extension does not request access to all websites.
 - Google OAuth client details, if configured for Calendar sync, are also stored
   locally in the browser profile.
 
-## Project Structure
-
-```text
-Edupage-Extras/
-|-- manifest.json
-|-- README.md
-|-- _locales/
-|   |-- en/messages.json
-|   |-- sk/messages.json
-|   `-- cs/messages.json
-|-- images/
-|   `-- placeholder_icon.png
-|-- menu/
-|   |-- menu.html
-|   |-- menu.css
-|   |-- menu.js
-|   |-- settings.html
-|   |-- settings.css
-|   |-- settings.js
-|   |-- experimental.html
-|   |-- experimental.css
-|   |-- experimental.js
-|   `-- i18n.js
-`-- scripts/
-    |-- background.js
-    |-- instant-theme.css
-    |-- content.js
-    |-- grades-enhancer.js
-    |-- attendance-enhancer.js
-    |-- activity-shield-main.js
-    `-- activity-shield-bridge.js
-```
 
 ## Main Files
 
@@ -201,11 +139,8 @@ Edupage-Extras/
   average row.
 - `scripts/attendance-enhancer.js` - injects current halfyear absence
   percentages into Edupage's attendance summary.
-- `scripts/activity-shield-main.js` - page-world Experimental activity controls.
-- `scripts/activity-shield-bridge.js` - storage bridge for Experimental activity
-  settings.
 - `menu/settings.html` - normal user-facing settings.
-- `menu/experimental.html` - experimental features that are intentionally kept
+- `menu/experimental.html` - experimental features that are kept
   separate from normal settings.
 
 ## Development Notes
@@ -224,8 +159,6 @@ node --check scripts\background.js
 node --check scripts\content.js
 node --check scripts\grades-enhancer.js
 node --check scripts\attendance-enhancer.js
-node --check scripts\activity-shield-main.js
-node --check scripts\activity-shield-bridge.js
 node --check scripts\timetable-sync.js
 node tests\grades-enhancer.test.js
 node tests\attendance-enhancer.test.js

@@ -288,12 +288,5 @@
   "gradesColAbsTotal": { "message": "Abs./Hod." },
   "gradesColPredAbsPercent": { "message": "Pred. abs. %" },
   "gradesColPredAbsTotal": { "message": "Pred. abs./hod." },
-  "gradesExportCsv": { "message": "Exportovať CSV" },
-  "gradesCsvSubject": { "message": "Predmet" },
-  "gradesCsvAverage": { "message": "Priemer" },
-  "gradesCsvAbsent": { "message": "Vymeškané hodiny" },
-  "gradesCsvTotal": { "message": "Odučené hodiny" },
-  "gradesCsvAbsPercent": { "message": "Absencia %" },
-  "gradesCsvPredTotal": { "message": "Predpovedané hodiny" },
-  "gradesCsvPredPercent": { "message": "Predpovedaná absencia %" }
+  "gradesExportJson": { "message": "Exportovať JSON" }
 }

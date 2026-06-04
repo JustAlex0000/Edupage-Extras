@@ -218,18 +218,30 @@
   }
 
   function computeHalfStats(rawHalfStats) {
+    // Slovak schools (and EduPage's own reports) compute absence % as
+    //   absent / (present + absent)
+    // i.e. school-authorized "distant" lessons (trips, competitions, sick-bay,
+    // etc.) are excluded from the denominator. The previous version included
+    // `distant` in the denominator, which made our percentage smaller than the
+    // school's. attendedTotal is the denominator used for %; recordedTotal is
+    // only used to know whether any data exists for the half at all.
     return Object.fromEntries(
       Object.entries(rawHalfStats || {}).map(([key, values]) => {
         const present = numberValue(values?.present);
         const distant = numberValue(values?.distant);
         const absent = numberValue(values?.absent);
-        const total = present + distant + absent;
+        const attendedTotal = present + absent;
+        const recordedTotal = present + distant + absent;
         return [key, {
           present,
           distant,
           absent,
-          total,
-          percent: total > 0 ? (absent / total) * 100 : NaN,
+          attendedTotal,
+          recordedTotal,
+          // Kept for backward compatibility with anything that read .total
+          // before; equals the new attendedTotal denominator.
+          total: attendedTotal,
+          percent: attendedTotal > 0 ? (absent / attendedTotal) * 100 : NaN,
         }];
       }),
     );
@@ -269,12 +281,12 @@
       preferredKey = now.getMonth() >= 1 && now.getMonth() <= 7 ? "2" : "1";
     }
 
-    if (computedHalves[preferredKey]?.total > 0) {
+    if (computedHalves[preferredKey]?.recordedTotal > 0) {
       return preferredKey;
     }
 
     const populatedKey = availableKeys
-      .filter((key) => computedHalves[key]?.total > 0)
+      .filter((key) => computedHalves[key]?.recordedTotal > 0)
       .sort((left, right) => Number.parseInt(right, 10) - Number.parseInt(left, 10))[0];
 
     return populatedKey || preferredKey || availableKeys[0];
@@ -310,14 +322,25 @@
       cell.style.borderLeftWidth = "1px";
     }
 
+    const attended = numberValue(data?.attendedTotal);
+    const distant = numberValue(data?.distant);
+    const hasAttended = attended > 0;
+
     const strong = document.createElement("strong");
-    strong.textContent = data.total > 0 ? formatPercent(data.percent) : "-";
+    strong.textContent = hasAttended ? formatPercent(data.percent) : "-";
 
     const small = document.createElement("small");
-    small.textContent = `${data.absent}/${data.total} hod.`;
+    small.textContent = `${data.absent}/${attended} hod.`;
 
     cell.append(strong, small);
-    cell.title = `${label}: ${data.absent} / ${data.total} lessons absent`;
+
+    const tooltipParts = [
+      `${label}: ${data.absent} / ${attended} lessons absent (formula: absent / (present + absent))`,
+    ];
+    if (distant > 0) {
+      tooltipParts.push(`School activities (distant): ${distant} lessons — excluded from %`);
+    }
+    cell.title = tooltipParts.join("\n");
     return cell;
   }
 
@@ -363,7 +386,7 @@
       `Aktualny polrok: ${currentHalfLabel}`,
     );
     detailCell.style.borderTopWidth = "1px";
-    detailCell.title = "Formula: absent / (present + distant + absent)";
+    detailCell.title = "Formula: absent / (present + absent). Distant lessons (school activities, trips, sick-bay) are excluded from the denominator to match the school's report.";
 
     grid.append(labelCell, firstValueCell, secondValueCell, detailCell);
   }

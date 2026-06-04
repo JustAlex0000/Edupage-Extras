@@ -288,12 +288,5 @@
   "gradesColAbsTotal": { "message": "Abs/Hours" },
   "gradesColPredAbsPercent": { "message": "Pred. Abs %" },
   "gradesColPredAbsTotal": { "message": "Pred. Abs/Hours" },
-  "gradesExportCsv": { "message": "Export CSV" },
-  "gradesCsvSubject": { "message": "Subject" },
-  "gradesCsvAverage": { "message": "Average" },
-  "gradesCsvAbsent": { "message": "Absent lessons" },
-  "gradesCsvTotal": { "message": "Lessons held" },
-  "gradesCsvAbsPercent": { "message": "Absence %" },
-  "gradesCsvPredTotal": { "message": "Predicted lessons" },
-  "gradesCsvPredPercent": { "message": "Predicted absence %" }
+  "gradesExportJson": { "message": "Export JSON" }
 }

@@ -25,6 +25,7 @@
   const GRADES_ATTENDANCE_CACHE_KEY = "eeGradesAttendanceStatsCache";
   const GRADES_ATTENDANCE_CACHE_VERSION = 13;
   const VIRTUAL_GRADES_KEY = "eeVirtualGrades";
+  const EXISTING_MASS_OVERRIDES_KEY = "eeVirtualGradeExistingMassOverrides";
   const CACHE_TTL_MS = 15 * 60 * 1000;
   const CLASSBOOK_RANGE_MAX_DAYS = 30;
   let gradeBadgesEnabled = false;
@@ -43,6 +44,14 @@
   let gradeTitleOverrides = {};
   let gradeTitleOverridesPromise = null;
   let virtualGradesData = {};
+  let existingMassOverrides = {};
+  // In-memory per-page-load cache of the weight mass auto-detected by
+  // briefly expanding a subject row. Avoids re-running the expand dance every
+  // time the popover opens on the same subject.
+  const autoDetectedMassCache = new Map();
+  // Tracks subjects we expanded ourselves so we can detect them as
+  // "auto-expanded" vs "user-expanded" if we ever want to collapse back.
+  const autoExpandedSubjects = new Set();
   let activeVirtualPopover = null;
 
   function t(key, substitutions) {
@@ -770,6 +779,78 @@
         margin-bottom: 8px;
       }
 
+      .ee-vg-mass-line {
+        font-size: 10px;
+        color: #888;
+        margin: -4px 0 8px;
+        cursor: help;
+      }
+
+      html.ee-dark .ee-vg-mass-line {
+        color: var(--ee-text-muted);
+      }
+
+      .ee-vg-mass-box {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: #555;
+        margin: -2px 0 6px;
+      }
+
+      .ee-vg-mass-label {
+        flex: 1;
+      }
+
+      .ee-vg-mass-input {
+        flex: 0 0 56px;
+        font-size: 11px;
+        padding: 2px 4px;
+      }
+
+      .ee-vg-mass-reset {
+        background: transparent;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        color: #777;
+        font-size: 10px;
+        padding: 1px 6px;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+
+      .ee-vg-mass-reset:hover {
+        background: #f0f0f0;
+        color: #333;
+      }
+
+      .ee-vg-mass-hint {
+        font-size: 10px;
+        color: #999;
+        line-height: 1.3;
+        margin: -4px 0 8px;
+        font-style: italic;
+      }
+
+      html.ee-dark .ee-vg-mass-box {
+        color: var(--ee-text-muted);
+      }
+
+      html.ee-dark .ee-vg-mass-reset {
+        border-color: var(--ee-border);
+        color: var(--ee-text-muted);
+      }
+
+      html.ee-dark .ee-vg-mass-reset:hover {
+        background: var(--ee-bg-muted);
+        color: var(--ee-text-main);
+      }
+
+      html.ee-dark .ee-vg-mass-hint {
+        color: var(--ee-text-muted);
+      }
+
       .ee-vg-proj-label {
         font-size: 11px;
         color: #666;
@@ -939,27 +1020,6 @@
   // Virtual Grade Calculator
   // ============================================================
 
-  function parseGradeWeight(tooltipHtml) {
-    // EduPage labels the weight in the school's own language. Match the common
-    // Slovak/Czech ("váha"/"váhy"), English ("weight") and German ("Gewicht")
-    // variants so projected averages stay correct outside Slovak schools.
-    const match = /(?:v[aá]h[ay]|weight|gewicht)\s*:\s*(\d+(?:[.,]\d+)?)/i.exec(String(tooltipHtml || ""));
-    return match ? Math.max(0.1, Number.parseFloat(match[1].replace(",", "."))) : 1;
-  }
-
-  function readSubjectGrades(row) {
-    const grades = [];
-    row.querySelectorAll("span.tips").forEach((tip) => {
-      if (!tip.querySelector(".znZnamka")) return;
-      const valueText = normalizeWhitespace(tip.querySelector(".znZnamka").textContent || "");
-      const value = parseAverage(valueText);
-      if (!Number.isFinite(value) || value <= 0) return;
-      const tooltipHtml = tip.getAttribute("data-ee-original-grade-title") || tip.getAttribute("original-title") || "";
-      grades.push({ value, weight: parseGradeWeight(tooltipHtml) });
-    });
-    return grades;
-  }
-
   function calcWeightedAvg(grades) {
     if (!grades.length) return Number.NaN;
     const totalWeight = grades.reduce((s, g) => s + g.weight, 0);
@@ -967,15 +1027,298 @@
     return grades.reduce((s, g) => s + g.value * g.weight, 0) / totalWeight;
   }
 
+  function parseGradeWeight(tooltipText) {
+    // EduPage labels the weight in the school's language. The label can stand
+    // alone ("Váha: 2"), include a multiplier suffix ("Váha: 2x"), or pad the
+    // label with extra words ("Váha udalosti: 2x"). The previous regex
+    // required ":" immediately after "Váha", so the "Váha udalosti: 2x" form
+    // silently fell back to weight 1, which under-weighted real grades and
+    // skewed the projection. Allow up to 30 non-digit characters between the
+    // label and the number so all the common Slovak/Czech/English/German
+    // tooltip variants are covered.
+    if (!tooltipText) return null;
+    const match = /(?:v[aá]h[ay]|weight|gewicht)[^0-9]{0,30}?(\d+(?:[.,]\d+)?)/i
+      .exec(String(tooltipText));
+    if (!match) return null;
+    const value = Number.parseFloat(match[1].replace(",", "."));
+    return Number.isFinite(value) && value > 0 ? value : null;
+  }
+
+  function countGradeCellsIn(element) {
+    let count = 0;
+    if (!element || typeof element.querySelectorAll !== "function") return 0;
+    element.querySelectorAll("span.tips").forEach((tip) => {
+      if (!tip.querySelector(".znZnamka")) return;
+      const text = normalizeWhitespace(tip.querySelector(".znZnamka").textContent || "");
+      const value = parseAverage(text);
+      if (Number.isFinite(value) && value > 0) count += 1;
+    });
+    return count;
+  }
+
+  function findSubjectSubRows(predmetRow) {
+    // EduPage renders a subject's grades broken down into category sub-rows
+    // ("ústna odpoveď", "písomná odpoveď", ...) where the category label
+    // carries the weight ("Váha udalosti: 2×"). Sub-rows may be:
+    //   (a) sibling <tr>s placed AFTER predmetRow, up to the next predmetRow
+    //   (b) nested <tr>s inside predmetRow (some skins wrap them in an inner
+    //       table inside one of predmetRow's <td>s)
+    // We collect both so the mass calculation works regardless of layout.
+    const subRows = [];
+
+    let cursor = predmetRow.nextElementSibling;
+    while (cursor) {
+      const classes = cursor.classList;
+      const isNextSubject = (classes && typeof classes.contains === "function" && classes.contains("predmetRow"))
+        || (cursor.dataset && cursor.dataset.predmetid);
+      if (isNextSubject) break;
+      if (cursor.tagName === "TR") subRows.push(cursor);
+      cursor = cursor.nextElementSibling;
+    }
+
+    if (typeof predmetRow.querySelectorAll === "function") {
+      Array.from(predmetRow.querySelectorAll("tr")).forEach((nested) => {
+        if (nested !== predmetRow && !subRows.includes(nested)) {
+          subRows.push(nested);
+        }
+      });
+    }
+
+    return subRows;
+  }
+
+  function readExistingGradeMass(predmetRow) {
+    // Prefer sub-row math: each sub-row contributes (cellCount × rowWeight),
+    // where rowWeight comes from "Váha udalosti: N×" on the row's label.
+    // This is the only signal that exists for the weight-2 categories in
+    // typical EduPage skins — per-cell tooltips don't carry the weight.
+    // Fall back to per-cell tooltip parsing only when no sub-row has any
+    // grade cells (single-category subjects, exotic skins, etc.).
+    let totalWeight = 0;
+    let cellCount = 0;
+    let weightsParsed = 0;
+
+    const subRows = findSubjectSubRows(predmetRow);
+    for (const subRow of subRows) {
+      const subRowCellCount = countGradeCellsIn(subRow);
+      if (subRowCellCount === 0) continue;
+      const labelText = subRow.textContent || "";
+      const explicitWeight = parseGradeWeight(labelText);
+      const subRowWeight = explicitWeight !== null ? explicitWeight : 1;
+      totalWeight += subRowCellCount * subRowWeight;
+      cellCount += subRowCellCount;
+      if (explicitWeight !== null) {
+        weightsParsed += subRowCellCount;
+      }
+    }
+
+    if (cellCount > 0) {
+      return { totalWeight, cellCount, weightsParsed };
+    }
+
+    // Fallback path: no sub-rows had grade cells. Read from predmetRow
+    // directly and try per-cell tooltips. This is the original behavior and
+    // still correct for layouts that don't use category sub-rows at all.
+    predmetRow.querySelectorAll("span.tips").forEach((tip) => {
+      if (!tip.querySelector(".znZnamka")) return;
+      const text = normalizeWhitespace(tip.querySelector(".znZnamka").textContent || "");
+      const value = parseAverage(text);
+      if (!Number.isFinite(value) || value <= 0) return;
+
+      cellCount += 1;
+      const tooltip = tip.getAttribute("data-ee-original-grade-title")
+        || tip.getAttribute("original-title")
+        || tip.getAttribute("title")
+        || "";
+      const parsedWeight = parseGradeWeight(tooltip);
+      if (parsedWeight !== null) {
+        totalWeight += parsedWeight;
+        weightsParsed += 1;
+      } else {
+        totalWeight += 1;
+      }
+    });
+
+    return { totalWeight, cellCount, weightsParsed };
+  }
+
+  function projectAverageWithVirtualGrades(originalAvg, existingMass, virtualGrades) {
+    // Treat the EduPage-rendered average as the aggregate of every existing
+    // grade, weighted by the SUM of the cells' individual weights (read from
+    // their tooltips). That's exactly the same arithmetic as a full per-grade
+    // weighted mean — only the existing side is collapsed to (average, mass).
+    //
+    //   projected = (originalAvg * existingMass + Σ(v_i · w_i))
+    //             / (existingMass + Σ(w_i))
+    //
+    // When all existing cells share a weight, mass == cellCount and the
+    // result is identical to enumerating each grade. When weights differ, the
+    // tooltip-derived mass keeps the result aligned with the school's own
+    // weighted-mean math. If weights can't be parsed at all, mass falls back
+    // to cellCount which still produces a sensible projection between
+    // originalAvg and the new grades — never below originalAvg for a worse
+    // grade or above it for a better one.
+    if (!Array.isArray(virtualGrades) || virtualGrades.length === 0) return null;
+    if (!Number.isFinite(originalAvg)) return null;
+
+    const mass = Math.max(0.1, Number.isFinite(existingMass) ? existingMass : 0);
+    return calcWeightedAvg([
+      { value: originalAvg, weight: mass },
+      ...virtualGrades,
+    ]);
+  }
+
+  function resolveExistingMassForRow(row) {
+    const info = readExistingGradeMass(row);
+    // No grade cells found at all -> treat the EduPage average as a single
+    // weight-1 anchor so the projection is just the mean of original + new.
+    if (info.cellCount === 0) {
+      return { mass: 1, ...info };
+    }
+    return { mass: info.totalWeight, ...info };
+  }
+
+  function readExistingMassOverride(predmetid) {
+    const key = String(predmetid || "").trim();
+    if (!key) return null;
+    const value = Number(existingMassOverrides[key]);
+    return Number.isFinite(value) && value > 0 ? value : null;
+  }
+
+  function saveExistingMassOverride(predmetid, mass) {
+    const key = String(predmetid || "").trim();
+    if (!key) return Promise.resolve();
+    const normalized = Number(mass);
+    if (!Number.isFinite(normalized) || normalized <= 0) {
+      delete existingMassOverrides[key];
+    } else {
+      existingMassOverrides[key] = normalized;
+    }
+    return storageSet({ [EXISTING_MASS_OVERRIDES_KEY]: existingMassOverrides });
+  }
+
+  function dispatchSyntheticClick(element) {
+    if (!element) return false;
+    try {
+      if (typeof element.click === "function") {
+        element.click();
+      }
+      // Also dispatch a bubbling MouseEvent because EduPage often attaches
+      // its toggle handlers via jQuery delegation higher up the tree —
+      // direct .click() doesn't always traverse the delegation chain.
+      element.dispatchEvent(new MouseEvent("click", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+      }));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function findExpandToggleCandidates(predmetRow) {
+    const candidates = new Set();
+    if (!predmetRow || typeof predmetRow.querySelectorAll !== "function") {
+      return [];
+    }
+
+    predmetRow.querySelectorAll("td, span, a, button, img, div, i").forEach((el) => {
+      const text = (el.textContent || "").trim();
+      const cls = String(el.className || "").toLowerCase();
+      const aria = el.getAttribute?.("aria-expanded");
+
+      if (text === "+" || text === "−" || text === "-") candidates.add(el);
+      if (/expand|collap|toggle|plus|minus|znamky-expand/.test(cls)) candidates.add(el);
+      if (aria === "false") candidates.add(el);
+    });
+
+    // EduPage often makes the subject's first cell (or the row itself)
+    // clickable to toggle expansion, with no explicit "+" element. Add both
+    // as last-resort candidates so we still hit the right handler when the
+    // toggle is a delegated row-level click.
+    const firstCell = predmetRow.querySelector("td, th");
+    if (firstCell) candidates.add(firstCell);
+    candidates.add(predmetRow);
+
+    return Array.from(candidates);
+  }
+
+  function detectExistingMass(predmetRow, predmetid, { timeoutMs = 700 } = {}) {
+    // Already cached from an earlier popover open on this page? Return it.
+    if (predmetid && autoDetectedMassCache.has(predmetid)) {
+      return Promise.resolve(autoDetectedMassCache.get(predmetid));
+    }
+
+    const initial = readExistingGradeMass(predmetRow);
+    if (initial.weightsParsed > 0) {
+      if (predmetid) autoDetectedMassCache.set(predmetid, initial);
+      return Promise.resolve(initial);
+    }
+
+    // Need to expand the subject to surface the category sub-rows. Watch the
+    // containing tbody for newly-added rows and re-read mass whenever the DOM
+    // changes; resolve as soon as weights become available, or after a short
+    // timeout if nothing usable appears.
+    return new Promise((resolve) => {
+      const tbody = (typeof predmetRow.closest === "function" ? predmetRow.closest("tbody") : null)
+        || predmetRow.parentElement;
+      let resolved = false;
+      let observer = null;
+      let timer = null;
+
+      const finish = (info) => {
+        if (resolved) return;
+        resolved = true;
+        if (observer) {
+          try { observer.disconnect(); } catch (error) { /* ignore */ }
+        }
+        if (timer) clearTimeout(timer);
+        if (predmetid) autoDetectedMassCache.set(predmetid, info);
+        resolve(info);
+      };
+
+      if (tbody && typeof MutationObserver === "function") {
+        observer = new MutationObserver(() => {
+          const info = readExistingGradeMass(predmetRow);
+          if (info.weightsParsed > 0) finish(info);
+        });
+        try {
+          observer.observe(tbody, { childList: true, subtree: true });
+        } catch (error) {
+          observer = null;
+        }
+      }
+
+      const toggles = findExpandToggleCandidates(predmetRow);
+      for (const toggle of toggles) {
+        if (dispatchSyntheticClick(toggle)) {
+          if (predmetid) autoExpandedSubjects.add(predmetid);
+        }
+      }
+
+      timer = setTimeout(() => finish(readExistingGradeMass(predmetRow)), timeoutMs);
+    });
+  }
+
+  function getEffectiveExistingMass(row, predmetid) {
+    const override = readExistingMassOverride(predmetid);
+    if (override !== null) return { mass: override, source: "override" };
+    if (predmetid && autoDetectedMassCache.has(predmetid)) {
+      const cached = autoDetectedMassCache.get(predmetid);
+      if (cached.weightsParsed > 0) {
+        return { mass: cached.totalWeight, source: "auto-detected", info: cached };
+      }
+    }
+    const live = resolveExistingMassForRow(row);
+    return { mass: live.mass, source: live.weightsParsed > 0 ? "auto-detected" : "count-fallback", info: live };
+  }
+
   function getProjectedAverage(row, predmetid, originalAvg) {
     const virtual = virtualGradesData[predmetid];
     if (!virtual || virtual.length === 0) return null;
-    const existing = readSubjectGrades(row);
-    if (existing.length > 0) {
-      return calcWeightedAvg([...existing, ...virtual]);
-    }
-    const virtualWeight = virtual.reduce((s, g) => s + g.weight, 0);
-    return calcWeightedAvg([{ value: originalAvg, weight: virtualWeight }, ...virtual]);
+    const { mass } = getEffectiveExistingMass(row, predmetid);
+    return projectAverageWithVirtualGrades(originalAvg, mass, virtual);
   }
 
   function saveVirtualGrades() {
@@ -1092,6 +1435,84 @@
         projRow.appendChild(projLabel);
         if (projBadge) projRow.appendChild(projBadge);
         popover.appendChild(projRow);
+
+        // Existing weight mass — detected by briefly expanding the subject
+        // row when the popover opens, or filled in manually if detection
+        // can't see the per-category weights for some reason.
+        const override = readExistingMassOverride(predmetid);
+        const cached = autoDetectedMassCache.get(predmetid);
+        const liveInfo = readExistingGradeMass(row);
+        // The detected mass for display is the cached one when available
+        // (it's authoritative — captured while sub-rows were in the DOM),
+        // otherwise whatever the live DOM currently shows.
+        const usableInfo = (cached && cached.weightsParsed > 0) ? cached : liveInfo;
+        const detectedMass = usableInfo.totalWeight;
+        const detectedCellCount = usableInfo.cellCount;
+        const effectiveMass = override !== null ? override : detectedMass;
+        const detectionSucceeded = usableInfo.weightsParsed > 0;
+
+        const massBox = document.createElement("div");
+        massBox.className = "ee-vg-mass-box";
+
+        const massLabel = document.createElement("span");
+        massLabel.className = "ee-vg-mass-label";
+        massLabel.textContent = detectedCellCount > 0
+          ? `Existing weight (${detectedCellCount} grades):`
+          : "Existing weight:";
+        massBox.appendChild(massLabel);
+
+        const massInput = document.createElement("input");
+        massInput.type = "number";
+        massInput.step = "0.5";
+        massInput.min = "0.5";
+        massInput.className = "ee-vg-input ee-vg-mass-input";
+        massInput.value = String(Number.isInteger(effectiveMass) ? effectiveMass : Number(effectiveMass.toFixed(2)));
+        massInput.title = override !== null
+          ? `Manual override (auto-detected: ${detectedMass}). Clear or set to ${detectedMass} to use auto-detection.`
+          : detectionSucceeded
+            ? "Auto-detected from EduPage's category sub-rows (Váha udalosti). Edit if it's wrong."
+            : "Auto-detection still running, or couldn't find weight info on this skin. Type the correct weight to override.";
+        massInput.addEventListener("change", async () => {
+          const typed = Number.parseFloat(massInput.value);
+          const shouldClear = !Number.isFinite(typed) || typed <= 0 || typed === detectedMass;
+          await saveExistingMassOverride(predmetid, shouldClear ? null : typed);
+          updateVirtualDisplay(row, predmetid, scale, originalAvg);
+          buildPopoverContent(popover, row, predmetid, scale, originalAvg);
+        });
+        massInput.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") massInput.blur();
+        });
+        massBox.appendChild(massInput);
+
+        if (override !== null) {
+          const resetBtn = document.createElement("button");
+          resetBtn.type = "button";
+          resetBtn.className = "ee-vg-mass-reset";
+          resetBtn.textContent = `auto: ${detectedMass}`;
+          resetBtn.title = "Clear the manual override and use the auto-detected value.";
+          resetBtn.addEventListener("click", async () => {
+            await saveExistingMassOverride(predmetid, null);
+            updateVirtualDisplay(row, predmetid, scale, originalAvg);
+            buildPopoverContent(popover, row, predmetid, scale, originalAvg);
+          });
+          massBox.appendChild(resetBtn);
+        }
+
+        popover.appendChild(massBox);
+
+        // Compact diagnostic so the source of the mass is visible at a glance.
+        const hint = document.createElement("div");
+        hint.className = "ee-vg-mass-hint";
+        if (override !== null) {
+          hint.textContent = "Using manual override.";
+        } else if (detectionSucceeded) {
+          hint.textContent = `Auto-detected (${detectedCellCount} grades, mass ${detectedMass}).`;
+        } else if (detectedCellCount > 0) {
+          hint.textContent = "Detecting weights… if the row didn't expand automatically, expand it with the \"+\" toggle.";
+        } else {
+          hint.textContent = "No grade cells found yet — try expanding the subject row.";
+        }
+        popover.appendChild(hint);
       }
     }
 
@@ -1146,7 +1567,15 @@
     const popover = document.createElement("div");
     popover.className = "ee-vg-popover";
     popover.dataset.eeVgFor = predmetid;
+    // Render once immediately with whatever mass info is available right now,
+    // then run async detection (which may briefly expand the row to surface
+    // category sub-rows) and re-render once the real weights are known.
     buildPopoverContent(popover, row, predmetid, scale, originalAvg);
+    detectExistingMass(row, predmetid).then(() => {
+      if (activeVirtualPopover !== popover) return;
+      buildPopoverContent(popover, row, predmetid, scale, originalAvg);
+      updateVirtualDisplay(row, predmetid, scale, originalAvg);
+    });
     document.body.appendChild(popover);
     activeVirtualPopover = popover;
 
@@ -1166,7 +1595,8 @@
   function updateResetButtonState(table) {
     const btn = table?.querySelector("thead .ee-vg-reset-btn");
     if (!btn) return;
-    btn.disabled = Object.keys(virtualGradesData).length === 0;
+    btn.disabled = Object.keys(virtualGradesData).length === 0
+      && Object.keys(existingMassOverrides).length === 0;
   }
 
   function ensureResetVirtualGradesButton(table) {
@@ -1183,11 +1613,16 @@
     btn.textContent = "↺";
     btn.title = "Reset all virtual grades";
     btn.setAttribute("aria-label", "Reset all virtual grades");
-    btn.disabled = Object.keys(virtualGradesData).length === 0;
+    btn.disabled = Object.keys(virtualGradesData).length === 0
+      && Object.keys(existingMassOverrides).length === 0;
     btn.addEventListener("click", async (e) => {
       e.stopPropagation();
       virtualGradesData = {};
+      existingMassOverrides = {};
+      autoDetectedMassCache.clear();
+      autoExpandedSubjects.clear();
       await saveVirtualGrades();
+      await storageSet({ [EXISTING_MASS_OVERRIDES_KEY]: {} });
       closeVirtualPopover();
       Array.from(table.querySelectorAll("tr.predmetRow")).forEach((row) => {
         const predmetid = String(row.dataset?.predmetid || "").trim();
@@ -3955,70 +4390,86 @@
     return baseStats;
   }
 
-  function csvEscape(value) {
-    const text = String(value ?? "");
-    return /[",\n\r;]/.test(text) ? `"${text.replace(/"/g, "\"\"")}"` : text;
-  }
-
   function parseRatioCellText(cell) {
     const match = /^(\d+)\s*\/\s*(\d+)$/.exec((cell?.textContent || "").trim());
-    return match ? { absent: match[1], total: match[2] } : { absent: "", total: "" };
+    return match
+      ? { absent: Number.parseInt(match[1], 10), total: Number.parseInt(match[2], 10) }
+      : null;
   }
 
-  function readDisplayPercentCell(cell) {
+  function readDisplayPercentNumber(cell) {
     const text = (cell?.textContent || "").trim();
-    if (!text || text === "-" || text === "...") return "";
-    return text.replace(/\s*%\s*$/, "").trim();
+    if (!text || text === "-" || text === "...") return null;
+    // Locale-independent: take the first number in the cell, treat ","/"." as decimal.
+    const match = text.replace(/\s/g, "").match(/-?\d+(?:[.,]\d+)?/);
+    if (!match) return null;
+    const value = Number.parseFloat(match[0].replace(",", "."));
+    return Number.isFinite(value) ? Number(value.toFixed(2)) : null;
   }
 
-  function buildGradesCsv(table) {
-    const withAttendance = gradesAttendanceEnabled;
-    const headers = [t("gradesCsvSubject"), t("gradesCsvAverage")];
-    if (withAttendance) {
-      headers.push(
-        t("gradesCsvAbsent"),
-        t("gradesCsvTotal"),
-        t("gradesCsvAbsPercent"),
-        t("gradesCsvPredTotal"),
-        t("gradesCsvPredPercent"),
-      );
-    }
+  function readSubjectAverageNumber(rawText) {
+    const value = parseAverage(rawText);
+    return Number.isFinite(value) ? Number(value.toFixed(2)) : null;
+  }
 
-    const rows = [headers];
+  function buildGradesJsonPayload(table) {
+    const withAttendance = gradesAttendanceEnabled;
+    const subjects = [];
+
     Array.from(table.querySelectorAll("tr.predmetRow")).forEach((row) => {
-      const subject = readPrimaryRowSubjectText(row);
-      if (!subject) return;
+      const name = readPrimaryRowSubjectText(row);
+      if (!name) return;
 
       const priemerCell = row.querySelector(".znPriemerCell");
-      const average = (priemerCell?.dataset.eeOriginalAverage || readAverageText(priemerCell) || "").trim();
-      const record = [subject, average];
+      const rawAverage = (priemerCell?.dataset.eeOriginalAverage || readAverageText(priemerCell) || "").trim();
+      const averageNumber = readSubjectAverageNumber(rawAverage);
+      const scale = detectAverageScale(rawAverage, Number.isFinite(averageNumber) ? averageNumber : Number.NaN);
+
+      const subject = {
+        name,
+        subjectId: String(row?.dataset?.predmetid || "").trim() || null,
+        average: averageNumber,
+        averageDisplay: rawAverage || null,
+        averageScale: scale || null,
+      };
 
       if (withAttendance) {
         const current = parseRatioCellText(row.querySelector(".ee-attendance-total-cell"));
         const predicted = parseRatioCellText(row.querySelector(".ee-attendance-predicted-total-cell"));
-        record.push(
-          current.absent,
-          current.total,
-          readDisplayPercentCell(row.querySelector(".ee-attendance-percent-cell")),
-          predicted.total,
-          readDisplayPercentCell(row.querySelector(".ee-attendance-predicted-percent-cell")),
-        );
+        subject.attendance = {
+          absent: current?.absent ?? null,
+          lessonsHeld: current?.total ?? null,
+          absencePercent: readDisplayPercentNumber(row.querySelector(".ee-attendance-percent-cell")),
+          predictedLessonsTotal: predicted?.total ?? null,
+          predictedAbsencePercent: readDisplayPercentNumber(
+            row.querySelector(".ee-attendance-predicted-percent-cell"),
+          ),
+        };
       }
 
-      rows.push(record);
+      subjects.push(subject);
     });
 
-    return rows.map((record) => record.map(csvEscape).join(",")).join("\r\n");
+    return {
+      schema: "edupage-extras.grades.v1",
+      exportedAt: new Date().toISOString(),
+      source: "Edupage Extras grades enhancer",
+      pageUrl: window.location.href,
+      attendanceIncluded: withAttendance,
+      subjectCount: subjects.length,
+      subjects,
+    };
   }
 
-  function downloadGradesCsv(table) {
-    // Prefix a UTF-8 BOM so spreadsheet apps detect the encoding correctly.
-    const content = `﻿${buildGradesCsv(table)}`;
-    const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
+  function downloadGradesJson(table) {
+    const payload = buildGradesJsonPayload(table);
+    // 2-space indent so the file opens nicely in any text editor.
+    const content = `${JSON.stringify(payload, null, 2)}\n`;
+    const blob = new Blob([content], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `edupage-grades-${formatDateISO(new Date())}.csv`;
+    link.download = `edupage-grades-${formatDateISO(new Date())}.json`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -4035,10 +4486,10 @@
     const button = document.createElement("button");
     button.type = "button";
     button.className = "ee-grades-export-btn";
-    button.textContent = t("gradesExportCsv");
+    button.textContent = t("gradesExportJson");
     button.addEventListener("click", (event) => {
       event.preventDefault();
-      downloadGradesCsv(table);
+      downloadGradesJson(table);
     });
 
     toolbar.appendChild(button);
@@ -4271,6 +4722,7 @@
       HALFYEAR_START_KEY,
       HALFYEAR_END_KEY,
       VIRTUAL_GRADES_KEY,
+      EXISTING_MASS_OVERRIDES_KEY,
     ], (result) => {
       gradeBadgesEnabled = result[GRADE_BADGES_KEY] === true;
       gradeTitleOverrides = result[GRADE_TITLE_OVERRIDES_KEY] && typeof result[GRADE_TITLE_OVERRIDES_KEY] === "object"
@@ -4283,6 +4735,9 @@
       halfyearEndOverride = normalizeDateInput(result[HALFYEAR_END_KEY]);
       virtualGradesData = result[VIRTUAL_GRADES_KEY] && typeof result[VIRTUAL_GRADES_KEY] === "object"
         ? result[VIRTUAL_GRADES_KEY]
+        : {};
+      existingMassOverrides = result[EXISTING_MASS_OVERRIDES_KEY] && typeof result[EXISTING_MASS_OVERRIDES_KEY] === "object"
+        ? result[EXISTING_MASS_OVERRIDES_KEY]
         : {};
       enhanceGradesTable();
     });
