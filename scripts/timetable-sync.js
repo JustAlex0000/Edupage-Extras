@@ -3,7 +3,6 @@
 
   if (window.top !== window) return;
 
-  const DAY_TOKENS = ["Po", "Ut", "St", "St", "Št", "Pi", "So", "Ne"];
   const DAY_MS = 24 * 60 * 60 * 1000;
   let lastResolvedWeekStart = null;
 

@@ -26,6 +26,8 @@ or any school using Edupage.
 - **Grade badges** on the Edupage grades page.
 - **Color-coded average bars** for subject averages.
 - **Overall average row** based on the averages Edupage already renders.
+- **CSV export** of the grades table (subject, average, and attendance columns
+  when enabled) via an Export CSV button above the table.
 
 ### Attendance
 
@@ -58,6 +60,13 @@ Experimental also includes a direct link to the local testing site:
 This feature is intentionally kept in the Experimental page. It may not affect
 every Edupage behavior, and some Edupage features can still depend on server-side
 state, timing, full-screen behavior, or other browser mechanisms.
+
+### Languages
+
+- **Localized interface** for the popup, Settings, and Experimental pages, plus
+  the injected grades columns. English, Slovak, and Czech are bundled.
+- The language follows the browser UI language automatically (Chrome's
+  `chrome.i18n`), falling back to English.
 
 ### Updates
 
@@ -156,6 +165,10 @@ The extension does not request access to all websites.
 Edupage-Extras/
 |-- manifest.json
 |-- README.md
+|-- _locales/
+|   |-- en/messages.json
+|   |-- sk/messages.json
+|   `-- cs/messages.json
 |-- images/
 |   `-- placeholder_icon.png
 |-- menu/
@@ -167,7 +180,8 @@ Edupage-Extras/
 |   |-- settings.js
 |   |-- experimental.html
 |   |-- experimental.css
-|   `-- experimental.js
+|   |-- experimental.js
+|   `-- i18n.js
 `-- scripts/
     |-- background.js
     |-- instant-theme.css
@@ -205,6 +219,7 @@ Recommended checks before publishing:
 node --check menu\menu.js
 node --check menu\settings.js
 node --check menu\experimental.js
+node --check menu\i18n.js
 node --check scripts\background.js
 node --check scripts\content.js
 node --check scripts\grades-enhancer.js
@@ -217,6 +232,7 @@ node tests\attendance-enhancer.test.js
 node tests\background.test.js
 node tests\timetable-sync.test.js
 node -e "JSON.parse(require('fs').readFileSync('manifest.json','utf8')); console.log('manifest ok')"
+node -e "['en','sk','cs'].forEach(l=>JSON.parse(require('fs').readFileSync('_locales/'+l+'/messages.json','utf8'))); console.log('locales ok')"
 ```
 
 ## Compatibility

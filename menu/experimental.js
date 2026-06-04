@@ -57,6 +57,10 @@ const defaults = {
 const storageKeys = Object.keys(defaults);
 const controlledSettings = settings.filter(([elementId]) => elementId !== "ActivityShieldEnabled");
 
+function t(key, substitutions) {
+	return window.eeI18n.msg(key, substitutions);
+}
+
 function normalizeTheme(theme) {
 	return THEMES.includes(theme) ? theme : "dark";
 }
@@ -107,7 +111,7 @@ function setStatus(message, isError = false) {
 
 function renderShortcutStatus() {
 	if (!chrome.commands?.getAll) {
-		activityShieldShortcutStatus.textContent = "Shortcut status unavailable in this browser.";
+		activityShieldShortcutStatus.textContent = t("shortcutUnavailable");
 		return;
 	}
 
@@ -115,8 +119,8 @@ function renderShortcutStatus() {
 		const command = commands.find((entry) => entry.name === ACTIVITY_SHIELD_COMMAND);
 		const shortcut = command?.shortcut?.trim();
 		activityShieldShortcutStatus.textContent = shortcut
-			? `Current hotkey: ${shortcut}`
-			: "No hotkey assigned.";
+			? t("currentHotkey", [shortcut])
+			: t("noHotkey");
 	});
 }
 
@@ -149,7 +153,7 @@ function saveCheckbox(elementId, key) {
 			if (elementId === "ActivityShieldEnabled") {
 				updateDependentControls();
 			}
-			setStatus("Saved");
+			setStatus(t("savedStatus"));
 		});
 	});
 }
@@ -160,7 +164,7 @@ resetButton.addEventListener("click", () => {
 	chrome.storage.local.remove("eeActivityShieldPolicies", () => {
 		chrome.storage.local.set(defaults, () => {
 			render(defaults);
-			setStatus("Reset");
+			setStatus(t("resetStatus"));
 		});
 	});
 });
@@ -172,17 +176,17 @@ reloadTabsButton.addEventListener("click", () => {
 				chrome.tabs.reload(tab.id);
 			}
 		});
-		setStatus(tabs.length ? "Edupage tabs reloaded" : "No Edupage tabs open");
+		setStatus(tabs.length ? t("tabsReloaded") : t("noTabsOpen"));
 	});
 });
 
 openShortcutSettingsButton.addEventListener("click", () => {
 	chrome.tabs.create({ url: "chrome://extensions/shortcuts" }, () => {
 		if (chrome.runtime.lastError) {
-			setStatus("Could not open shortcut settings", true);
+			setStatus(t("shortcutSettingsFailed"), true);
 			return;
 		}
-		setStatus("Shortcut settings opened");
+		setStatus(t("shortcutSettingsOpened"));
 	});
 });
 

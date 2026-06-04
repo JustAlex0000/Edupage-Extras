@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="light" data-i18n-title="extName">
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="UTF-8">
@@ -9,42 +9,43 @@
   <body>
     <main class="menu">
       <header class="menu-header">
-        <h1>Edupage Extras</h1>
-        <span class="menu-version">0.5.4</span>
+        <h1 data-i18n="extName">Edupage Extras</h1>
+        <span class="menu-version">0.5.6</span>
       </header>
 
       <label class="toggle-row" for="DarkModeCheckbox">
         <span class="toggle-row-copy">
-          <strong>Themes</strong>
-          <small>Use Edupage Extras colors</small>
+          <strong data-i18n="themesLabel">Themes</strong>
+          <small data-i18n="menuThemesHint">Use Edupage Extras colors</small>
         </span>
         <span class="switch switch-compact">
           <input type="checkbox" id="DarkModeCheckbox">
           <span class="switch-track" aria-hidden="true"></span>
-          <span class="sr-only">Toggle themes</span>
+          <span class="sr-only" data-i18n="toggleThemes">Toggle themes</span>
         </span>
       </label>
 
       <div class="button-stack">
         <button class="menu-button" id="SettingsButton" type="button">
-          <span>Settings</span>
+          <span data-i18n="settingsButton">Settings</span>
           <span aria-hidden="true">></span>
         </button>
       </div>
 
       <section class="update-notice" id="UpdateNotice" hidden>
-        <strong>Update available</strong>
-        <small id="UpdateNoticeText">Pull the latest project from GitHub.</small>
+        <strong data-i18n="updateAvailableTitle">Update available</strong>
+        <small id="UpdateNoticeText" data-i18n="menuUpdateHint">Pull the latest project from GitHub.</small>
         <button class="menu-button" id="OpenUpdateButton" type="button">
-          <span>Open GitHub</span>
+          <span data-i18n="openGithub">Open GitHub</span>
           <span aria-hidden="true">></span>
         </button>
       </section>
 
       <footer class="made-by">
-        Made by <a href="https://github.com/Alexosavrua" target="_blank" rel="noopener noreferrer">JustAlex</a>
+        <span data-i18n="madeBy">Made by</span> <a href="https://github.com/Alexosavrua" target="_blank" rel="noopener noreferrer">JustAlex</a>
       </footer>
     </main>
+    <script src="i18n.js"></script>
     <script src="menu.js"></script>
   </body>
 </html>

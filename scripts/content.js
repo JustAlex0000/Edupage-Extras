@@ -35,6 +35,7 @@ const NORMALIZED_ATTR = "data-ee-dark-normalized";
 
 let observer = null;
 let normalizeTimer = null;
+let pendingNormalizeRoots = new Set();
 let hasBootstrappedDarkMode = false;
 let currentTheme = "dark";
 let currentCustomTheme = null;
@@ -545,7 +546,8 @@ function buildDarkCSS() {
       border-radius: 8px !important;
     }
 
-    html.ee-hide-help-text .ee-help-text {
+    html.ee-hide-help-text .userTopLogo,
+    html.ee-hide-help-text a.userTopLogo.learnMoreBtn {
       display: none !important;
     }
   `;
@@ -677,9 +679,29 @@ function normalizeSubtree(root = document.documentElement) {
   }
 }
 
+function flushNormalize() {
+  const roots = Array.from(pendingNormalizeRoots);
+  pendingNormalizeRoots.clear();
+
+  if (!document.documentElement.classList.contains(CLASS_NAME)) return;
+
+  // If a full-document pass is queued, do it once and skip the per-node work.
+  if (roots.includes(document.documentElement)) {
+    normalizeSubtree(document.documentElement);
+    return;
+  }
+
+  roots.forEach((root) => {
+    if (root && root.isConnected) {
+      normalizeSubtree(root);
+    }
+  });
+}
+
 function scheduleNormalize(root = document.documentElement) {
+  if (root) pendingNormalizeRoots.add(root);
   window.clearTimeout(normalizeTimer);
-  normalizeTimer = window.setTimeout(() => normalizeSubtree(root), 80);
+  normalizeTimer = window.setTimeout(flushNormalize, 80);
 }
 
 function startObserver() {
@@ -687,10 +709,15 @@ function startObserver() {
 
   observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
+      // Only re-scan the inserted subtrees, not the whole document, so large
+      // EduPage re-renders do not trigger a full-page getComputedStyle sweep.
       if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
-        scheduleNormalize(document.documentElement);
-        window.setTimeout(markHelpText, 40);
-        return;
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            scheduleNormalize(node);
+          }
+        });
+        continue;
       }
 
       if (
@@ -700,7 +727,6 @@ function startObserver() {
         mutation.attributeName !== "class"
       ) {
         scheduleNormalize(mutation.target);
-        return;
       }
     }
   });
@@ -719,40 +745,11 @@ function stopObserver() {
     observer = null;
   }
   window.clearTimeout(normalizeTimer);
+  pendingNormalizeRoots.clear();
 }
 
 function clearNormalizedClasses() {
   document.querySelectorAll(`[${NORMALIZED_ATTR}]`).forEach(resetElementClasses);
-}
-
-function normalizeText(value) {
-  return String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function markHelpText() {
-  document.querySelectorAll(".ee-help-text").forEach((element) => element.classList.remove("ee-help-text"));
-  if (!hideHelpTextEnabled) return;
-
-  const helpPhrases = [
-    "potrebujete pomoc",
-    "chcete sa dozvediet",
-    "edupage",
-  ];
-
-  document.querySelectorAll(".userTopLogo, .userTopDiv *").forEach((element) => {
-    if (!(element instanceof Element) || element.children.length > 4) return;
-    const text = normalizeText(element.textContent);
-    if (!text || text.length > 220) return;
-    if (!helpPhrases.some((phrase) => text.includes(phrase))) return;
-
-    const target = element.closest(".userTopLogo, .userTopDiv > div, .userTopDivInner > div") || element;
-    target.classList.add("ee-help-text");
-  });
 }
 
 function normalizeTheme(theme) {
@@ -831,7 +828,6 @@ function applyTheme({
   applyCustomThemeProperties(currentCustomTheme);
   ensureStylesheet();
   setThemeClasses(selectedTheme, cleanEnabled, helpHidden);
-  markHelpText();
 
   if (selectedTheme !== "light") {
     document.documentElement.classList.add(CLASS_NAME);

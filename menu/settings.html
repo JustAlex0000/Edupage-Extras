@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="light" data-i18n-title="settingsTitle">
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="UTF-8">
@@ -10,119 +10,119 @@
     <main class="settings">
       <header class="page-header">
         <div>
-          <h1>Settings</h1>
-          <p>Choose how Edupage Extras works.</p>
+          <h1 data-i18n="settingsHeading">Settings</h1>
+          <p data-i18n="settingsSubtitle">Choose how Edupage Extras works.</p>
         </div>
-        <button class="secondary-button" id="ExperimentalSettingsButton" type="button">Experimental</button>
+        <button class="secondary-button" id="ExperimentalSettingsButton" type="button" data-i18n="experimentalButton">Experimental</button>
       </header>
 
       <section class="setting-group" aria-labelledby="appearance-heading">
-        <h2 id="appearance-heading">Appearance</h2>
+        <h2 id="appearance-heading" data-i18n="groupAppearance">Appearance</h2>
 
         <div class="setting-row">
           <div>
-            <h3>Themes</h3>
-            <p>Apply Edupage Extras colors across Edupage and the extension menus.</p>
+            <h3 data-i18n="themesLabel">Themes</h3>
+            <p data-i18n="themesDesc">Apply Edupage Extras colors across Edupage and the extension menus.</p>
           </div>
           <label class="switch switch-compact" for="DarkModeCheckbox">
             <input type="checkbox" id="DarkModeCheckbox">
             <span class="switch-track" aria-hidden="true"></span>
-            <span class="sr-only">Toggle themes</span>
+            <span class="sr-only" data-i18n="toggleThemes">Toggle themes</span>
           </label>
         </div>
 
         <div class="setting-row">
           <div>
-            <h3>Theme Hotkey</h3>
-            <p>Optional. Add a Chrome extension shortcut for toggling themes on or off.</p>
+            <h3 data-i18n="themeHotkey">Theme Hotkey</h3>
+            <p data-i18n="themeHotkeyDesc">Optional. Add a Chrome extension shortcut for toggling themes on or off.</p>
           </div>
           <div class="shortcut-controls">
-            <button class="secondary-button" id="OpenShortcutSettingsButton" type="button">Open Shortcut Settings</button>
-            <span class="shortcut-status" id="ThemeShortcutStatus">No hotkey assigned.</span>
+            <button class="secondary-button" id="OpenShortcutSettingsButton" type="button" data-i18n="openShortcutSettings">Open Shortcut Settings</button>
+            <span class="shortcut-status" id="ThemeShortcutStatus" data-i18n="noHotkey">No hotkey assigned.</span>
           </div>
         </div>
 
         <div class="setting-row">
           <div>
-            <h3>Theme</h3>
-            <p>Choose the colors Edupage Extras applies to Edupage.</p>
+            <h3 data-i18n="themeLabel">Theme</h3>
+            <p data-i18n="themeDesc">Choose the colors Edupage Extras applies to Edupage.</p>
           </div>
           <label class="select-control" for="ThemeSelect">
-            <span>Theme</span>
+            <span data-i18n="themeLabel">Theme</span>
             <select id="ThemeSelect">
-              <option value="dark">Midnight Blue</option>
-              <option value="ocean">Ocean Cyan</option>
-              <option value="forest">Forest Green</option>
-              <option value="emerald">Emerald Green</option>
-              <option value="pink">Rose Pink</option>
-              <option value="purple">Royal Purple</option>
-              <option value="custom">Custom</option>
-              <option value="light">Light</option>
+              <option value="dark" data-i18n="themeOptionDark">Midnight Blue</option>
+              <option value="ocean" data-i18n="themeOptionOcean">Ocean Cyan</option>
+              <option value="forest" data-i18n="themeOptionForest">Forest Green</option>
+              <option value="emerald" data-i18n="themeOptionEmerald">Emerald Green</option>
+              <option value="pink" data-i18n="themeOptionPink">Rose Pink</option>
+              <option value="purple" data-i18n="themeOptionPurple">Royal Purple</option>
+              <option value="custom" data-i18n="themeOptionCustom">Custom</option>
+              <option value="light" data-i18n="themeOptionLight">Light</option>
             </select>
           </label>
         </div>
 
         <div class="setting-note setting-note-warning" role="note" aria-label="Theme disclaimer">
-          <strong>Theme Disclaimer</strong>
-          <p>Avoid using color themes during tests or exams. The changed colors can stand out. Either disable the theme or use the default one.</p>
+          <strong data-i18n="themeDisclaimerTitle">Theme Disclaimer</strong>
+          <p data-i18n="themeDisclaimerText">Avoid using color themes during tests or exams. The changed colors can stand out. Either disable the theme or use the default one.</p>
         </div>
 
         <div class="setting-row custom-theme-row" id="CustomThemePanel" hidden>
           <div>
-            <h3>Custom Theme</h3>
-            <p>Build your own Edupage Extras colors.</p>
+            <h3 data-i18n="customThemeLabel">Custom Theme</h3>
+            <p data-i18n="customThemeDesc">Build your own Edupage Extras colors.</p>
           </div>
           <div class="custom-theme-controls">
             <div class="custom-theme-grid">
               <label>
-                <span>Background</span>
+                <span data-i18n="customColorBg">Background</span>
                 <input type="color" id="CustomBgBase">
               </label>
               <label>
-                <span>Surface</span>
+                <span data-i18n="customColorSurface">Surface</span>
                 <input type="color" id="CustomBgRaised">
               </label>
               <label>
-                <span>Controls</span>
+                <span data-i18n="customColorControls">Controls</span>
                 <input type="color" id="CustomBgElevated">
               </label>
               <label>
-                <span>Muted Surface</span>
+                <span data-i18n="customColorMuted">Muted Surface</span>
                 <input type="color" id="CustomBgMuted">
               </label>
               <label>
-                <span>Border</span>
+                <span data-i18n="customColorBorder">Border</span>
                 <input type="color" id="CustomBorder">
               </label>
               <label>
-                <span>Main Text</span>
+                <span data-i18n="customColorTextMain">Main Text</span>
                 <input type="color" id="CustomTextMain">
               </label>
               <label>
-                <span>Muted Text</span>
+                <span data-i18n="customColorTextMuted">Muted Text</span>
                 <input type="color" id="CustomTextMuted">
               </label>
               <label>
-                <span>Accent</span>
+                <span data-i18n="customColorAccent">Accent</span>
                 <input type="color" id="CustomAccent">
               </label>
               <label>
-                <span>Warning</span>
+                <span data-i18n="customColorWarning">Warning</span>
                 <input type="color" id="CustomWarning">
               </label>
               <label>
-                <span>Danger</span>
+                <span data-i18n="customColorDanger">Danger</span>
                 <input type="color" id="CustomDanger">
               </label>
             </div>
             <label class="custom-theme-import" for="CustomThemeImport">
-              <span>Import / Export</span>
-              <textarea id="CustomThemeImport" rows="5" placeholder="Paste a shared Edupage Extras custom theme here."></textarea>
+              <span data-i18n="importExport">Import / Export</span>
+              <textarea id="CustomThemeImport" rows="5" placeholder="Paste a shared Edupage Extras custom theme here." data-i18n-attr="placeholder:customThemePlaceholder"></textarea>
             </label>
             <div class="actions-row">
-              <button class="secondary-button" id="ExportCustomThemeButton" type="button">Export Theme</button>
-              <button class="secondary-button" id="ImportCustomThemeButton" type="button">Import Theme</button>
-              <button class="secondary-button" id="ResetCustomThemeButton" type="button">Reset Custom Theme</button>
+              <button class="secondary-button" id="ExportCustomThemeButton" type="button" data-i18n="exportTheme">Export Theme</button>
+              <button class="secondary-button" id="ImportCustomThemeButton" type="button" data-i18n="importTheme">Import Theme</button>
+              <button class="secondary-button" id="ResetCustomThemeButton" type="button" data-i18n="resetCustomTheme">Reset Custom Theme</button>
             </div>
             <span class="save-status" id="CustomThemeStatus" role="status"></span>
           </div>
@@ -130,316 +130,329 @@
       </section>
 
       <section class="setting-group" aria-labelledby="cleanup-heading">
-        <h2 id="cleanup-heading">Cleanup</h2>
+        <h2 id="cleanup-heading" data-i18n="groupCleanup">Cleanup</h2>
 
         <div class="setting-row">
           <div>
-            <h3>Centered Layout</h3>
-            <p>Keep the top schedule and main content aligned in the middle.</p>
+            <h3 data-i18n="centeredLayout">Centered Layout</h3>
+            <p data-i18n="centeredLayoutDesc">Keep the top schedule and main content aligned in the middle.</p>
           </div>
           <label class="switch switch-compact" for="CleanUiCheckbox">
             <input type="checkbox" id="CleanUiCheckbox">
             <span class="switch-track" aria-hidden="true"></span>
-            <span class="sr-only">Toggle centered layout</span>
+            <span class="sr-only" data-i18n="toggleCenteredLayout">Toggle centered layout</span>
           </label>
         </div>
 
         <div class="setting-row">
           <div>
-            <h3>Help Text</h3>
-            <p>Hide the top-right Edupage help greeting.</p>
+            <h3 data-i18n="hideHelpText">Hide Help Text</h3>
+            <p data-i18n="hideHelpTextDesc">Hide the top-right Edupage help greeting.</p>
           </div>
           <label class="switch switch-compact" for="HideHelpTextCheckbox">
             <input type="checkbox" id="HideHelpTextCheckbox">
             <span class="switch-track" aria-hidden="true"></span>
-            <span class="sr-only">Toggle help text</span>
+            <span class="sr-only" data-i18n="toggleHelpText">Toggle help text</span>
           </label>
         </div>
 
       </section>
 
       <section class="setting-group" aria-labelledby="features-heading">
-        <h2 id="features-heading">Features</h2>
+        <h2 id="features-heading" data-i18n="groupFeatures">Features</h2>
 
         <div class="setting-row">
           <div>
-            <h3>Grade Badges</h3>
-            <p>Show average badges, bars, and the overall average row on the grades page.</p>
+            <h3 data-i18n="timetableHighlights">Timetable Change Highlights</h3>
+            <p data-i18n="timetableHighlightsDesc">Color-code substitutions (orange) and classroom changes (blue) on the main page timetable widget and full timetable view.</p>
+          </div>
+          <label class="switch switch-compact" for="TimetableHighlightsCheckbox">
+            <input type="checkbox" id="TimetableHighlightsCheckbox">
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only" data-i18n="toggleTimetableHighlights">Toggle timetable change highlights</span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <h3 data-i18n="gradeBadges">Grade Badges</h3>
+            <p data-i18n="gradeBadgesDesc">Show average badges, bars, and the overall average row on the grades page.</p>
           </div>
           <label class="switch switch-compact" for="GradeBadgesCheckbox">
             <input type="checkbox" id="GradeBadgesCheckbox">
             <span class="switch-track" aria-hidden="true"></span>
-            <span class="sr-only">Toggle grade badges</span>
+            <span class="sr-only" data-i18n="toggleGradeBadges">Toggle grade badges</span>
           </label>
         </div>
 
         <div class="setting-row">
           <div>
-            <h3>Subject Attendance</h3>
-            <p>Show current-halfyear absence percentage and total lesson hours inside each grades row using official EduPage data.</p>
+            <h3 data-i18n="subjectAttendance">Subject Attendance</h3>
+            <p data-i18n="subjectAttendanceDesc">Show current-halfyear absence percentage and total lesson hours inside each grades row using official EduPage data.</p>
           </div>
           <label class="switch switch-compact" for="GradesAttendanceCheckbox">
             <input type="checkbox" id="GradesAttendanceCheckbox">
             <span class="switch-track" aria-hidden="true"></span>
-            <span class="sr-only">Toggle subject attendance</span>
+            <span class="sr-only" data-i18n="toggleSubjectAttendance">Toggle subject attendance</span>
           </label>
         </div>
 
         <div class="setting-row">
           <div>
-            <h3>More Accurate Predicted Attendance</h3>
-            <p>Scan upcoming timetable changes and planned events to subtract cancelled lessons from the prediction. Slower to load.</p>
+            <h3 data-i18n="accuratePredicted">More Accurate Predicted Attendance</h3>
+            <p data-i18n="accuratePredictedDesc">Scan upcoming timetable changes and planned events to subtract cancelled lessons from the prediction. Slower to load.</p>
           </div>
           <label class="switch switch-compact" for="AccuratePredictedAttendanceCheckbox">
             <input type="checkbox" id="AccuratePredictedAttendanceCheckbox">
             <span class="switch-track" aria-hidden="true"></span>
-            <span class="sr-only">Toggle more accurate predicted attendance</span>
+            <span class="sr-only" data-i18n="toggleAccuratePredicted">Toggle more accurate predicted attendance</span>
           </label>
         </div>
 
         <div class="setting-row">
           <div>
-            <h3>Attendance Percentages</h3>
-            <p>Show the current halfyear absence percentage inside Edupage's attendance summary table.</p>
+            <h3 data-i18n="attendancePercentages">Attendance Percentages</h3>
+            <p data-i18n="attendancePercentagesDesc">Show the current halfyear absence percentage inside Edupage's attendance summary table.</p>
           </div>
           <label class="switch switch-compact" for="AttendancePercentagesCheckbox">
             <input type="checkbox" id="AttendancePercentagesCheckbox">
             <span class="switch-track" aria-hidden="true"></span>
-            <span class="sr-only">Toggle attendance percentages</span>
+            <span class="sr-only" data-i18n="toggleAttendancePercentages">Toggle attendance percentages</span>
           </label>
         </div>
 
         <div class="setting-row">
           <div>
-            <h3>Second Halfyear Start Date</h3>
-            <p>Override when the second halfyear begins for attendance calculations. Leave this empty to use EduPage's default date for the current school year.</p>
+            <h3 data-i18n="secondHalfStart">Second Halfyear Start Date</h3>
+            <p data-i18n="secondHalfStartDesc">Override when the second halfyear begins for attendance calculations. Leave this empty to use EduPage's default date for the current school year.</p>
           </div>
           <div class="date-setting-controls">
             <label class="date-control" for="HalfyearStartDateInput">
-              <span>Date</span>
+              <span data-i18n="dateLabel">Date</span>
               <input type="date" id="HalfyearStartDateInput">
             </label>
-            <button class="secondary-button" id="ResetHalfyearStartDateButton" type="button">Use EduPage Default</button>
+            <button class="secondary-button" id="ResetHalfyearStartDateButton" type="button" data-i18n="useEdupageDefault">Use EduPage Default</button>
           </div>
         </div>
 
         <div class="setting-row">
           <div>
-            <h3>Second Halfyear End Date</h3>
-            <p>Override when the second halfyear ends for predicted attendance in grades. Leave this empty to use EduPage's default end date for the current school year.</p>
+            <h3 data-i18n="secondHalfEnd">Second Halfyear End Date</h3>
+            <p data-i18n="secondHalfEndDesc">Override when the second halfyear ends for predicted attendance in grades. Leave this empty to use EduPage's default end date for the current school year.</p>
           </div>
           <div class="date-setting-controls">
             <label class="date-control" for="HalfyearEndDateInput">
-              <span>Date</span>
+              <span data-i18n="dateLabel">Date</span>
               <input type="date" id="HalfyearEndDateInput">
             </label>
-            <button class="secondary-button" id="ResetHalfyearEndDateButton" type="button">Use EduPage Default</button>
+            <button class="secondary-button" id="ResetHalfyearEndDateButton" type="button" data-i18n="useEdupageDefault">Use EduPage Default</button>
           </div>
         </div>
 
       </section>
 
       <section class="setting-group" aria-labelledby="google-calendar-heading">
-        <h2 id="google-calendar-heading">Google Calendar</h2>
+        <h2 id="google-calendar-heading" data-i18n="groupGoogleCalendar">Google Calendar</h2>
 
         <div class="setting-row">
           <div>
-            <h3>Google Calendar Sync</h3>
-            <p>Sync your EduPage timetable into a dedicated Google Calendar and keep the current week updated when rooms, teachers, or lessons change.</p>
+            <h3 data-i18n="gcSync">Google Calendar Sync</h3>
+            <p data-i18n="gcSyncDesc">Sync your EduPage timetable into a dedicated Google Calendar and keep the current week updated when rooms, teachers, or lessons change.</p>
           </div>
           <label class="switch switch-compact" for="GoogleCalendarEnabledCheckbox">
             <input type="checkbox" id="GoogleCalendarEnabledCheckbox">
             <span class="switch-track" aria-hidden="true"></span>
-            <span class="sr-only">Toggle Google Calendar sync</span>
+            <span class="sr-only" data-i18n="toggleGcSync">Toggle Google Calendar sync</span>
           </label>
         </div>
 
         <div id="GoogleCalendarDetails" hidden>
         <div class="setting-note setting-note-warning" role="note" aria-label="Google auth note">
-          <strong>OAuth Required</strong>
-          <p>Google Calendar writes do not work with a simple API key. Use a Google OAuth Client ID and Client Secret here instead. For a hobby setup, a free personal Google account and a free Google Cloud project are enough. You do not need Chrome Web Store publishing for the current setup.</p>
+          <strong data-i18n="gcOauthRequiredTitle">OAuth Required</strong>
+          <p data-i18n="gcOauthRequiredText">Google Calendar writes do not work with a simple API key. Use a Google OAuth Client ID and Client Secret here instead. For a hobby setup, a free personal Google account and a free Google Cloud project are enough. You do not need Chrome Web Store publishing for the current setup.</p>
         </div>
 
         <div class="setting-row setting-row-stack">
           <div>
-            <h3>Google Setup</h3>
-            <p>Create a Google Cloud OAuth Client ID, not an API key. You only need to do this once.</p>
+            <h3 data-i18n="gcSetup">Google Setup</h3>
+            <p data-i18n="gcSetupDesc">Create a Google Cloud OAuth Client ID, not an API key. You only need to do this once.</p>
           </div>
           <div class="tutorial-list">
-            <p>1. Open Google Cloud Console and create or select a project.</p>
-            <p>2. Enable the Google Calendar API for that project.</p>
-            <p>3. Open <strong>APIs &amp; Services</strong> → <strong>Credentials</strong>.</p>
-            <p>4. Create an <strong>OAuth client ID</strong> of type <strong>Web application</strong>.</p>
-            <p>5. Add the exact redirect URI shown below to <strong>Authorized redirect URIs</strong>.</p>
-            <p>6. Copy the Client ID and Client Secret, paste them below, then click <strong>Connect Google</strong>.</p>
-            <p>7. No payment is required for normal hobby use.</p>
+            <p data-i18n="gcStep1">1. Open Google Cloud Console and create or select a project.</p>
+            <p data-i18n="gcStep2">2. Enable the Google Calendar API for that project.</p>
+            <p data-i18n-html="gcStep3">3. Open <strong>APIs &amp; Services</strong> &rarr; <strong>Credentials</strong>.</p>
+            <p data-i18n-html="gcStep4">4. Create an <strong>OAuth client ID</strong> of type <strong>Web application</strong>.</p>
+            <p data-i18n-html="gcStep5">5. Add the exact redirect URI shown below to <strong>Authorized redirect URIs</strong>.</p>
+            <p data-i18n-html="gcStep6">6. Copy the Client ID and Client Secret, paste them below, then click <strong>Connect Google</strong>.</p>
+            <p data-i18n="gcStep7">7. No payment is required for normal hobby use.</p>
           </div>
         </div>
 
         <div class="setting-row setting-row-stack calendar-config-row">
           <div class="calendar-config-heading">
-            <h3>Google Credentials</h3>
-            <p>Paste your Google OAuth Client ID and Client Secret here. API keys are not supported for calendar writes.</p>
+            <h3 data-i18n="gcCredentials">Google Credentials</h3>
+            <p data-i18n="gcCredentialsDesc">Paste your Google OAuth Client ID and Client Secret here. API keys are not supported for calendar writes.</p>
           </div>
           <div class="calendar-config-controls">
             <label class="text-control" for="GoogleCalendarRedirectUriInput">
-              <span>Authorized Redirect URI</span>
+              <span data-i18n="gcRedirectUri">Authorized Redirect URI</span>
               <input type="text" id="GoogleCalendarRedirectUriInput" readonly spellcheck="false" autocomplete="off">
             </label>
             <label class="text-control" for="GoogleCalendarClientIdInput">
-              <span>OAuth Client ID</span>
+              <span data-i18n="gcClientId">OAuth Client ID</span>
               <input type="text" id="GoogleCalendarClientIdInput" placeholder="1234567890-abc123.apps.googleusercontent.com" spellcheck="false" autocomplete="off">
             </label>
             <label class="text-control" for="GoogleCalendarClientSecretInput">
-              <span>OAuth Client Secret</span>
+              <span data-i18n="gcClientSecret">OAuth Client Secret</span>
               <input type="password" id="GoogleCalendarClientSecretInput" placeholder="GOCSPX-..." spellcheck="false" autocomplete="off">
             </label>
             <label class="text-control" for="GoogleCalendarNameInput">
-              <span>Calendar Name</span>
+              <span data-i18n="gcCalendarName">Calendar Name</span>
               <input type="text" id="GoogleCalendarNameInput" placeholder="EduPage">
             </label>
             <label class="select-control" for="GoogleCalendarSyncModeSelect">
-              <span>Sync Range</span>
+              <span data-i18n="gcSyncRange">Sync Range</span>
               <select id="GoogleCalendarSyncModeSelect">
-                <option value="week">Current week only</option>
-                <option value="halfyear">Current halfyear</option>
+                <option value="week" data-i18n="gcRangeWeekOption">Current week only</option>
+                <option value="halfyear" data-i18n="gcRangeHalfyearOption">Current halfyear</option>
               </select>
             </label>
             <label class="select-control" for="GoogleCalendarHalfyearScopeSelect" id="GoogleCalendarHalfyearScopeRow" hidden>
-              <span>Halfyear Coverage</span>
+              <span data-i18n="gcHalfyearCoverage">Halfyear Coverage</span>
               <select id="GoogleCalendarHalfyearScopeSelect">
-                <option value="future">From today forward</option>
-                <option value="full">Whole current halfyear</option>
+                <option value="future" data-i18n="gcCoverageFuture">From today forward</option>
+                <option value="full" data-i18n="gcCoverageFull">Whole current halfyear</option>
               </select>
             </label>
             <label class="select-control" for="GoogleCalendarColorModeSelect">
-              <span>Event Colors</span>
+              <span data-i18n="gcEventColors">Event Colors</span>
               <select id="GoogleCalendarColorModeSelect">
-                <option value="subject">By subject</option>
-                <option value="single">Single color</option>
-                <option value="changes">Changed lessons only</option>
-                <option value="none">No colors</option>
+                <option value="subject" data-i18n="gcColorSubject">By subject</option>
+                <option value="single" data-i18n="gcColorSingle">Single color</option>
+                <option value="changes" data-i18n="gcColorChanges">Changed lessons only</option>
+                <option value="none" data-i18n="gcColorNone">No colors</option>
               </select>
             </label>
             <label class="select-control" for="GoogleCalendarSingleColorSelect" id="GoogleCalendarSingleColorRow" hidden>
-              <span>Single Event Color</span>
+              <span data-i18n="gcSingleColor">Single Event Color</span>
               <select id="GoogleCalendarSingleColorSelect">
-                <option value="1">Lavender</option>
-                <option value="2">Sage</option>
-                <option value="3">Grape</option>
-                <option value="4">Flamingo</option>
-                <option value="5">Banana</option>
-                <option value="6">Tangerine</option>
-                <option value="7">Peacock</option>
-                <option value="8">Graphite</option>
-                <option value="9">Blueberry</option>
-                <option value="10">Basil</option>
-                <option value="11">Tomato</option>
+                <option value="1" data-i18n="gcColor1">Lavender</option>
+                <option value="2" data-i18n="gcColor2">Sage</option>
+                <option value="3" data-i18n="gcColor3">Grape</option>
+                <option value="4" data-i18n="gcColor4">Flamingo</option>
+                <option value="5" data-i18n="gcColor5">Banana</option>
+                <option value="6" data-i18n="gcColor6">Tangerine</option>
+                <option value="7" data-i18n="gcColor7">Peacock</option>
+                <option value="8" data-i18n="gcColor8">Graphite</option>
+                <option value="9" data-i18n="gcColor9">Blueberry</option>
+                <option value="10" data-i18n="gcColor10">Basil</option>
+                <option value="11" data-i18n="gcColor11">Tomato</option>
               </select>
             </label>
             <label class="number-control" for="GoogleCalendarSyncIntervalInput">
-              <span>Sync Every</span>
+              <span data-i18n="gcSyncEvery">Sync Every</span>
               <div class="number-control-field">
                 <input type="number" id="GoogleCalendarSyncIntervalInput" min="5" max="120" step="5">
-                <span>minutes</span>
+                <span data-i18n="gcMinutes">minutes</span>
               </div>
             </label>
             <div class="option-grid" aria-label="Google Calendar quality of life options">
               <label class="switch" for="GoogleCalendarRoomInTitleCheckbox">
                 <input type="checkbox" id="GoogleCalendarRoomInTitleCheckbox">
                 <span class="switch-track" aria-hidden="true"></span>
-                <span class="switch-text">Show room in title</span>
+                <span class="switch-text" data-i18n="gcRoomInTitle">Show room in title</span>
               </label>
               <label class="switch" for="GoogleCalendarTeacherInTitleCheckbox">
                 <input type="checkbox" id="GoogleCalendarTeacherInTitleCheckbox">
                 <span class="switch-track" aria-hidden="true"></span>
-                <span class="switch-text">Show teacher in title</span>
+                <span class="switch-text" data-i18n="gcTeacherInTitle">Show teacher in title</span>
               </label>
               <label class="switch" for="GoogleCalendarUseDefaultRemindersCheckbox">
                 <input type="checkbox" id="GoogleCalendarUseDefaultRemindersCheckbox">
                 <span class="switch-track" aria-hidden="true"></span>
-                <span class="switch-text">Use Google reminders</span>
+                <span class="switch-text" data-i18n="gcUseReminders">Use Google reminders</span>
               </label>
             </div>
             <div class="option-grid" aria-label="Google Calendar school event options">
               <label class="switch" for="GoogleCalendarSchoolEventsCheckbox">
                 <input type="checkbox" id="GoogleCalendarSchoolEventsCheckbox">
                 <span class="switch-track" aria-hidden="true"></span>
-                <span class="switch-text">Sync school events</span>
+                <span class="switch-text" data-i18n="gcSchoolEvents">Sync school events</span>
               </label>
             </div>
             <div class="option-grid" id="GoogleCalendarSchoolEventKinds" aria-label="Google Calendar school event kinds" hidden>
               <label class="switch" for="GoogleCalendarTestEventsCheckbox">
                 <input type="checkbox" id="GoogleCalendarTestEventsCheckbox">
                 <span class="switch-track" aria-hidden="true"></span>
-                <span class="switch-text">Tests / Exams</span>
+                <span class="switch-text" data-i18n="gcTestsExams">Tests / Exams</span>
               </label>
             </div>
             <div class="actions-row">
-              <button class="secondary-button" id="GoogleCalendarConnectButton" type="button">Connect Google</button>
-              <button class="secondary-button" id="GoogleCalendarDisconnectButton" type="button">Disconnect</button>
-              <button class="secondary-button" id="GoogleCalendarClearButton" type="button">Clear Events</button>
-              <button class="secondary-button" id="GoogleCalendarSyncNowButton" type="button">Sync Now</button>
+              <button class="secondary-button" id="GoogleCalendarConnectButton" type="button" data-i18n="gcConnect">Connect Google</button>
+              <button class="secondary-button" id="GoogleCalendarDisconnectButton" type="button" data-i18n="gcDisconnect">Disconnect</button>
+              <button class="secondary-button" id="GoogleCalendarClearButton" type="button" data-i18n="gcClearEvents">Clear Events</button>
+              <button class="secondary-button" id="GoogleCalendarSyncNowButton" type="button" data-i18n="gcSyncNow">Sync Now</button>
             </div>
-            <p class="calendar-help-text">Put that redirect URI into your Google OAuth client exactly as shown. If Google says <strong>redirect_uri_mismatch</strong>, this field is the fix.</p>
-            <p class="calendar-help-text">Week mode syncs the current whole week. On Saturday and Sunday it syncs the upcoming week instead. Halfyear mode repeats the detected timetable template through the current halfyear and then keeps the active week updated from EduPage.</p>
-            <p class="calendar-help-text">School events are currently conservative: only explicitly marked tests and exams are added when that toggle is enabled.</p>
-            <p class="calendar-help-text">Halfyear coverage defaults to future events only. Whole current halfyear is available too, but it is slower and may take noticeably longer to finish.</p>
-            <p class="calendar-help-text">The second halfyear ends on <strong>June 30</strong>, so this sync will not continue into July or August.</p>
-            <p class="calendar-help-text">Halfyear sync is intentionally throttled so Google is less likely to reject the extension with rate limits.</p>
-            <span class="save-status" id="GoogleCalendarStatusText" role="status">Google Calendar sync is disabled.</span>
+            <p class="calendar-help-text" data-i18n-html="gcHelpRedirect">Put that redirect URI into your Google OAuth client exactly as shown. If Google says <strong>redirect_uri_mismatch</strong>, this field is the fix.</p>
+            <p class="calendar-help-text" data-i18n="gcHelpModes">Week mode syncs the current whole week. On Saturday and Sunday it syncs the upcoming week instead. Halfyear mode repeats the detected timetable template through the current halfyear and then keeps the active week updated from EduPage.</p>
+            <p class="calendar-help-text" data-i18n="gcHelpSchoolEvents">School events are currently conservative: only explicitly marked tests and exams are added when that toggle is enabled.</p>
+            <p class="calendar-help-text" data-i18n="gcHelpCoverage">Halfyear coverage defaults to future events only. Whole current halfyear is available too, but it is slower and may take noticeably longer to finish.</p>
+            <p class="calendar-help-text" data-i18n-html="gcHelpEndDate">The second halfyear ends on <strong>June 30</strong>, so this sync will not continue into July or August.</p>
+            <p class="calendar-help-text" data-i18n="gcHelpThrottle">Halfyear sync is intentionally throttled so Google is less likely to reject the extension with rate limits.</p>
+            <span class="save-status" id="GoogleCalendarStatusText" role="status" data-i18n="gcStatusDisabled">Google Calendar sync is disabled.</span>
           </div>
         </div>
         </div>
       </section>
 
       <section class="setting-group" aria-labelledby="debug-heading">
-        <h2 id="debug-heading">Debug</h2>
+        <h2 id="debug-heading" data-i18n="groupDebug">Debug</h2>
 
         <div class="setting-row">
           <div>
-            <h3>Grades Attendance Debug</h3>
-            <p>Print detailed fetch, parsing, matching, and rendering diagnostics for the grades attendance feature into the browser console.</p>
+            <h3 data-i18n="gradesDebug">Grades Attendance Debug</h3>
+            <p data-i18n="gradesDebugDesc">Print detailed fetch, parsing, matching, and rendering diagnostics for the grades attendance feature into the browser console.</p>
           </div>
           <label class="switch switch-compact" for="GradesAttendanceDebugCheckbox">
             <input type="checkbox" id="GradesAttendanceDebugCheckbox">
             <span class="switch-track" aria-hidden="true"></span>
-            <span class="sr-only">Toggle grades attendance debug</span>
+            <span class="sr-only" data-i18n="toggleGradesDebug">Toggle grades attendance debug</span>
           </label>
         </div>
       </section>
 
       <section class="setting-group" aria-labelledby="updates-heading">
-        <h2 id="updates-heading">Updates</h2>
+        <h2 id="updates-heading" data-i18n="groupUpdates">Updates</h2>
 
         <div class="setting-row">
           <div>
-            <h3>Update Reminders</h3>
-            <p>Check the public GitHub project for a newer unpacked version.</p>
+            <h3 data-i18n="updateReminders">Update Reminders</h3>
+            <p data-i18n="updateRemindersDesc">Check the public GitHub project for a newer unpacked version.</p>
           </div>
           <label class="switch switch-compact" for="UpdateReminderCheckbox">
             <input type="checkbox" id="UpdateReminderCheckbox">
             <span class="switch-track" aria-hidden="true"></span>
-            <span class="sr-only">Toggle update reminders</span>
+            <span class="sr-only" data-i18n="toggleUpdateReminders">Toggle update reminders</span>
           </label>
         </div>
 
         <div class="setting-row setting-row-stack">
           <div>
-            <h3>Version Check</h3>
-            <p id="UpdateStatusText">No update check has run yet.</p>
+            <h3 data-i18n="versionCheck">Version Check</h3>
+            <p id="UpdateStatusText" data-i18n="noUpdateCheck">No update check has run yet.</p>
           </div>
           <div class="actions-row">
-            <button class="secondary-button" id="CheckUpdatesButton" type="button">Check For Updates</button>
-            <button class="secondary-button" id="OpenRepositoryButton" type="button">Open GitHub</button>
+            <button class="secondary-button" id="CheckUpdatesButton" type="button" data-i18n="checkForUpdates">Check For Updates</button>
+            <button class="secondary-button" id="OpenRepositoryButton" type="button" data-i18n="openGithub">Open GitHub</button>
           </div>
         </div>
       </section>
 
       <footer class="made-by">
-        Made by <a href="https://github.com/Alexosavrua" target="_blank" rel="noopener noreferrer">JustAlex</a>
+        <span data-i18n="madeBy">Made by</span> <a href="https://github.com/Alexosavrua" target="_blank" rel="noopener noreferrer">JustAlex</a>
       </footer>
     </main>
+    <script src="i18n.js"></script>
     <script src="settings.js"></script>
   </body>
 </html>

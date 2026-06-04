@@ -4,6 +4,7 @@ const openShortcutSettingsButton = document.getElementById("OpenShortcutSettings
 const themeShortcutStatus = document.getElementById("ThemeShortcutStatus");
 const cleanUiToggle = document.getElementById("CleanUiCheckbox");
 const hideHelpTextToggle = document.getElementById("HideHelpTextCheckbox");
+const timetableHighlightsToggle = document.getElementById("TimetableHighlightsCheckbox");
 const gradeBadgesToggle = document.getElementById("GradeBadgesCheckbox");
 const gradesAttendanceToggle = document.getElementById("GradesAttendanceCheckbox");
 const accuratePredictedAttendanceToggle = document.getElementById("AccuratePredictedAttendanceCheckbox");
@@ -53,6 +54,7 @@ const THEME_KEY = "themeMode";
 const CUSTOM_THEME_KEY = "customThemeColors";
 const CLEAN_UI_KEY = "cleanUiEnabled";
 const HIDE_HELP_TEXT_KEY = "hideHelpTextEnabled";
+const TIMETABLE_HIGHLIGHTS_KEY = "timetableHighlightsEnabled";
 const GRADE_BADGES_KEY = "gradeBadgesEnabled";
 const GRADES_ATTENDANCE_KEY = "gradesAttendanceStatsEnabled";
 const ACCURATE_PREDICTED_ATTENDANCE_KEY = "eeAccuratePredictedAttendanceEnabled";
@@ -116,6 +118,10 @@ const customInputs = {
 };
 
 let customTheme = { ...DEFAULT_CUSTOM_THEME };
+
+function t(key, substitutions) {
+	return window.eeI18n.msg(key, substitutions);
+}
 
 function normalizeTheme(theme) {
 	return THEMES.includes(theme) ? theme : "dark";
@@ -234,7 +240,7 @@ function notifyEdupageTabs() {
 }
 
 function formatCheckedAt(timestamp) {
-	if (!timestamp) return "No update check has run yet.";
+	if (!timestamp) return t("noUpdateCheck");
 	return new Date(timestamp).toLocaleString([], {
 		dateStyle: "medium",
 		timeStyle: "short",
@@ -246,32 +252,41 @@ function normalizeDateInput(value) {
 }
 
 function renderUpdateStatus(status) {
-	const reloadReminder = " After pulling the latest project, also reload the unpacked extension in chrome://extensions/.";
+	const reloadReminder = t("updateReloadReminder");
 	updateStatusText.dataset.state = "";
 	if (!status) {
-		updateStatusText.textContent = "No update check has run yet.";
+		updateStatusText.textContent = t("noUpdateCheck");
 		return;
 	}
 
 	if (status.error) {
 		updateStatusText.dataset.state = "error";
-		updateStatusText.textContent = `Could not check GitHub: ${status.error}`;
+		updateStatusText.textContent = t("updateErrorPrefix", [String(status.error)]);
 		return;
 	}
 
 	if (status.updateAvailable) {
 		updateStatusText.dataset.state = "available";
-		updateStatusText.textContent = `Downloaded version: ${status.localVersion}. Latest GitHub version: ${status.latestVersion}. Pull the latest project from GitHub.${reloadReminder} Checked ${formatCheckedAt(status.checkedAt)}.`;
+		updateStatusText.textContent = t("updateAvailableStatus", [
+			String(status.localVersion),
+			String(status.latestVersion),
+			reloadReminder,
+			formatCheckedAt(status.checkedAt),
+		]);
 		return;
 	}
 
-	updateStatusText.textContent = `Downloaded version: ${status.localVersion}. Latest GitHub version: ${status.latestVersion}. Checked ${formatCheckedAt(status.checkedAt)}.`;
+	updateStatusText.textContent = t("updateUpToDateStatus", [
+		String(status.localVersion),
+		String(status.latestVersion),
+		formatCheckedAt(status.checkedAt),
+	]);
 }
 
 function checkForUpdates() {
 	checkUpdatesButton.disabled = true;
 	updateStatusText.dataset.state = "";
-	updateStatusText.textContent = "Checking GitHub...";
+	updateStatusText.textContent = t("checkingGithub");
 
 	chrome.runtime.sendMessage({ type: "ee-check-update", notify: true }, (response) => {
 		checkUpdatesButton.disabled = false;
@@ -282,7 +297,7 @@ function checkForUpdates() {
 		}
 		if (!response?.ok) {
 			updateStatusText.dataset.state = "error";
-			updateStatusText.textContent = response?.error || "Could not check GitHub.";
+			updateStatusText.textContent = response?.error || t("updateCheckFailed");
 			return;
 		}
 		renderUpdateStatus(response.status);
@@ -291,7 +306,7 @@ function checkForUpdates() {
 
 function renderShortcutStatus() {
 	if (!chrome.commands?.getAll) {
-		themeShortcutStatus.textContent = "Shortcut status unavailable in this browser.";
+		themeShortcutStatus.textContent = t("shortcutUnavailable");
 		return;
 	}
 
@@ -299,8 +314,8 @@ function renderShortcutStatus() {
 		const command = commands.find((entry) => entry.name === THEME_TOGGLE_COMMAND);
 		const shortcut = command?.shortcut?.trim();
 		themeShortcutStatus.textContent = shortcut
-			? `Current hotkey: ${shortcut}`
-			: "No hotkey assigned.";
+			? t("currentHotkey", [shortcut])
+			: t("noHotkey");
 	});
 }
 
@@ -348,7 +363,7 @@ function setGoogleCalendarBusy(busy) {
 function renderGoogleCalendarStatus(status) {
 	googleCalendarStatusText.dataset.state = "";
 	if (!status) {
-		googleCalendarStatusText.textContent = "Google Calendar sync is disabled.";
+		googleCalendarStatusText.textContent = t("gcStatusDisabled");
 		return;
 	}
 
@@ -357,24 +372,24 @@ function renderGoogleCalendarStatus(status) {
 		parts.push(status.message);
 	}
 	if (status.lastSyncedAt) {
-		parts.push(`Last sync: ${new Date(status.lastSyncedAt).toLocaleString([], {
+		parts.push(t("gcLastSync", [new Date(status.lastSyncedAt).toLocaleString([], {
 			dateStyle: "medium",
 			timeStyle: "short",
-		})}.`);
+		})]));
 	}
 	if (status.calendarName) {
-		parts.push(`Calendar: ${status.calendarName}.`);
+		parts.push(t("gcCalendarLabel", [String(status.calendarName)]));
 	}
 	if (status.mode === "halfyear") {
 		parts.push(status.halfyearScope === "full"
-			? "Range: whole current halfyear."
-			: "Range: current halfyear from today forward.");
+			? t("gcRangeFull")
+			: t("gcRangeFutureLabel"));
 	}
 	if (status.mode === "week") {
-		parts.push("Range: current week, or upcoming week on weekends.");
+		parts.push(t("gcRangeWeekLabel"));
 	}
 
-	googleCalendarStatusText.textContent = parts.join(" ").trim() || "Google Calendar is configured.";
+	googleCalendarStatusText.textContent = parts.join(" ").trim() || t("gcStatusConfigured");
 	if (status.state === "error") {
 		googleCalendarStatusText.dataset.state = "error";
 		return;
@@ -448,7 +463,7 @@ function sendGoogleCalendarAction(message, onDone) {
 		if (!response?.ok) {
 			renderGoogleCalendarStatus({
 				state: "error",
-				message: response?.error || "Google Calendar request failed.",
+				message: response?.error || t("gcRequestFailed"),
 			});
 			return;
 		}
@@ -468,6 +483,7 @@ chrome.storage.local.get(
 		CUSTOM_THEME_KEY,
 		CLEAN_UI_KEY,
 		HIDE_HELP_TEXT_KEY,
+		TIMETABLE_HIGHLIGHTS_KEY,
 		GRADE_BADGES_KEY,
 		GRADES_ATTENDANCE_KEY,
 		ACCURATE_PREDICTED_ATTENDANCE_KEY,
@@ -501,6 +517,7 @@ chrome.storage.local.get(
 		themeSelect.value = theme;
 		cleanUiToggle.checked = result[CLEAN_UI_KEY] === true;
 		hideHelpTextToggle.checked = result[HIDE_HELP_TEXT_KEY] === true;
+		timetableHighlightsToggle.checked = result[TIMETABLE_HIGHLIGHTS_KEY] !== false;
 		gradeBadgesToggle.checked = result[GRADE_BADGES_KEY] === true;
 		gradesAttendanceToggle.checked = result[GRADES_ATTENDANCE_KEY] !== false;
 		accuratePredictedAttendanceToggle.checked = result[ACCURATE_PREDICTED_ATTENDANCE_KEY] === true;
@@ -508,7 +525,7 @@ chrome.storage.local.get(
 		attendancePercentagesToggle.checked = result[ATTENDANCE_PERCENTAGES_KEY] !== false;
 		halfyearStartInput.value = normalizeDateInput(result[HALFYEAR_START_KEY]);
 		halfyearEndInput.value = normalizeDateInput(result[HALFYEAR_END_KEY]);
-		updateReminderToggle.checked = result[UPDATE_REMINDER_ENABLED_KEY] === true;
+		updateReminderToggle.checked = result[UPDATE_REMINDER_ENABLED_KEY] !== false;
 		googleCalendarEnabledToggle.checked = result[GOOGLE_CALENDAR_ENABLED_KEY] === true;
 		googleCalendarRedirectUriInput.value = getGoogleCalendarRedirectUri();
 		googleCalendarClientIdInput.value = String(result[GOOGLE_CALENDAR_CLIENT_ID_KEY] || "");
@@ -568,8 +585,8 @@ exportCustomThemeButton.addEventListener("click", () => {
 	customThemeImport.value = text;
 
 	navigator.clipboard.writeText(text)
-		.then(() => setCustomThemeStatus("Custom theme copied."))
-		.catch(() => setCustomThemeStatus("Custom theme is ready to copy."));
+		.then(() => setCustomThemeStatus(t("customThemeCopied")))
+		.catch(() => setCustomThemeStatus(t("customThemeReadyToCopy")));
 });
 
 importCustomThemeButton.addEventListener("click", () => {
@@ -585,9 +602,9 @@ importCustomThemeButton.addEventListener("click", () => {
 			[CUSTOM_THEME_KEY]: customTheme,
 		});
 		notifyEdupageTabs();
-		setCustomThemeStatus("Custom theme imported.");
+		setCustomThemeStatus(t("customThemeImported"));
 	} catch (error) {
-		setCustomThemeStatus("Import failed. Paste valid JSON.", true);
+		setCustomThemeStatus(t("customThemeImportFailed"), true);
 	}
 });
 
@@ -598,7 +615,7 @@ resetCustomThemeButton.addEventListener("click", () => {
 	applySettingsTheme(themeSelect.value, toggle.checked, customTheme);
 	chrome.storage.local.set({ [CUSTOM_THEME_KEY]: customTheme });
 	notifyEdupageTabs();
-	setCustomThemeStatus("Custom theme reset.");
+	setCustomThemeStatus(t("customThemeReset"));
 });
 
 cleanUiToggle.addEventListener("change", () => {
@@ -609,6 +626,10 @@ cleanUiToggle.addEventListener("change", () => {
 hideHelpTextToggle.addEventListener("change", () => {
 	chrome.storage.local.set({ [HIDE_HELP_TEXT_KEY]: hideHelpTextToggle.checked });
 	notifyEdupageTabs();
+});
+
+timetableHighlightsToggle.addEventListener("change", () => {
+	chrome.storage.local.set({ [TIMETABLE_HIGHLIGHTS_KEY]: timetableHighlightsToggle.checked });
 });
 
 gradeBadgesToggle.addEventListener("change", () => {
@@ -743,14 +764,14 @@ googleCalendarConnectButton.addEventListener("click", () => {
 	if (!clientId) {
 		renderGoogleCalendarStatus({
 			state: "error",
-			message: "Paste a Google OAuth Client ID first.",
+			message: t("gcNeedClientId"),
 		});
 		return;
 	}
 	if (!clientSecret) {
 		renderGoogleCalendarStatus({
 			state: "error",
-			message: "Paste a Google OAuth Client Secret first.",
+			message: t("gcNeedClientSecret"),
 		});
 		return;
 	}
@@ -771,7 +792,7 @@ googleCalendarDisconnectButton.addEventListener("click", () => {
 });
 
 googleCalendarClearButton.addEventListener("click", () => {
-	if (!window.confirm("Remove all EduPage Extras events from the selected Google calendar?")) {
+	if (!window.confirm(t("gcClearConfirm"))) {
 		return;
 	}
 	sendGoogleCalendarAction({ type: "ee-google-calendar-clear-events" });

@@ -64,7 +64,10 @@ function renderUpdateNotice(status) {
 	const visible = status?.updateAvailable && status.latestVersion;
 	updateNotice.hidden = !visible;
 	if (visible) {
-		updateNoticeText.textContent = `Downloaded version: ${status.localVersion}. Latest GitHub version: ${status.latestVersion}. Pull the latest project from GitHub.`;
+		updateNoticeText.textContent = window.eeI18n.msg("menuUpdateNotice", [
+			String(status.localVersion),
+			String(status.latestVersion),
+		]);
 	}
 }
 

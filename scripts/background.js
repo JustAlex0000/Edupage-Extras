@@ -365,7 +365,7 @@ function toRfc3339(dateString, timeString) {
 
 async function updateRemindersEnabled() {
   const result = await storageGet([UPDATE_REMINDER_ENABLED_KEY]);
-  return result?.[UPDATE_REMINDER_ENABLED_KEY] === true;
+  return result?.[UPDATE_REMINDER_ENABLED_KEY] !== false;
 }
 
 async function toggleActivityShieldEnabled() {
@@ -435,7 +435,7 @@ function maybeNotify(status) {
 
   storageGet([UPDATE_REMINDER_ENABLED_KEY, UPDATE_LAST_NOTIFIED_KEY])
     .then((result) => {
-      if (result?.[UPDATE_REMINDER_ENABLED_KEY] !== true) return;
+      if (result?.[UPDATE_REMINDER_ENABLED_KEY] === false) return;
       if (result?.[UPDATE_LAST_NOTIFIED_KEY] === status.latestVersion) return;
 
       chrome.notifications.create(`ee-update-${status.latestVersion}`, {

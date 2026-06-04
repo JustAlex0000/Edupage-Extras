@@ -45,6 +45,14 @@
   let virtualGradesData = {};
   let activeVirtualPopover = null;
 
+  function t(key, substitutions) {
+    try {
+      return chrome.i18n.getMessage(key, substitutions) || key;
+    } catch (error) {
+      return key;
+    }
+  }
+
   function parseAverage(text) {
     if (!text) return Number.NaN;
     const match = text.trim().match(/^(\d+(?:[.,]\d+)?)/);
@@ -570,6 +578,44 @@
         margin-left: auto;
       }
 
+      .ee-grades-toolbar {
+        display: flex;
+        justify-content: flex-end;
+        margin: 6px 0;
+      }
+
+      .ee-grades-export-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 12px;
+        background: #e8f0fe;
+        border: 1.5px solid #3e83b8;
+        border-radius: 6px;
+        color: #1565c0;
+        font-size: 12px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+      }
+
+      .ee-grades-export-btn:hover {
+        background: #3e83b8;
+        color: #fff;
+        box-shadow: 0 1px 5px rgba(62, 131, 184, 0.45);
+      }
+
+      html.ee-dark .ee-grades-export-btn {
+        background: rgba(62, 131, 184, 0.15);
+        border-color: var(--ee-accent);
+        color: var(--ee-accent);
+      }
+
+      html.ee-dark .ee-grades-export-btn:hover {
+        background: var(--ee-accent);
+        color: #fff;
+      }
+
       html.ee-dark .ee-avg-bar-track {
         background-color: var(--ee-border) !important;
       }
@@ -894,7 +940,10 @@
   // ============================================================
 
   function parseGradeWeight(tooltipHtml) {
-    const match = /v[aá][hž][aá]\s*:\s*(\d+(?:[.,]\d+)?)/i.exec(String(tooltipHtml || ""));
+    // EduPage labels the weight in the school's own language. Match the common
+    // Slovak/Czech ("váha"/"váhy"), English ("weight") and German ("Gewicht")
+    // variants so projected averages stay correct outside Slovak schools.
+    const match = /(?:v[aá]h[ay]|weight|gewicht)\s*:\s*(\d+(?:[.,]\d+)?)/i.exec(String(tooltipHtml || ""));
     return match ? Math.max(0.1, Number.parseFloat(match[1].replace(",", "."))) : 1;
   }
 
@@ -1338,11 +1387,11 @@
 
     const label = document.createElement("span");
     label.className = "ee-overall-label";
-    label.textContent = "Overall";
+    label.textContent = t("gradesOverall");
 
     const meta = document.createElement("span");
     meta.className = "ee-overall-meta";
-    meta.textContent = `${averages.length} subjects`;
+    meta.textContent = t("gradesSubjectsCount", [String(averages.length)]);
 
     labelCell.appendChild(label);
     labelCell.appendChild(meta);
@@ -2624,28 +2673,28 @@
       const percentHeader = ensureAttendanceHeaderCell(
         headerRow,
         "ee-attendance-percent-header",
-        "Abs %",
+        t("gradesColAbsPercent"),
         "Current halfyear absence percentage per subject.",
         averageHeaderCell,
       );
       ensureAttendanceHeaderCell(
         headerRow,
         "ee-attendance-total-header",
-        "Abs/Hod.",
+        t("gradesColAbsTotal"),
         "Current halfyear absent lessons / lessons held so far per subject.",
         percentHeader,
       );
       const predictedPercentHeader = ensureAttendanceHeaderCell(
         headerRow,
         "ee-attendance-predicted-percent-header",
-        "Pred. Abs %",
+        t("gradesColPredAbsPercent"),
         "Projected end-of-halfyear absence percentage if you miss no more lessons.",
         headerRow.querySelector(".ee-attendance-total-header"),
       );
       ensureAttendanceHeaderCell(
         headerRow,
         "ee-attendance-predicted-total-header",
-        "Pred. Abs/Hod.",
+        t("gradesColPredAbsTotal"),
         "Projected absent lessons / projected total lessons by the end of the current halfyear if you miss no more lessons.",
         predictedPercentHeader,
       );
@@ -3906,6 +3955,96 @@
     return baseStats;
   }
 
+  function csvEscape(value) {
+    const text = String(value ?? "");
+    return /[",\n\r;]/.test(text) ? `"${text.replace(/"/g, "\"\"")}"` : text;
+  }
+
+  function parseRatioCellText(cell) {
+    const match = /^(\d+)\s*\/\s*(\d+)$/.exec((cell?.textContent || "").trim());
+    return match ? { absent: match[1], total: match[2] } : { absent: "", total: "" };
+  }
+
+  function readDisplayPercentCell(cell) {
+    const text = (cell?.textContent || "").trim();
+    if (!text || text === "-" || text === "...") return "";
+    return text.replace(/\s*%\s*$/, "").trim();
+  }
+
+  function buildGradesCsv(table) {
+    const withAttendance = gradesAttendanceEnabled;
+    const headers = [t("gradesCsvSubject"), t("gradesCsvAverage")];
+    if (withAttendance) {
+      headers.push(
+        t("gradesCsvAbsent"),
+        t("gradesCsvTotal"),
+        t("gradesCsvAbsPercent"),
+        t("gradesCsvPredTotal"),
+        t("gradesCsvPredPercent"),
+      );
+    }
+
+    const rows = [headers];
+    Array.from(table.querySelectorAll("tr.predmetRow")).forEach((row) => {
+      const subject = readPrimaryRowSubjectText(row);
+      if (!subject) return;
+
+      const priemerCell = row.querySelector(".znPriemerCell");
+      const average = (priemerCell?.dataset.eeOriginalAverage || readAverageText(priemerCell) || "").trim();
+      const record = [subject, average];
+
+      if (withAttendance) {
+        const current = parseRatioCellText(row.querySelector(".ee-attendance-total-cell"));
+        const predicted = parseRatioCellText(row.querySelector(".ee-attendance-predicted-total-cell"));
+        record.push(
+          current.absent,
+          current.total,
+          readDisplayPercentCell(row.querySelector(".ee-attendance-percent-cell")),
+          predicted.total,
+          readDisplayPercentCell(row.querySelector(".ee-attendance-predicted-percent-cell")),
+        );
+      }
+
+      rows.push(record);
+    });
+
+    return rows.map((record) => record.map(csvEscape).join(",")).join("\r\n");
+  }
+
+  function downloadGradesCsv(table) {
+    // Prefix a UTF-8 BOM so spreadsheet apps detect the encoding correctly.
+    const content = `﻿${buildGradesCsv(table)}`;
+    const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `edupage-grades-${formatDateISO(new Date())}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  function ensureCsvExportButton(table) {
+    if (!table.parentElement) return;
+    if (table.previousElementSibling?.classList?.contains("ee-grades-toolbar")) return;
+
+    const toolbar = document.createElement("div");
+    toolbar.className = "ee-grades-toolbar";
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ee-grades-export-btn";
+    button.textContent = t("gradesExportCsv");
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      downloadGradesCsv(table);
+    });
+
+    toolbar.appendChild(button);
+    table.parentElement.insertBefore(toolbar, table);
+  }
+
   function enhanceGradesTable() {
     const tables = getGradesTables();
     const table = getPrimaryGradesTable();
@@ -3914,6 +4053,7 @@
     markInternalMutation();
     injectStyles();
     tables.forEach((gradesTable) => applyStoredGradeTitles(gradesTable));
+    ensureCsvExportButton(table);
 
     if (gradesAttendanceEnabled) {
       tables.forEach((gradesTable) => ensureAttendanceColumns(gradesTable));
