@@ -3028,6 +3028,7 @@
     if (!cell) {
       cell = document.createElement("th");
       cell.className = `ee-attendance-header ${className}`;
+      cell.addEventListener("click", (e) => e.stopPropagation());
     } else {
       cell.classList.add("ee-attendance-header", className);
     }
@@ -3093,6 +3094,7 @@
     if (!cell) {
       cell = document.createElement("td");
       cell.className = `ee-attendance-cell ${className}`;
+      cell.addEventListener("click", (e) => e.stopPropagation());
     } else {
       cell.classList.add("ee-attendance-cell", className);
     }
