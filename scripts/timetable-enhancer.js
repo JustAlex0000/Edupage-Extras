@@ -52,20 +52,21 @@
         outline-offset: -2px !important;
       }
 
-      /* Dark mode */
+      /* Dark mode / themes: stronger opacity so outlines stay visible on both
+         dark backgrounds and light-colored themes (e.g. pink). */
       html.ee-dark .tt-cell.ee-tt-substitution {
-        background-color: rgba(250, 179, 135, 0.2) !important;
-        outline-color: var(--ee-warning) !important;
+        background-color: rgba(245, 124, 0, 0.3) !important;
+        outline-color: rgba(245, 124, 0, 0.9) !important;
       }
 
       html.ee-dark .tt-cell.ee-tt-room-change {
-        background-color: rgba(137, 180, 250, 0.2) !important;
-        outline-color: var(--ee-accent) !important;
+        background-color: rgba(21, 101, 192, 0.3) !important;
+        outline-color: rgba(21, 101, 192, 0.9) !important;
       }
 
       html.ee-dark .tt-cell.ee-tt-changed {
-        background-color: rgba(250, 179, 135, 0.2) !important;
-        outline-color: var(--ee-warning) !important;
+        background-color: rgba(245, 124, 0, 0.3) !important;
+        outline-color: rgba(245, 124, 0, 0.9) !important;
       }
     `;
 
