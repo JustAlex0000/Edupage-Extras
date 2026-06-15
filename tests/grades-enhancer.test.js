@@ -8,7 +8,7 @@ function loadGradesEnhancerInternals() {
   const source = fs.readFileSync(scriptPath, "utf8");
   const instrumentedSource = source.replace(
     'if (document.readyState === "loading") {',
-    'globalThis.__eeTest = { parseAverage, gradeColor, gradePercentage, parseDateOnly, normalizeDateInput, parseSubjectMap, computeSubjectAbsences, summarizeAttendance, summarizeRenderableAttendance, finalizeSubjectStats, resolveAttendanceBreakdown, matchSubjectStats, parseGradeTitleSegments, buildGradeOriginalTitleHtml, buildGradeTitleOverrideKey, gradeTableRowCount, resolveCurrentHalfWindow, computeProjectedSubjectTotals, buildAttendancePlaceholderState, shouldRenderPredictedAttendance, computeSummaryColumnLayout, calcWeightedAvg, projectAverageWithVirtualGrades, parseGradeWeight, readExistingGradeMass }; if (document.readyState === "loading") {',
+    'globalThis.__eeTest = { parseAverage, gradeColor, gradePercentage, parseDateOnly, normalizeDateInput, parseSubjectMap, computeSubjectAbsences, summarizeAttendance, summarizeRenderableAttendance, finalizeSubjectStats, resolveAttendanceBreakdown, resolveOfficialHalfSummary, matchSubjectStats, parseGradeTitleSegments, buildGradeOriginalTitleHtml, buildGradeTitleOverrideKey, gradeTableRowCount, resolveCurrentHalfWindow, computeProjectedSubjectTotals, buildAttendancePlaceholderState, shouldRenderPredictedAttendance, computeSummaryColumnLayout, calcWeightedAvg, projectAverageWithVirtualGrades, parseGradeWeight, readExistingGradeMass }; if (document.readyState === "loading") {',
   );
 
   const context = {
@@ -691,4 +691,47 @@ runTest("readExistingGradeMass stops at a sibling whose data-predmetid differs",
   const info = readExistingGradeMass(predmetRow);
   assert.equal(info.cellCount, 2, "only the ústna sub-row of the current subject is counted");
   assert.equal(info.totalWeight, 4, "2 cells × weight 2");
+});
+
+// Regression: resolveOfficialHalfSummary previously included `distant` lessons
+// (school activities, trips) in the denominator, producing a smaller absence %
+// than the school reports. The correct formula is absent / (present + absent),
+// matching computeHalfStats in attendance-enhancer.js and the school's own report.
+runTest("resolveOfficialHalfSummary excludes distant lessons from the absence % denominator", () => {
+  const { resolveOfficialHalfSummary } = loadGradesEnhancerInternals();
+
+  const attendanceInfo = {
+    payload: { order: ["student-1"], students: { "student-1": {} } },
+    halfStats: {
+      "student-1": {
+        "1": { present: 80, distant: 10, absent: 20 },
+      },
+    },
+  };
+  const halfWindow = { halfKey: "1" };
+
+  const summary = resolveOfficialHalfSummary(attendanceInfo, halfWindow);
+
+  assert.ok(summary !== null, "should return a summary when data exists");
+  assert.equal(summary.absent, 20);
+  assert.equal(summary.total, 100, "total must be present + absent = 100, not 110 with distant");
+  // 20 / 100 = 20 %, matching school report. Old (broken) value was 18.18 % (20/110).
+  assert.equal(summary.percent, 20);
+});
+
+runTest("resolveOfficialHalfSummary returns null when only distant lessons exist", () => {
+  const { resolveOfficialHalfSummary } = loadGradesEnhancerInternals();
+
+  const attendanceInfo = {
+    payload: { order: ["student-1"], students: { "student-1": {} } },
+    halfStats: {
+      "student-1": {
+        "1": { present: 0, distant: 40, absent: 0 },
+      },
+    },
+  };
+
+  // present + absent = 0, so there is no attendance data to show a % for.
+  const summary = resolveOfficialHalfSummary(attendanceInfo, { halfKey: "1" });
+  assert.equal(summary, null);
 });

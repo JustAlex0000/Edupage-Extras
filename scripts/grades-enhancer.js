@@ -2445,9 +2445,10 @@
     if (!currentHalfStats) return null;
 
     const absent = numberValue(currentHalfStats.absent);
-    const total = numberValue(currentHalfStats.present)
-      + numberValue(currentHalfStats.distant)
-      + absent;
+    // Slovak schools compute absence % as absent / (present + absent).
+    // Distant lessons (trips, competitions, school activities) are excluded from
+    // the denominator — same formula as computeHalfStats in attendance-enhancer.js.
+    const total = numberValue(currentHalfStats.present) + absent;
 
     if (total <= 0 && absent <= 0) return null;
 
