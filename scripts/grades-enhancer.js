@@ -3761,14 +3761,28 @@
   }
 
   function storageGet(keys) {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(keys, resolve);
+    return new Promise((resolve, reject) => {
+      try {
+        chrome.storage.local.get(keys, (result) => {
+          if (chrome.runtime.lastError) { reject(new Error(chrome.runtime.lastError.message)); return; }
+          resolve(result);
+        });
+      } catch (error) {
+        reject(error);
+      }
     });
   }
 
   function storageSet(value) {
-    return new Promise((resolve) => {
-      chrome.storage.local.set(value, resolve);
+    return new Promise((resolve, reject) => {
+      try {
+        chrome.storage.local.set(value, () => {
+          if (chrome.runtime.lastError) { reject(new Error(chrome.runtime.lastError.message)); return; }
+          resolve();
+        });
+      } catch (error) {
+        reject(error);
+      }
     });
   }
 
@@ -4371,6 +4385,7 @@
       return baseStats;
     })()
       .catch((error) => {
+        if (String(error?.message).includes("Extension context invalidated")) return;
         debugWarn("Could not load grades attendance stats.", error);
         console.warn("[Edupage Extras] Could not load grades attendance stats.", error);
         throw error;
