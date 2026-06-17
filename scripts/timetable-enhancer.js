@@ -1,17 +1,24 @@
 /**
  * timetable-enhancer.js
  *
- * Colors the homepage "Rozvrh dnes" widget (ul.rozvrh > li.rozvrhItem) by the
- * real type of change for each period — teacher substitution, room change,
- * or a lesson moved in from another day/period — instead of EduPage's
- * generic "hasChange" flag, which carries no type information.
+ * Two independent enhancements to the homepage "Rozvrh dnes" widget
+ * (ul.rozvrh > li.rozvrhItem):
  *
- * The real type lives on a separate page ("Suplovanie", mode=substitution)
- * that is fully client-rendered (a plain fetch() only returns the unrendered
- * app shell), so a hidden background tab is used to read it. That tab is
- * only opened when the homepage actually has at least one changed period,
- * and the result is cached for the rest of the day — see background.js's
- * "ee-substitution-snapshot" handler.
+ * 1. Colors each changed period by its real type — teacher substitution,
+ *    room change, or a lesson moved in from another day/period — instead of
+ *    EduPage's generic "hasChange" flag, which carries no type information.
+ *    The real type lives on a separate page ("Suplovanie", mode=substitution)
+ *    that is fully client-rendered (a plain fetch() only returns the
+ *    unrendered app shell), so a hidden background tab is used to read it.
+ *    That tab is only opened when the homepage actually has at least one
+ *    changed period, and the result is cached for the rest of the day — see
+ *    background.js's "ee-substitution-snapshot" handler.
+ *
+ * 2. Replaces the .trieda text (normally just the student's own class, e.g.
+ *    "II.SA" on nearly every period — not useful information to the student
+ *    themselves) with the room for that period instead, e.g. "012". This
+ *    data comes from the "ttday" page, which — unlike Suplovanie — embeds its
+ *    data directly in the server-rendered HTML, so no hidden tab is needed.
  */
 
 (function () {
@@ -95,6 +102,7 @@
   };
 
   let substitutionSectionsPromise = null;
+  let substitutionNeedsRefresh = false;
   let rozvrhScheduleTimer = null;
 
   // .trieda starts out holding the student's own class label (or, for shared
@@ -140,11 +148,14 @@
   // only the unrendered app shell. Background opens a hidden tab to read it
   // (cached for the rest of the day; see the extraction listener below for
   // the side that runs inside that hidden tab).
-  function fetchSubstitutionSections() {
+  // forceRefresh bypasses background's day-cache and re-opens the hidden tab,
+  // used when the widget re-renders mid-day (e.g. a substitution was cancelled).
+  function fetchSubstitutionSections(forceRefresh = false) {
     return new Promise((resolve) => {
       chrome.runtime.sendMessage({
         type: "ee-substitution-snapshot",
         origin: window.location.origin,
+        forceRefresh,
       }, (response) => {
         if (chrome.runtime.lastError || !response?.ok) {
           resolve([]);
@@ -208,7 +219,9 @@
 
   function getSubstitutionSections() {
     if (!substitutionSectionsPromise) {
-      substitutionSectionsPromise = fetchSubstitutionSections();
+      const forceRefresh = substitutionNeedsRefresh;
+      substitutionNeedsRefresh = false;
+      substitutionSectionsPromise = fetchSubstitutionSections(forceRefresh);
     }
     return substitutionSectionsPromise;
   }
@@ -379,7 +392,9 @@
         }),
       );
       if (relevant) {
-        substitutionSectionsPromise = null; // widget re-rendered — refetch in case the day rolled over
+        substitutionNeedsRefresh = true; // widget re-rendered — bypass day-cache so cancelled substitutions clear
+        substitutionSectionsPromise = null;
+        roomMapPromise = null;
         scheduleRozvrhEnhance();
       }
     });
@@ -396,6 +411,7 @@
     chrome.storage.local.get([HIGHLIGHTS_KEY], (result) => {
       highlightsEnabled = result[HIGHLIGHTS_KEY] !== false;
       if (highlightsEnabled) enhanceRozvrhWidget();
+      enhanceRozvrhRooms(); // independent of the highlights toggle — a display preference, not a highlight
     });
 
     chrome.storage.onChanged.addListener((changes, area) => {
@@ -418,10 +434,12 @@
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", () => {
         enhanceRozvrhWidget();
+        enhanceRozvrhRooms();
         initRozvrhObserver();
       }, { once: true });
     } else {
       enhanceRozvrhWidget();
+      enhanceRozvrhRooms();
       initRozvrhObserver();
     }
   }

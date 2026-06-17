@@ -1922,9 +1922,11 @@ async function extractSubstitutionSnapshotFromHiddenTab(tabId) {
   return response.data.sections;
 }
 
-async function collectSubstitutionSnapshot(origin) {
-  const cached = await readFreshSubstitutionSnapshot(origin);
-  if (cached) return cached;
+async function collectSubstitutionSnapshot(origin, forceRefresh = false) {
+  if (!forceRefresh) {
+    const cached = await readFreshSubstitutionSnapshot(origin);
+    if (cached) return cached;
+  }
 
   const eqa = encodeURIComponent(btoa("mode=substitution"));
   const tab = await createTab(`${origin}/dashboard/eb.php?eqa=${eqa}`);
@@ -2395,7 +2397,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return false;
     }
 
-    collectSubstitutionSnapshot(origin)
+    collectSubstitutionSnapshot(origin, message.forceRefresh === true)
       .then((sections) => sendResponse({ ok: true, data: { sections } }))
       .catch((error) => sendResponse({
         ok: false,
