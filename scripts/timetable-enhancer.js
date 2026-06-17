@@ -102,6 +102,7 @@
   };
 
   let substitutionSectionsPromise = null;
+  let substitutionSectionsResolved = null; // the already-resolved sections — applied synchronously on re-renders
   let substitutionNeedsRefresh = false;
   let substitutionLastFetchedAt = 0;
   const SUBSTITUTION_REFRESH_COOLDOWN_MS = 30 * 60 * 1000;
@@ -144,6 +145,31 @@
     if (/Suplovanie:/i.test(info)) return "substitution";
     if (/Zameni[ťt]\s*u[čc]ebň?u:/i.test(info)) return "room-change";
     return "changed";
+  }
+
+  // "... Zameniť učebňu: OLD ➔ NEW ..." — returns the new room code/name.
+  function extractNewRoom(info) {
+    const match = /Zameni[ťt]\s*u[čc]ebňu:?\s*[^➔→⇒→➔]+[➔→⇒→➔]\s*([^\s,;(]+)/i
+      .exec(String(info || ""));
+    return match ? match[1].trim() : null;
+  }
+
+  // Suplovanie row info is "SUBJ - Učiteľ: ..., Zameniť učebňu: ...". The leading
+  // token is the subject's short code, used to disambiguate multiple rows at the
+  // same period (II.A's section can contain unrelated subject changes that also
+  // happen at this period — matching by period alone would mis-classify ours).
+  function rowSubjectCode(info) {
+    const match = /^\s*([^\s\-–—]+)/.exec(String(info || ""));
+    return match ? match[1].trim() : "";
+  }
+
+  function subjectMatches(rowSubject, itemSubject) {
+    if (!rowSubject || !itemSubject) return false;
+    return rowSubject.toUpperCase() === itemSubject.toUpperCase();
+  }
+
+  function getItemSubject(item) {
+    return (item.querySelector(".predmet")?.textContent || "").trim();
   }
 
   // The Suplovanie page is fully client-rendered — a plain fetch() returns
@@ -224,9 +250,84 @@
       const forceRefresh = substitutionNeedsRefresh;
       substitutionNeedsRefresh = false;
       substitutionLastFetchedAt = Date.now();
-      substitutionSectionsPromise = fetchSubstitutionSections(forceRefresh);
+      substitutionSectionsPromise = fetchSubstitutionSections(forceRefresh).then((sections) => {
+        substitutionSectionsResolved = sections;
+        return sections;
+      });
     }
     return substitutionSectionsPromise;
+  }
+
+  // Picks the Suplovanie row for a given homepage item across all sections that
+  // match the item's class label(s). Among rows at this period, a subject-code
+  // match wins outright; otherwise we fall back to "changed" rather than guessing
+  // a type — that avoids mis-classifying when II.A's section has an unrelated
+  // change at the same period as the user's own lesson.
+  function findRowForItem(item, sections) {
+    const period = periodDigits(item.querySelector(".hodina")?.textContent);
+    const itemSubject = getItemSubject(item);
+    const triedaList = getOriginalTrieda(item)
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    let subjectMatchedRow = null;
+    let periodMatchedRow = null;
+
+    for (const heading of triedaList) {
+      const section = sections.find((sec) => sec.heading === heading);
+      if (!section) continue;
+      for (const row of section.rows) {
+        if (!row.periods.includes(period)) continue;
+        if (subjectMatches(rowSubjectCode(row.info), itemSubject)) {
+          subjectMatchedRow = row;
+          break;
+        }
+        if (!periodMatchedRow) periodMatchedRow = row;
+      }
+      if (subjectMatchedRow) break;
+    }
+
+    return { subjectMatchedRow, periodMatchedRow };
+  }
+
+  function applyRozvrhClassification(item, sections) {
+    if (item.hasAttribute(ROZVRH_PROCESSED_ATTR)) return;
+
+    const { subjectMatchedRow, periodMatchedRow } = findRowForItem(item, sections);
+
+    if (subjectMatchedRow) {
+      const type = subjectMatchedRow.isAdd ? "moved" : classifySubstitutionInfo(subjectMatchedRow.info);
+      item.setAttribute(ROZVRH_PROCESSED_ATTR, type);
+      item.classList.add(ROZVRH_CLASS_BY_TYPE[type]);
+      item.title = subjectMatchedRow.info;
+      if (type === "room-change") {
+        const newRoom = extractNewRoom(subjectMatchedRow.info);
+        if (newRoom) {
+          item.dataset.eeNewRoom = newRoom;
+          // Room display may have already run — update it immediately.
+          if (item.hasAttribute(ROOM_PROCESSED_ATTR)) {
+            const span = item.querySelector(".trieda");
+            if (span) span.textContent = newRoom;
+          }
+        }
+      }
+      return;
+    }
+
+    if (periodMatchedRow && getItemSubject(item)) {
+      // Suplovanie has a row at this period but for a different subject in this
+      // class section — Edupage's .hasChange flag is firing on a lesson that
+      // isn't actually changed (a stale flag, or a shared-elective sibling).
+      // Don't outline it. Mark as processed so the observer doesn't keep retrying.
+      item.setAttribute(ROZVRH_PROCESSED_ATTR, "none");
+      return;
+    }
+
+    // No matching row at all — Edupage flagged it but Suplovanie has nothing for
+    // this class. Surface as generic "changed" so the user still sees something.
+    item.setAttribute(ROZVRH_PROCESSED_ATTR, "changed");
+    item.classList.add(ROZVRH_CLASS_BY_TYPE.changed);
   }
 
   async function enhanceRozvrhWidget() {
@@ -234,26 +335,17 @@
       .filter((item) => !item.hasAttribute(ROZVRH_PROCESSED_ATTR));
     if (items.length === 0) return;
 
+    // If sections are already resolved, classify synchronously — no flash on
+    // Edupage's ~10s widget re-renders.
+    if (substitutionSectionsResolved) {
+      items.forEach((item) => applyRozvrhClassification(item, substitutionSectionsResolved));
+      return;
+    }
+
     const sections = await getSubstitutionSections();
-
-    items.forEach((item) => {
-      if (item.hasAttribute(ROZVRH_PROCESSED_ATTR)) return; // re-check after the await
-
-      const period = periodDigits(item.querySelector(".hodina")?.textContent);
-      const triedaList = getOriginalTrieda(item)
-        .split(",")
-        .map((part) => part.trim())
-        .filter(Boolean);
-
-      const section = sections.find((sec) => triedaList.includes(sec.heading));
-      const row = section?.rows.find((candidate) => candidate.periods.includes(period));
-
-      const type = row ? (row.isAdd ? "moved" : classifySubstitutionInfo(row.info)) : "changed";
-
-      item.setAttribute(ROZVRH_PROCESSED_ATTR, type);
-      item.classList.add(ROZVRH_CLASS_BY_TYPE[type]);
-      if (row?.info) item.title = row.info;
-    });
+    items
+      .filter((item) => !item.hasAttribute(ROZVRH_PROCESSED_ATTR))
+      .forEach((item) => applyRozvrhClassification(item, sections));
   }
 
   // ── Room display ────────────────────────────────────────────────────────────
@@ -269,6 +361,7 @@
   const ROOM_PROCESSED_ATTR = "data-ee-rozvrh-room-done";
 
   let roomMapPromise = null;
+  let roomMapResolved = null; // the already-resolved Map — applied synchronously on re-renders
 
   function extractBalanced(text, openIndex) {
     let depth = 0;
@@ -299,12 +392,56 @@
     return args.map((arg) => arg.trim());
   }
 
-  function todayDateKey() {
-    const now = new Date();
-    const year = String(now.getFullYear()).padStart(4, "0");
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+  function dateKey(d) {
+    return `${String(d.getFullYear()).padStart(4, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function todayDateKey() { return dateKey(new Date()); }
+
+  // Scan the DOM near ul.rozvrh to find out which date the widget is actually
+  // showing. EduPage sometimes shows tomorrow's timetable ("Rozvrh zajtra …")
+  // instead of today's, and using today's ttday plan would give wrong rooms.
+  function getWidgetDateKey() {
+    const rozvrh = document.querySelector("ul.rozvrh");
+    if (!rozvrh) return todayDateKey();
+
+    // Walk up ancestors, checking sibling elements for a heading that contains
+    // the widget date (Slovak/Czech "zajtra"/"zítra" → tomorrow, or an explicit
+    // "D.M." / "DD.MM." date string). Skip the rozvrh branch itself and large
+    // text blocks that are clearly lesson content.
+    let el = rozvrh.parentElement;
+    for (let depth = 0; depth < 8 && el && el !== document.body; depth++, el = el.parentElement) {
+      for (const child of el.children) {
+        if (child === rozvrh || child.contains(rozvrh)) continue;
+        const text = child.textContent || "";
+        if (text.length > 300) continue; // skip big content blocks
+        const lower = text.toLowerCase();
+
+        // "zajtra" (SK) / "zítra" / "zitra" (CS) → tomorrow
+        if (lower.includes("zajtra") || lower.includes("zítra") || lower.includes("zitra")) {
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          return dateKey(tomorrow);
+        }
+
+        // Explicit "D.M." or "DD.MM." date  (e.g. "18.06.")
+        const m = /\b(\d{1,2})\.(\d{1,2})\./.exec(text);
+        if (m) {
+          const day = Number(m[1]);
+          const month = Number(m[2]);
+          if (day >= 1 && day <= 31 && month >= 1 && month <= 12) {
+            const now = new Date();
+            let year = now.getFullYear();
+            // School year runs Sep–Jun; if the widget month is much earlier
+            // than the current month we've crossed a calendar-year boundary.
+            if (month < now.getMonth() - 5) year++;
+            const d = new Date(year, month - 1, day);
+            return dateKey(d);
+          }
+        }
+      }
+    }
+    return todayDateKey();
   }
 
   async function fetchRoomMap() {
@@ -322,7 +459,8 @@
       const args = splitTopLevelArguments(balanced.slice(1, -1));
       const classbookData = JSON.parse(args[1]);
 
-      const plan = classbookData?.dates?.[todayDateKey()]?.plan;
+      const widgetDateKey = getWidgetDateKey();
+      const plan = classbookData?.dates?.[widgetDateKey]?.plan;
       if (!Array.isArray(plan)) return new Map();
 
       const map = new Map();
@@ -338,6 +476,7 @@
           .filter(Boolean);
         if (roomNames.length > 0) map.set(period, roomNames.join(", "));
       });
+      roomMapResolved = map;
       return map;
     } catch {
       return new Map();
@@ -349,15 +488,9 @@
     return roomMapPromise;
   }
 
-  async function enhanceRozvrhRooms() {
-    const items = Array.from(document.querySelectorAll("ul.rozvrh > li.rozvrhItem"))
-      .filter((item) => !item.hasAttribute(ROOM_PROCESSED_ATTR));
-    if (items.length === 0) return;
-
-    const roomMap = await getRoomMap();
-
+  function applyRoomNames(items, roomMap) {
     items.forEach((item) => {
-      if (item.hasAttribute(ROOM_PROCESSED_ATTR)) return; // re-check after the await
+      if (item.hasAttribute(ROOM_PROCESSED_ATTR)) return;
       item.setAttribute(ROOM_PROCESSED_ATTR, "1");
 
       const triedaSpan = item.querySelector(".trieda");
@@ -365,9 +498,31 @@
       getOriginalTrieda(item); // capture the class label before we overwrite it
 
       const period = periodDigits(item.querySelector(".hodina")?.textContent);
-      const room = roomMap.get(period);
-      if (room) triedaSpan.textContent = room;
+      // For room-change lessons, applyRozvrhClassification stores the new
+      // room; prefer that over the ttday original so we show where the
+      // student actually needs to go, not where they were originally assigned.
+      const room = item.dataset.eeNewRoom || roomMap.get(period);
+      triedaSpan.textContent = room || "—";
     });
+  }
+
+  async function enhanceRozvrhRooms() {
+    const items = Array.from(document.querySelectorAll("ul.rozvrh > li.rozvrhItem"))
+      .filter((item) => !item.hasAttribute(ROOM_PROCESSED_ATTR));
+    if (items.length === 0) return;
+
+    // If the room map is already resolved, apply it synchronously — no await,
+    // no flash between re-renders.
+    if (roomMapResolved) {
+      applyRoomNames(items, roomMapResolved);
+      return;
+    }
+
+    const roomMap = await getRoomMap();
+    applyRoomNames(
+      items.filter((item) => !item.hasAttribute(ROOM_PROCESSED_ATTR)), // re-filter after await
+      roomMap,
+    );
   }
 
   function scheduleRozvrhEnhance() {
@@ -376,6 +531,27 @@
       enhanceRozvrhWidget();
       enhanceRozvrhRooms();
     }, 200);
+  }
+
+  // Re-apply outlines and room names the moment Edupage swaps in new rozvrhItems,
+  // before the 200ms scheduler runs. Without this the cached data is there but
+  // the items briefly render bare every ~10s (Edupage's widget refresh cadence).
+  function applyCachedRozvrhData() {
+    const items = Array.from(document.querySelectorAll("ul.rozvrh > li.rozvrhItem"));
+    if (items.length === 0) return;
+
+    if (roomMapResolved) {
+      applyRoomNames(
+        items.filter((item) => !item.hasAttribute(ROOM_PROCESSED_ATTR)),
+        roomMapResolved,
+      );
+    }
+
+    if (highlightsEnabled && substitutionSectionsResolved) {
+      items
+        .filter((item) => item.classList.contains("hasChange") && !item.hasAttribute(ROZVRH_PROCESSED_ATTR))
+        .forEach((item) => applyRozvrhClassification(item, substitutionSectionsResolved));
+    }
   }
 
   function clearRozvrhHighlights() {
@@ -395,13 +571,19 @@
         }),
       );
       if (relevant) {
+        // Apply cached data immediately so the new items render with outlines
+        // and rooms in the same frame Edupage swaps them in — no ~10s flash.
+        applyCachedRozvrhData();
         // Only bypass background's day-cache if enough time has passed — avoids
         // opening a new hidden tab on every frequent widget re-render.
         if (Date.now() - substitutionLastFetchedAt > SUBSTITUTION_REFRESH_COOLDOWN_MS) {
           substitutionNeedsRefresh = true;
+          substitutionSectionsPromise = null;
+          // substitutionSectionsResolved intentionally retained — it keeps
+          // serving the old outlines until the next fetch resolves.
         }
-        substitutionSectionsPromise = null;
-        roomMapPromise = null;
+        // roomMapPromise intentionally not reset — rooms don't change intraday,
+        // and roomMapResolved lets re-renders apply names synchronously (no flash).
         scheduleRozvrhEnhance();
       }
     });

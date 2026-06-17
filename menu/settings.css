@@ -195,6 +195,31 @@ p {
     color: var(--danger-color);
 }
 
+.setting-tag {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 8px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    line-height: 1.2;
+}
+
+.setting-tag-wip {
+    background: #facc15;
+    color: #1f1500;
+}
+
+.date-default-hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
 .setting-row-stack {
     align-items: stretch;
     flex-direction: column;

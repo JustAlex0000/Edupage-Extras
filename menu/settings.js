@@ -14,6 +14,8 @@ const halfyearStartInput = document.getElementById("HalfyearStartDateInput");
 const resetHalfyearStartButton = document.getElementById("ResetHalfyearStartDateButton");
 const halfyearEndInput = document.getElementById("HalfyearEndDateInput");
 const resetHalfyearEndButton = document.getElementById("ResetHalfyearEndDateButton");
+const halfyearStartDefaultHint = document.getElementById("HalfyearStartDefaultHint");
+const halfyearEndDefaultHint = document.getElementById("HalfyearEndDefaultHint");
 const experimentalSettingsButton = document.getElementById("ExperimentalSettingsButton");
 const customThemePanel = document.getElementById("CustomThemePanel");
 const customThemeImport = document.getElementById("CustomThemeImport");
@@ -276,6 +278,32 @@ function formatCheckedAt(timestamp) {
 
 function normalizeDateInput(value) {
 	return /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")) ? value : "";
+}
+
+// Mirrors the defaults in scripts/grades-enhancer.js and scripts/background.js:
+// the school year turns over Sept 1, the second halfyear defaults to Feb 1
+// through Jun 30. Shown next to the date inputs so users see the actual fallback
+// rather than the empty input's "dd/mm/yyyy" placeholder.
+function computeDefaultHalfyearDates(now = new Date()) {
+	const turnoverYear = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+	return {
+		start: new Date(turnoverYear + 1, 1, 1),
+		end: new Date(turnoverYear + 1, 5, 30),
+	};
+}
+
+function formatDefaultHint(date) {
+	return date.toLocaleDateString([], { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function renderDefaultHalfyearHints() {
+	const defaults = computeDefaultHalfyearDates();
+	if (halfyearStartDefaultHint) {
+		halfyearStartDefaultHint.textContent = t("defaultDateHint", [formatDefaultHint(defaults.start)]);
+	}
+	if (halfyearEndDefaultHint) {
+		halfyearEndDefaultHint.textContent = t("defaultDateHint", [formatDefaultHint(defaults.end)]);
+	}
 }
 
 function renderUpdateStatus(status) {
@@ -871,6 +899,7 @@ experimentalSettingsButton.addEventListener("click", () => {
 });
 
 renderShortcutStatus();
+renderDefaultHalfyearHints();
 window.addEventListener("focus", renderShortcutStatus);
 
 chrome.storage.onChanged.addListener((changes, area) => {

@@ -183,4 +183,4 @@ If a feature stops working:
 
 ## License
 
-ISC
+MIT

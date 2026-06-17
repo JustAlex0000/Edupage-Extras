@@ -171,7 +171,10 @@
 
         <div class="setting-row">
           <div>
-            <h3 data-i18n="timetableHighlights">Timetable Change Highlights</h3>
+            <h3>
+              <span data-i18n="timetableHighlights">Timetable Change Highlights</span>
+              <span class="setting-tag setting-tag-wip" data-i18n="wipBadge">WIP</span>
+            </h3>
             <p data-i18n="timetableHighlightsDesc">Color-code substitutions (orange) and classroom changes (blue) on the main page schedule widget.</p>
           </div>
           <label class="switch switch-compact" for="TimetableHighlightsCheckbox">
@@ -179,6 +182,11 @@
             <span class="switch-track" aria-hidden="true"></span>
             <span class="sr-only" data-i18n="toggleTimetableHighlights">Toggle timetable change highlights</span>
           </label>
+        </div>
+
+        <div class="setting-note setting-note-warning" role="note" aria-label="Hidden tab disclaimer">
+          <strong data-i18n="hiddenTabDisclaimerTitle">Heads up: hidden tab</strong>
+          <p data-i18n="timetableHighlightsHiddenTabText">This feature reads the substitution page through a hidden EduPage tab — a new background tab briefly opens once per day and closes itself as soon as the data is captured. The feature is still a work in progress, so a few changes may be classified imperfectly.</p>
         </div>
 
         <div class="setting-row">
@@ -211,8 +219,8 @@
 
         <div class="setting-row">
           <div>
-            <h3 data-i18n="subjectAttendance">Subject Attendance</h3>
-            <p data-i18n="subjectAttendanceDesc">Show current-halfyear absence percentage and total lesson hours inside each grades row using official EduPage data.</p>
+            <h3 data-i18n="subjectAttendance">Grades Page Subject Attendance</h3>
+            <p data-i18n-html="subjectAttendanceDesc">Inject per-subject absence percentage and total lesson hours into each row on the <strong>Grades</strong> page, using official EduPage data.</p>
           </div>
           <label class="switch switch-compact" for="GradesAttendanceCheckbox">
             <input type="checkbox" id="GradesAttendanceCheckbox">
@@ -221,10 +229,15 @@
           </label>
         </div>
 
+        <div class="setting-note setting-note-warning" role="note" aria-label="Hidden tab disclaimer">
+          <strong data-i18n="hiddenTabDisclaimerTitle">Heads up: hidden tab</strong>
+          <p data-i18n="subjectAttendanceHiddenTabText">This feature also relies on a hidden EduPage tab to read your timetable — a new background tab briefly opens, captures the data, then closes itself. It only runs when the cache needs a refresh.</p>
+        </div>
+
         <div class="setting-row">
           <div>
             <h3 data-i18n="accuratePredicted">More Accurate Predicted Attendance</h3>
-            <p data-i18n="accuratePredictedDesc">Scan upcoming timetable changes and planned events to subtract cancelled lessons from the prediction. Slower to load.</p>
+            <p data-i18n="accuratePredictedDesc">Sample additional weeks of your timetable through extra hidden EduPage tabs so the predicted remaining lessons reflect upcoming substitutions, room changes, and cancellations instead of a flat template. Noticeably slower to load and opens more background tabs.</p>
           </div>
           <label class="switch switch-compact" for="AccuratePredictedAttendanceCheckbox">
             <input type="checkbox" id="AccuratePredictedAttendanceCheckbox">
@@ -235,8 +248,8 @@
 
         <div class="setting-row">
           <div>
-            <h3 data-i18n="attendancePercentages">Attendance Percentages</h3>
-            <p data-i18n="attendancePercentagesDesc">Show the current halfyear absence percentage inside Edupage's attendance summary table.</p>
+            <h3 data-i18n="attendancePercentages">Attendance Summary Percentages</h3>
+            <p data-i18n-html="attendancePercentagesDesc">Add the current-halfyear absence percentage into EduPage's own <strong>Attendance</strong> summary table (the standalone attendance page, not the Grades page).</p>
           </div>
           <label class="switch switch-compact" for="AttendancePercentagesCheckbox">
             <input type="checkbox" id="AttendancePercentagesCheckbox">
@@ -254,6 +267,7 @@
             <label class="date-control" for="HalfyearStartDateInput">
               <span data-i18n="dateLabel">Date</span>
               <input type="date" id="HalfyearStartDateInput">
+              <small class="date-default-hint" id="HalfyearStartDefaultHint"></small>
             </label>
             <button class="secondary-button" id="ResetHalfyearStartDateButton" type="button" data-i18n="useEdupageDefault">Use EduPage Default</button>
           </div>
@@ -268,6 +282,7 @@
             <label class="date-control" for="HalfyearEndDateInput">
               <span data-i18n="dateLabel">Date</span>
               <input type="date" id="HalfyearEndDateInput">
+              <small class="date-default-hint" id="HalfyearEndDefaultHint"></small>
             </label>
             <button class="secondary-button" id="ResetHalfyearEndDateButton" type="button" data-i18n="useEdupageDefault">Use EduPage Default</button>
           </div>
@@ -280,8 +295,11 @@
 
         <div class="setting-row">
           <div>
-            <h3 data-i18n="gcSync">Google Calendar Sync</h3>
-            <p data-i18n="gcSyncDesc">Sync your EduPage timetable into a dedicated Google Calendar and keep the current week updated when rooms, teachers, or lessons change.</p>
+            <h3>
+              <span data-i18n="gcSync">Google Calendar Sync</span>
+              <span class="setting-tag setting-tag-wip" data-i18n="wipBadge">WIP</span>
+            </h3>
+            <p data-i18n="gcSyncDesc">Sync your EduPage timetable into a dedicated Google Calendar and keep the current week updated when rooms, teachers, or lessons change. This feature is still a work in progress — expect rough edges around halfyear sync and event colors.</p>
           </div>
           <label class="switch switch-compact" for="GoogleCalendarEnabledCheckbox">
             <input type="checkbox" id="GoogleCalendarEnabledCheckbox">
