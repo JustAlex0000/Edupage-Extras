@@ -198,6 +198,7 @@
   "copyReport": { "message": "Copy" },
   "downloadReport": { "message": "Download .json" },
   "openIssue": { "message": "Open GitHub Issue" },
+  "reportDiscord": { "message": "Report on Discord" },
   "reportGenerating": { "message": "Generating report…" },
   "reportReady": { "message": "Report ready. Review it, then copy, download, or open an issue." },
   "reportNoTab": { "message": "Report ready, but no EduPage tab was found — open the affected page in another tab and regenerate for page details." },

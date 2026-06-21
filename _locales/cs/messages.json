@@ -198,6 +198,7 @@
   "copyReport": { "message": "Kopírovat" },
   "downloadReport": { "message": "Stáhnout .json" },
   "openIssue": { "message": "Otevřít GitHub issue" },
+  "reportDiscord": { "message": "Nahlásit na Discordu" },
   "reportGenerating": { "message": "Generuji report…" },
   "reportReady": { "message": "Report je připraven. Zkontrolujte ho a poté zkopírujte, stáhněte nebo otevřete issue." },
   "reportNoTab": { "message": "Report je připraven, ale nebyla nalezena žádná karta EduPage — otevřete dotčenou stránku v jiné kartě a vygenerujte ho znovu pro detaily stránky." },

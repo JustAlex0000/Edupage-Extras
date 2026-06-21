@@ -447,6 +447,33 @@
         </div>
       </section>
 
+      <section class="setting-group" aria-labelledby="updates-heading">
+        <h2 id="updates-heading" data-i18n="groupUpdates">Updates</h2>
+
+        <div class="setting-row">
+          <div>
+            <h3 data-i18n="updateReminders">Update Reminders</h3>
+            <p data-i18n="updateRemindersDesc">Check the public GitHub project for a newer unpacked version.</p>
+          </div>
+          <label class="switch switch-compact" for="UpdateReminderCheckbox">
+            <input type="checkbox" id="UpdateReminderCheckbox">
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only" data-i18n="toggleUpdateReminders">Toggle update reminders</span>
+          </label>
+        </div>
+
+        <div class="setting-row setting-row-stack">
+          <div>
+            <h3 data-i18n="versionCheck">Version Check</h3>
+            <p id="UpdateStatusText" data-i18n="noUpdateCheck">No update check has run yet.</p>
+          </div>
+          <div class="actions-row">
+            <button class="secondary-button" id="CheckUpdatesButton" type="button" data-i18n="checkForUpdates">Check For Updates</button>
+            <button class="secondary-button" id="OpenRepositoryButton" type="button" data-i18n="openGithub">Open GitHub</button>
+          </div>
+        </div>
+      </section>
+
       <section class="setting-group" aria-labelledby="debug-heading">
         <h2 id="debug-heading" data-i18n="groupDebug">Debug</h2>
 
@@ -478,36 +505,10 @@
               <button class="secondary-button" id="CopyReportButton" type="button" data-i18n="copyReport" disabled>Copy</button>
               <button class="secondary-button" id="DownloadReportButton" type="button" data-i18n="downloadReport" disabled>Download .json</button>
               <button class="secondary-button" id="OpenIssueButton" type="button" data-i18n="openIssue" disabled>Open GitHub Issue</button>
+              <a class="secondary-button" href="https://discord.gg/eNZXHesA9j" target="_blank" rel="noopener noreferrer" data-i18n="reportDiscord">Report on Discord</a>
             </div>
             <p id="ReportStatus" class="setting-note" role="status" aria-live="polite"></p>
             <textarea id="ReportOutput" class="report-output" readonly hidden aria-label="Diagnostic report"></textarea>
-          </div>
-        </div>
-      </section>
-
-      <section class="setting-group" aria-labelledby="updates-heading">
-        <h2 id="updates-heading" data-i18n="groupUpdates">Updates</h2>
-
-        <div class="setting-row">
-          <div>
-            <h3 data-i18n="updateReminders">Update Reminders</h3>
-            <p data-i18n="updateRemindersDesc">Check the public GitHub project for a newer unpacked version.</p>
-          </div>
-          <label class="switch switch-compact" for="UpdateReminderCheckbox">
-            <input type="checkbox" id="UpdateReminderCheckbox">
-            <span class="switch-track" aria-hidden="true"></span>
-            <span class="sr-only" data-i18n="toggleUpdateReminders">Toggle update reminders</span>
-          </label>
-        </div>
-
-        <div class="setting-row setting-row-stack">
-          <div>
-            <h3 data-i18n="versionCheck">Version Check</h3>
-            <p id="UpdateStatusText" data-i18n="noUpdateCheck">No update check has run yet.</p>
-          </div>
-          <div class="actions-row">
-            <button class="secondary-button" id="CheckUpdatesButton" type="button" data-i18n="checkForUpdates">Check For Updates</button>
-            <button class="secondary-button" id="OpenRepositoryButton" type="button" data-i18n="openGithub">Open GitHub</button>
           </div>
         </div>
       </section>
