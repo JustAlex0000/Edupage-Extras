@@ -3,6 +3,10 @@
 }
 
 :root {
+    /* Make native controls (date picker internals, calendar icon, spinners,
+       scrollbars) match the theme — without this the date inputs render with the
+       OS color-scheme and look like bare default boxes on the dark themes. */
+    color-scheme: dark;
     --page-bg: #11111b;
     --surface-bg: #181825;
     --control-bg: #1e1e2e;
@@ -11,6 +15,11 @@
     --text-muted: #a6adc8;
     --accent-color: #89b4fa;
     --danger-color: #f38ba8;
+}
+
+:root[data-theme="light"],
+:root[data-theme="pink"] {
+    color-scheme: light;
 }
 
 :root[data-theme="ocean"] {
@@ -568,6 +577,15 @@ input[type="date"] {
     color: var(--text-main);
     font: inherit;
     padding: 8px 10px;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
 }
 
 input[type="text"],

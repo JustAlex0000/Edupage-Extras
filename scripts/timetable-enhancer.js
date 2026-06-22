@@ -297,11 +297,16 @@
     }
 
     if (periodMatchedRow && getItemSubject(item)) {
-      // Suplovanie has a row at this period but for a different subject in this
-      // class section — Edupage's .hasChange flag is firing on a lesson that
-      // isn't actually changed (a stale flag, or a shared-elective sibling).
-      // Don't outline it. Mark as processed so the observer doesn't keep retrying.
-      item.setAttribute(ROZVRH_PROCESSED_ATTR, "none");
+      // EduPage flags this lesson as changed and there IS a Suplovanie row at
+      // this period in the student's own class — just under a different subject
+      // code (commonly because this lesson is the substitute, so the row names
+      // the subject it replaced). It's still a real change, so colour it by that
+      // row's type rather than leaving EduPage's ambiguous yellow. classify by
+      // the period-matched row's info.
+      const type = periodMatchedRow.isAdd ? "moved" : classifySubstitutionInfo(periodMatchedRow.info);
+      item.setAttribute(ROZVRH_PROCESSED_ATTR, type);
+      item.classList.add(ROZVRH_CLASS_BY_TYPE[type]);
+      item.title = periodMatchedRow.info;
       return;
     }
 
