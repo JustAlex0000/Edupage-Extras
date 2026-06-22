@@ -111,6 +111,22 @@ runTest("overall row layout keeps the notes corner while preserving the first tw
   assert.equal(manyGradeCells.trailingSpan, 1);
 });
 
+// When EduPage shows the term-end Vysvedčenie column, the overall row gains one
+// metric cell (its average), so labelSpan must shrink by one to stay aligned —
+// otherwise the whole row shifts (the bug the published Vysvedčenie introduced).
+runTest("overall row layout reserves a column for the Vysvedčenie average when present", () => {
+  const { computeSummaryColumnLayout } = loadGradesEnhancerInternals();
+
+  // 9 columns: Predmet, Známky, Priemer, Vysvedčenie, 4× attendance, Poznámky.
+  const withVysvedcenie = computeSummaryColumnLayout(9, true);
+  assert.equal(withVysvedcenie.labelSpan, 2, "label still spans only Predmet + Známky");
+  assert.equal(withVysvedcenie.trailingSpan, 1, "Poznámky stays the trailing corner");
+
+  // Same column count but treated as no Vysvedčenie would mis-span the label.
+  const ignored = computeSummaryColumnLayout(9, false);
+  assert.equal(ignored.labelSpan, 3);
+});
+
 runTest("current half window keeps the projection end at June 30 in the second halfyear", () => {
   const { resolveCurrentHalfWindow } = loadGradesEnhancerInternals();
   const halfWindow = resolveCurrentHalfWindow({

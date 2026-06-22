@@ -1884,11 +1884,38 @@
     return Math.max(5, table.querySelector("tr")?.cells.length || 5);
   }
 
-  function computeSummaryColumnLayout(colCount) {
-    const metricColumns = 5;
+  function computeSummaryColumnLayout(colCount, hasVysvedcenie = false) {
+    // avg + 4 attendance cells (+ a Vysvedčenie average cell when that column is
+    // shown). Without this, the extra Vysvedčenie column grows labelSpan and
+    // shifts the whole overall row out of alignment.
+    const metricColumns = 5 + (hasVysvedcenie ? 1 : 0);
     const trailingSpan = colCount >= 7 ? 1 : 0;
     const labelSpan = Math.max(1, colCount - metricColumns - trailingSpan);
     return { labelSpan, trailingSpan };
+  }
+
+  // Reads the term-end "Vysvedčenie" (final report grade) column: whether it's
+  // present and the average of its numeric grades. Tag-independent (finds the
+  // column by header text + index), so it works regardless of render order.
+  function readVysvedcenieColumn(table) {
+    const headerRow = table.querySelector("thead tr");
+    if (!headerRow) return { present: false, average: null };
+    const index = Array.from(headerRow.cells).findIndex((cell) =>
+      !cell.classList.contains("ee-attendance-header")
+      && normalizeText(cell.textContent) === "vysvedcenie");
+    if (index === -1) return { present: false, average: null };
+
+    const values = [];
+    table.querySelectorAll("tr.predmetRow").forEach((row) => {
+      const cell = row.cells[index];
+      if (!cell) return;
+      const value = parseAverage(normalizeWhitespace(cell.textContent || ""));
+      if (Number.isFinite(value) && value > 0) values.push(value);
+    });
+    const average = values.length
+      ? values.reduce((sum, value) => sum + value, 0) / values.length
+      : null;
+    return { present: true, average };
   }
 
   function ensureSummaryRow(table, averages, renderSignature, {
@@ -1963,7 +1990,8 @@
 
     const summaryTone = attendanceTone(attendanceSummary?.percent);
     const predictedTone = attendanceTone(predictedAttendanceSummary?.percent);
-    const { labelSpan, trailingSpan } = computeSummaryColumnLayout(colCount);
+    const vysvedcenie = readVysvedcenieColumn(table);
+    const { labelSpan, trailingSpan } = computeSummaryColumnLayout(colCount, vysvedcenie.present);
     labelCell.colSpan = labelSpan;
 
     const percentCell = document.createElement("td");
@@ -2070,6 +2098,20 @@
 
     summaryRow.appendChild(labelCell);
     summaryRow.appendChild(avgCell);
+    if (vysvedcenie.present) {
+      // Mirror the Priemer average, but for the final report grades — sits under
+      // the Vysvedčenie column (which we keep right after Priemer).
+      const vysvedCell = document.createElement("td");
+      vysvedCell.className = "ee-overall-value-cell ee-overall-vysvedcenie-cell";
+      if (Number.isFinite(vysvedcenie.average)) {
+        vysvedCell.appendChild(createBadgeElement(
+          vysvedcenie.average,
+          formatAverageDisplay(vysvedcenie.average, averageScale),
+          { largeValue: true, scale: averageScale },
+        ));
+      }
+      summaryRow.appendChild(vysvedCell);
+    }
     summaryRow.appendChild(percentCell);
     summaryRow.appendChild(totalCell);
     summaryRow.appendChild(predictedPercentCell);
@@ -3117,6 +3159,43 @@
       || null;
   }
 
+  // EduPage's "Vysvedčenie" (final report grade) column only appears at term end.
+  // Natively it sits right after Priemer; our attendance columns must not wedge
+  // between them. Tag it once so we can anchor our columns AFTER it. Fully safe —
+  // a no-op — when the column isn't present (which is most of the year), so the
+  // page never breaks whether it shows up or disappears again.
+  function tagVysvedcenieColumn(table) {
+    const headerRow = table.querySelector("thead tr");
+    if (!headerRow) return;
+    if (headerRow.querySelector(".ee-vysvedcenie-header")) return; // already tagged
+
+    const headerCells = Array.from(headerRow.cells);
+    const index = headerCells.findIndex((cell) =>
+      !cell.classList.contains("ee-attendance-header")
+      && normalizeText(cell.textContent) === "vysvedcenie");
+    if (index === -1) return; // column absent → robust no-op
+
+    headerCells[index].classList.add("ee-vysvedcenie-header");
+    Array.from(table.rows).forEach((row) => {
+      // Skip the header and our own overall row (it uses colSpans, so cells[index]
+      // wouldn't line up with the real Vysvedčenie column).
+      if (row === headerRow || row.classList.contains("ee-overall-row")) return;
+      const cell = row.cells[index];
+      if (cell) cell.classList.add("ee-vysvedcenie-cell");
+    });
+  }
+
+  // Where our attendance columns attach: just after Vysvedčenie when it's shown
+  // (so the native Priemer → Vysvedčenie pairing stays intact), otherwise just
+  // after Priemer (the all-year default).
+  function findAttendanceAnchorHeader(headerRow) {
+    return headerRow?.querySelector(".ee-vysvedcenie-header") || findAverageHeaderCell(headerRow);
+  }
+
+  function findAttendanceAnchorCell(row) {
+    return row.querySelector(".ee-vysvedcenie-cell") || row.querySelector(".znPriemerCell");
+  }
+
   function ensureAttendanceHeaderCell(headerRow, className, text, title, afterCell) {
     let cell = headerRow.querySelector(`.${className}`);
     if (!cell) {
@@ -3206,17 +3285,18 @@
 
   function ensureAttendanceColumns(table) {
     table.querySelectorAll(".ee-subject-attendance").forEach((element) => element.remove());
+    tagVysvedcenieColumn(table);
 
     const headerRow = table.querySelector("thead tr");
-    const averageHeaderCell = findAverageHeaderCell(headerRow);
+    const anchorHeaderCell = findAttendanceAnchorHeader(headerRow);
 
-    if (headerRow && averageHeaderCell) {
+    if (headerRow && anchorHeaderCell) {
       const percentHeader = ensureAttendanceHeaderCell(
         headerRow,
         "ee-attendance-percent-header",
         t("gradesColAbsPercent"),
         "Current halfyear absence percentage per subject.",
-        averageHeaderCell,
+        anchorHeaderCell,
       );
       ensureAttendanceHeaderCell(
         headerRow,
@@ -3249,7 +3329,7 @@
       const percentCell = ensureAttendanceDataCell(
         row,
         "ee-attendance-percent-cell",
-        averageCell,
+        findAttendanceAnchorCell(row),
       );
       ensureAttendanceDataCell(
         row,
