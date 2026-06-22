@@ -12,41 +12,14 @@ const UPDATE_MANIFEST_URLS = [
   "https://raw.githubusercontent.com/Alexosavrua/Edupage-Extras/master/manifest.json",
 ];
 
-const GOOGLE_CALENDAR_SYNC_ALARM_NAME = "ee-google-calendar-sync";
-const GOOGLE_CALENDAR_ENABLED_KEY = "eeGoogleCalendarEnabled";
-const GOOGLE_CALENDAR_PAUSED_KEY = "eeGoogleCalendarPaused";
-const GOOGLE_CALENDAR_CLIENT_ID_KEY = "eeGoogleCalendarOauthClientId";
-const GOOGLE_CALENDAR_CLIENT_SECRET_KEY = "eeGoogleCalendarOauthClientSecret";
-const GOOGLE_CALENDAR_NAME_KEY = "eeGoogleCalendarCalendarName";
-const GOOGLE_CALENDAR_SYNC_MODE_KEY = "eeGoogleCalendarSyncMode";
-const GOOGLE_CALENDAR_HALFYEAR_SCOPE_KEY = "eeGoogleCalendarHalfyearScope";
-const GOOGLE_CALENDAR_COLOR_MODE_KEY = "eeGoogleCalendarColorMode";
-const GOOGLE_CALENDAR_SINGLE_COLOR_KEY = "eeGoogleCalendarSingleColorId";
-const GOOGLE_CALENDAR_SYNC_INTERVAL_KEY = "eeGoogleCalendarSyncIntervalMinutes";
-const GOOGLE_CALENDAR_ROOM_IN_TITLE_KEY = "eeGoogleCalendarRoomInTitle";
-const GOOGLE_CALENDAR_TEACHER_IN_TITLE_KEY = "eeGoogleCalendarTeacherInTitle";
-const GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY = "eeGoogleCalendarUseDefaultReminders";
-const GOOGLE_CALENDAR_SCHOOL_EVENTS_ENABLED_KEY = "eeGoogleCalendarSchoolEventsEnabled";
-const GOOGLE_CALENDAR_TEST_EVENTS_KEY = "eeGoogleCalendarTestEventsEnabled";
-const GOOGLE_CALENDAR_STATUS_KEY = "eeGoogleCalendarStatus";
-const GOOGLE_CALENDAR_TOKENS_KEY = "eeGoogleCalendarTokens";
-const GOOGLE_CALENDAR_CALENDAR_ID_KEY = "eeGoogleCalendarCalendarId";
-const GOOGLE_CALENDAR_LAST_ORIGIN_KEY = "eeGoogleCalendarLastEdupageOrigin";
+// The school origin is learned passively (timetable-sync.js reports it on every
+// EduPage page load) so the .ics export knows which school subdomain to read
+// the timetable from, without needing the user to type a URL.
+const LAST_EDUPAGE_ORIGIN_KEY = "eeGoogleCalendarLastEdupageOrigin";
 const TIMETABLE_SYNC_CACHE_KEY = "eeTimetableSyncCache";
 const TIMETABLE_SYNC_CACHE_VERSION = 1;
-const GOOGLE_CALENDAR_DEFAULT_NAME = "EduPage";
-const GOOGLE_CALENDAR_DEFAULT_SYNC_MODE = "week";
-const GOOGLE_CALENDAR_DEFAULT_HALFYEAR_SCOPE = "future";
-const GOOGLE_CALENDAR_DEFAULT_COLOR_MODE = "subject";
-const GOOGLE_CALENDAR_DEFAULT_SINGLE_COLOR = "9";
-const GOOGLE_CALENDAR_DEFAULT_SYNC_INTERVAL = 15;
-const GOOGLE_CALENDAR_DEFAULT_SCHOOL_EVENTS_ENABLED = false;
-const GOOGLE_CALENDAR_DEFAULT_TEST_EVENTS_ENABLED = true;
-const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar";
-const GOOGLE_CALENDAR_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Bratislava";
+const EE_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Bratislava";
 const TIMETABLE_LIVE_CACHE_TTL_MS = 10 * 60 * 1000;
-let googleCalendarJobQueue = Promise.resolve();
-let googleCalendarClearPending = false;
 
 function compareVersions(left, right) {
   const leftParts = String(left || "0").split(".").map((part) => Number.parseInt(part, 10) || 0);
@@ -316,84 +289,6 @@ function delay(ms) {
   });
 }
 
-function readRetryAfterMs(response) {
-  const header = response.headers.get("Retry-After");
-  if (!header) return 0;
-
-  const seconds = Number.parseInt(header, 10);
-  if (Number.isFinite(seconds) && seconds >= 0) {
-    return seconds * 1000;
-  }
-
-  const parsedDate = Date.parse(header);
-  if (Number.isNaN(parsedDate)) return 0;
-  return Math.max(0, parsedDate - Date.now());
-}
-
-function isGoogleRateLimitPayload(payload) {
-  const message = String(payload?.error?.message || payload?.error_description || "").toLowerCase();
-  if (message.includes("rate limit")) return true;
-
-  return (payload?.error?.errors || []).some((entry) => String(entry?.reason || "").toLowerCase().includes("ratelimit"));
-}
-
-function computeGoogleRateLimitDelay(response, attempt) {
-  const headerDelay = readRetryAfterMs(response);
-  if (headerDelay > 0) {
-    return Math.min(30000, headerDelay);
-  }
-  return Math.min(30000, 1000 * (2 ** attempt));
-}
-
-function normalizeGoogleCalendarName(value) {
-  const trimmed = String(value || "").trim();
-  return trimmed || GOOGLE_CALENDAR_DEFAULT_NAME;
-}
-
-function normalizeGoogleCalendarSyncMode(value) {
-  return value === "halfyear" ? "halfyear" : GOOGLE_CALENDAR_DEFAULT_SYNC_MODE;
-}
-
-function normalizeGoogleCalendarHalfyearScope(value) {
-  return ["future", "full"].includes(value) ? value : GOOGLE_CALENDAR_DEFAULT_HALFYEAR_SCOPE;
-}
-
-function normalizeGoogleCalendarColorMode(value) {
-  return ["subject", "single", "changes", "none"].includes(value) ? value : GOOGLE_CALENDAR_DEFAULT_COLOR_MODE;
-}
-
-function normalizeGoogleCalendarSingleColor(value) {
-  return ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"].includes(String(value))
-    ? String(value)
-    : GOOGLE_CALENDAR_DEFAULT_SINGLE_COLOR;
-}
-
-function normalizeGoogleCalendarSyncInterval(value) {
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed)) return GOOGLE_CALENDAR_DEFAULT_SYNC_INTERVAL;
-  return Math.max(5, Math.min(120, parsed - (parsed % 5)));
-}
-
-function shouldEnableGoogleCalendarAlarm(config) {
-  return Boolean(
-    config?.enabled
-    && !config?.paused
-    && String(config?.clientId || "").trim()
-    && config?.hasRefreshToken === true
-    && String(config?.lastEdupageOrigin || "").trim(),
-  );
-}
-
-function buildGoogleCalendarConnectedStatus(config = {}) {
-  return {
-    state: "connected",
-    message: "Google Calendar connected. Run Sync Now after opening EduPage once.",
-    mode: normalizeGoogleCalendarSyncMode(config.syncMode),
-    halfyearScope: normalizeGoogleCalendarHalfyearScope(config.halfyearScope),
-    calendarName: normalizeGoogleCalendarName(config.calendarName),
-  };
-}
-
 function normalizeKeyText(value) {
   return String(value || "")
     .normalize("NFD")
@@ -552,7 +447,7 @@ function isSlovakPublicHoliday(date) {
 
 function shouldSkipGeneratedSchoolDay(date) {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return false;
-  return GOOGLE_CALENDAR_TIME_ZONE === "Europe/Bratislava" && isSlovakPublicHoliday(date);
+  return EE_TIME_ZONE === "Europe/Bratislava" && isSlovakPublicHoliday(date);
 }
 
 function formatOffset(date) {
@@ -647,14 +542,6 @@ function openRepository() {
   chrome.tabs.create({ url: REPO_URL });
 }
 
-function enqueueGoogleCalendarJob(job) {
-  const queued = googleCalendarJobQueue
-    .catch(() => {})
-    .then(job);
-  googleCalendarJobQueue = queued.catch(() => {});
-  return queued;
-}
-
 function maybeNotify(status) {
   if (!status?.updateAvailable || !status.latestVersion) return;
 
@@ -726,79 +613,18 @@ async function syncUpdateAlarm() {
   return false;
 }
 
-async function getGoogleCalendarConfig() {
-  const result = await storageGet([
-    GOOGLE_CALENDAR_ENABLED_KEY,
-    GOOGLE_CALENDAR_PAUSED_KEY,
-    GOOGLE_CALENDAR_CLIENT_ID_KEY,
-    GOOGLE_CALENDAR_CLIENT_SECRET_KEY,
-    GOOGLE_CALENDAR_NAME_KEY,
-    GOOGLE_CALENDAR_SYNC_MODE_KEY,
-    GOOGLE_CALENDAR_HALFYEAR_SCOPE_KEY,
-    GOOGLE_CALENDAR_COLOR_MODE_KEY,
-    GOOGLE_CALENDAR_SINGLE_COLOR_KEY,
-    GOOGLE_CALENDAR_SYNC_INTERVAL_KEY,
-    GOOGLE_CALENDAR_ROOM_IN_TITLE_KEY,
-    GOOGLE_CALENDAR_TEACHER_IN_TITLE_KEY,
-    GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY,
-    GOOGLE_CALENDAR_SCHOOL_EVENTS_ENABLED_KEY,
-    GOOGLE_CALENDAR_TEST_EVENTS_KEY,
-    GOOGLE_CALENDAR_CALENDAR_ID_KEY,
-    GOOGLE_CALENDAR_LAST_ORIGIN_KEY,
-  ]);
-
+// Minimal config for the .ics export: just the learned school origin, plus
+// fixed defaults for the lesson-title formatting that used to be user-configurable
+// Google Calendar sync settings (room/teacher in title reads better in a
+// calendar entry than not, so default both on).
+async function getTimetableExportConfig() {
+  const result = await storageGet([LAST_EDUPAGE_ORIGIN_KEY]);
   return {
-    enabled: result?.[GOOGLE_CALENDAR_ENABLED_KEY] === true,
-    paused: result?.[GOOGLE_CALENDAR_PAUSED_KEY] === true,
-    clientId: String(result?.[GOOGLE_CALENDAR_CLIENT_ID_KEY] || "").trim(),
-    clientSecret: String(result?.[GOOGLE_CALENDAR_CLIENT_SECRET_KEY] || "").trim(),
-    calendarName: normalizeGoogleCalendarName(result?.[GOOGLE_CALENDAR_NAME_KEY]),
-    syncMode: normalizeGoogleCalendarSyncMode(result?.[GOOGLE_CALENDAR_SYNC_MODE_KEY]),
-    halfyearScope: normalizeGoogleCalendarHalfyearScope(result?.[GOOGLE_CALENDAR_HALFYEAR_SCOPE_KEY]),
-    colorMode: normalizeGoogleCalendarColorMode(result?.[GOOGLE_CALENDAR_COLOR_MODE_KEY]),
-    singleColorId: normalizeGoogleCalendarSingleColor(result?.[GOOGLE_CALENDAR_SINGLE_COLOR_KEY]),
-    syncIntervalMinutes: normalizeGoogleCalendarSyncInterval(result?.[GOOGLE_CALENDAR_SYNC_INTERVAL_KEY]),
-    roomInTitle: result?.[GOOGLE_CALENDAR_ROOM_IN_TITLE_KEY] === true,
-    teacherInTitle: result?.[GOOGLE_CALENDAR_TEACHER_IN_TITLE_KEY] === true,
-    useDefaultReminders: result?.[GOOGLE_CALENDAR_USE_DEFAULT_REMINDERS_KEY] === true,
-    schoolEventsEnabled: result?.[GOOGLE_CALENDAR_SCHOOL_EVENTS_ENABLED_KEY] === true,
-    testEventsEnabled: result?.[GOOGLE_CALENDAR_TEST_EVENTS_KEY] !== false,
-    calendarId: String(result?.[GOOGLE_CALENDAR_CALENDAR_ID_KEY] || "").trim(),
-    lastEdupageOrigin: String(result?.[GOOGLE_CALENDAR_LAST_ORIGIN_KEY] || "").trim(),
+    lastEdupageOrigin: String(result?.[LAST_EDUPAGE_ORIGIN_KEY] || "").trim(),
+    roomInTitle: true,
+    teacherInTitle: true,
+    halfyearScope: "future",
   };
-}
-
-async function setGoogleCalendarStatus(status) {
-  await storageSet({
-    [GOOGLE_CALENDAR_STATUS_KEY]: {
-      ...status,
-      updatedAt: Date.now(),
-    },
-  });
-}
-
-function formatGoogleCalendarProgress({ phase, completed = 0, total = 0, created = 0, updated = 0, deleted = 0, unchanged = 0 }) {
-  if (phase === "prepare") {
-    return "Preparing EduPage timetable data...";
-  }
-  if (phase === "calendar") {
-    return "Preparing Google Calendar...";
-  }
-  if (phase === "clear") {
-    const percent = total > 0 ? Math.min(100, Math.round((completed / total) * 100)) : 100;
-    return `Removing EduPage events... ${percent}% (${completed}/${total})`;
-  }
-
-  const percent = total > 0 ? Math.min(100, Math.round((completed / total) * 100)) : 0;
-  return `Syncing timetable... ${percent}% (${completed}/${total}). Created ${created}, updated ${updated}, removed ${deleted}, unchanged ${unchanged}.`;
-}
-
-async function updateGoogleCalendarProgress(baseStatus, progress) {
-  await setGoogleCalendarStatus({
-    ...baseStatus,
-    state: "syncing",
-    message: formatGoogleCalendarProgress(progress),
-  });
 }
 
 function cloneWeekData(weekData, config = null) {
@@ -906,290 +732,6 @@ async function readFreshTimetableBundle(origin, requestedWeekStart, requireAdjac
   };
 }
 
-async function syncGoogleCalendarAlarm() {
-  const config = await getGoogleCalendarConfig();
-  const stored = await storageGet([GOOGLE_CALENDAR_TOKENS_KEY]);
-  const hasRefreshToken = Boolean(stored?.[GOOGLE_CALENDAR_TOKENS_KEY]?.refreshToken);
-
-  if (shouldEnableGoogleCalendarAlarm({ ...config, hasRefreshToken })) {
-    chrome.alarms.create(GOOGLE_CALENDAR_SYNC_ALARM_NAME, {
-      delayInMinutes: 1,
-      periodInMinutes: config.syncIntervalMinutes,
-    });
-    return true;
-  }
-
-  await alarmClear(GOOGLE_CALENDAR_SYNC_ALARM_NAME);
-  return false;
-}
-
-function bytesToBase64Url(bytes) {
-  const binary = Array.from(bytes).map((byte) => String.fromCharCode(byte)).join("");
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-}
-
-async function sha256Base64Url(value) {
-  const data = new TextEncoder().encode(value);
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  return bytesToBase64Url(new Uint8Array(digest));
-}
-
-function randomBase64Url(length = 32) {
-  const bytes = new Uint8Array(length);
-  crypto.getRandomValues(bytes);
-  return bytesToBase64Url(bytes);
-}
-
-function getGoogleAuthRedirectUri() {
-  return chrome.identity.getRedirectURL();
-}
-
-function formatGoogleConnectError(error, redirectUri) {
-  const message = String(error?.message || "").trim();
-  if (!message) {
-    return new Error("Google authentication failed.");
-  }
-
-  const normalized = message.toLowerCase();
-  if (
-    normalized.includes("redirect_uri_mismatch")
-    || normalized.includes("did not approve access")
-  ) {
-    return new Error(
-      `Google sign-in did not complete. Add this exact Authorized redirect URI to your Google OAuth client, then try again: ${redirectUri}`,
-    );
-  }
-
-  return error instanceof Error ? error : new Error(message);
-}
-
-function launchWebAuthFlow(url) {
-  return new Promise((resolve, reject) => {
-    chrome.identity.launchWebAuthFlow({ interactive: true, url }, (redirectUrl) => {
-      if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError.message));
-        return;
-      }
-      if (!redirectUrl) {
-        reject(new Error("Google authentication did not return a redirect URL."));
-        return;
-      }
-      resolve(redirectUrl);
-    });
-  });
-}
-
-function parseRedirectCode(redirectUrl) {
-  const parsed = new URL(redirectUrl);
-  const error = parsed.searchParams.get("error");
-  if (error) {
-    const description = parsed.searchParams.get("error_description");
-    throw new Error(`Google authentication failed: ${description || error}`);
-  }
-  const code = parsed.searchParams.get("code");
-  if (!code) {
-    throw new Error("Google authentication did not return an authorization code.");
-  }
-  return code;
-}
-
-async function exchangeGoogleAuthCode({ clientId, clientSecret, code, codeVerifier, redirectUri }) {
-  const body = new URLSearchParams({
-    client_id: clientId,
-    code,
-    code_verifier: codeVerifier,
-    grant_type: "authorization_code",
-    redirect_uri: redirectUri,
-  });
-  if (clientSecret) {
-    body.set("client_secret", clientSecret);
-  }
-
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body,
-  });
-
-  const payload = await response.json();
-  if (!response.ok || !payload?.access_token) {
-    throw new Error(payload?.error_description || payload?.error || "Google token exchange failed.");
-  }
-
-  return {
-    accessToken: payload.access_token,
-    refreshToken: payload.refresh_token,
-    expiresAt: Date.now() + ((payload.expires_in || 3600) * 1000) - 60000,
-    tokenType: payload.token_type || "Bearer",
-  };
-}
-
-async function refreshGoogleAccessToken({ clientId, clientSecret, refreshToken }) {
-  if (!clientId || !refreshToken) {
-    throw new Error("Google Calendar is not connected.");
-  }
-
-  const body = new URLSearchParams({
-    client_id: clientId,
-    refresh_token: refreshToken,
-    grant_type: "refresh_token",
-  });
-  if (clientSecret) {
-    body.set("client_secret", clientSecret);
-  }
-
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body,
-  });
-  const payload = await response.json();
-  if (!response.ok || !payload?.access_token) {
-    throw new Error(payload?.error_description || payload?.error || "Google token refresh failed.");
-  }
-
-  const current = await storageGet([GOOGLE_CALENDAR_TOKENS_KEY]);
-  const existing = current?.[GOOGLE_CALENDAR_TOKENS_KEY] || {};
-  const nextTokens = {
-    accessToken: payload.access_token,
-    refreshToken: existing.refreshToken || refreshToken,
-    expiresAt: Date.now() + ((payload.expires_in || 3600) * 1000) - 60000,
-    tokenType: payload.token_type || "Bearer",
-  };
-  await storageSet({ [GOOGLE_CALENDAR_TOKENS_KEY]: nextTokens });
-  return nextTokens;
-}
-
-async function ensureGoogleAccessToken() {
-  const config = await getGoogleCalendarConfig();
-  const stored = await storageGet([GOOGLE_CALENDAR_TOKENS_KEY]);
-  const tokens = stored?.[GOOGLE_CALENDAR_TOKENS_KEY];
-  if (!tokens?.accessToken || !tokens?.refreshToken) {
-    throw new Error("Google Calendar is not connected yet.");
-  }
-
-  if (tokens.expiresAt && tokens.expiresAt > Date.now()) {
-    return tokens.accessToken;
-  }
-
-  const refreshed = await refreshGoogleAccessToken({
-    clientId: config.clientId,
-    clientSecret: config.clientSecret,
-    refreshToken: tokens.refreshToken,
-  });
-  return refreshed.accessToken;
-}
-
-async function googleCalendarRequest(path, {
-  method = "GET",
-  query = null,
-  body = null,
-  authRetry = true,
-  rateLimitAttempt = 0,
-} = {}) {
-  const token = await ensureGoogleAccessToken();
-  const url = new URL(`https://www.googleapis.com${path}`);
-  if (query) {
-    Object.entries(query).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== "") {
-        url.searchParams.set(key, String(value));
-      }
-    });
-  }
-
-  const response = await fetch(url.toString(), {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(body ? { "Content-Type": "application/json" } : {}),
-    },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  });
-
-  if (response.status === 204) {
-    return null;
-  }
-
-  const payload = await response.json().catch(() => ({}));
-  if (response.status === 401 && authRetry) {
-    const config = await getGoogleCalendarConfig();
-    const stored = await storageGet([GOOGLE_CALENDAR_TOKENS_KEY]);
-    const refreshToken = stored?.[GOOGLE_CALENDAR_TOKENS_KEY]?.refreshToken;
-    await refreshGoogleAccessToken({
-      clientId: config.clientId,
-      clientSecret: config.clientSecret,
-      refreshToken,
-    });
-    return googleCalendarRequest(path, { method, query, body, authRetry: false, rateLimitAttempt });
-  }
-
-  if ((response.status === 429 || ((response.status === 403) && isGoogleRateLimitPayload(payload))) && rateLimitAttempt < 5) {
-    await delay(computeGoogleRateLimitDelay(response, rateLimitAttempt));
-    return googleCalendarRequest(path, {
-      method,
-      query,
-      body,
-      authRetry,
-      rateLimitAttempt: rateLimitAttempt + 1,
-    });
-  }
-
-  if (!response.ok) {
-    throw new Error(payload?.error?.message || payload?.error_description || "Google Calendar request failed.");
-  }
-  return payload;
-}
-
-async function findCalendarByName(summary) {
-  let pageToken = "";
-
-  while (true) {
-    const payload = await googleCalendarRequest("/calendar/v3/users/me/calendarList", {
-      query: {
-        maxResults: 250,
-        pageToken,
-      },
-    });
-
-    const match = (payload?.items || []).find((item) => item.summary === summary);
-    if (match) return match;
-    if (!payload?.nextPageToken) return null;
-    pageToken = payload.nextPageToken;
-  }
-}
-
-async function ensureManagedGoogleCalendar(config) {
-  if (config.calendarId) {
-    return config.calendarId;
-  }
-
-  const existing = await findCalendarByName(config.calendarName);
-  if (existing?.id) {
-    await storageSet({ [GOOGLE_CALENDAR_CALENDAR_ID_KEY]: existing.id });
-    return existing.id;
-  }
-
-  const created = await googleCalendarRequest("/calendar/v3/calendars", {
-    method: "POST",
-    body: {
-      summary: config.calendarName,
-      description: "Managed by Edupage Extras.",
-      timeZone: GOOGLE_CALENDAR_TIME_ZONE,
-    },
-  });
-
-  if (!created?.id) {
-    throw new Error("Google Calendar did not return a calendar id.");
-  }
-
-  await storageSet({ [GOOGLE_CALENDAR_CALENDAR_ID_KEY]: created.id });
-  return created.id;
-}
-
 function buildLessonDescription({ lesson, classLabel, weekLabel, mode }) {
   const lines = [];
   if (classLabel) lines.push(`Class: ${classLabel}`);
@@ -1214,28 +756,8 @@ function buildLessonSummary(lesson, config) {
   return parts.join(" | ");
 }
 
-function hashText(value) {
-  return [...String(value || "")].reduce((total, char) => ((total * 31) + char.charCodeAt(0)) >>> 0, 0);
-}
-
-function resolveGoogleEventColor(lesson, config) {
-  const options = config || {};
-  if (options.colorMode === "changes") {
-    return lesson.changed ? "11" : undefined;
-  }
-  if (options.colorMode === "single") {
-    return normalizeGoogleCalendarSingleColor(options.singleColorId);
-  }
-  if (options.colorMode === "subject") {
-    const palette = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"];
-    return palette[hashText(normalizeKeyText(lesson.title)) % palette.length];
-  }
-  return undefined;
-}
-
 function buildDesiredEvent({ lesson, classLabel, weekLabel, mode, config }) {
   const options = config || {};
-  const useDefaultReminders = options.useDefaultReminders === true;
   return {
     key: lesson.eventKey,
     startDateTime: toRfc3339(lesson.date, lesson.startTime),
@@ -1243,337 +765,17 @@ function buildDesiredEvent({ lesson, classLabel, weekLabel, mode, config }) {
     payload: {
       summary: buildLessonSummary(lesson, options),
       location: lesson.room || undefined,
-      colorId: resolveGoogleEventColor(lesson, options),
       description: buildLessonDescription({ lesson, classLabel, weekLabel, mode }),
       start: {
         dateTime: toRfc3339(lesson.date, lesson.startTime),
-        timeZone: GOOGLE_CALENDAR_TIME_ZONE,
+        timeZone: EE_TIME_ZONE,
       },
       end: {
         dateTime: toRfc3339(lesson.date, lesson.endTime),
-        timeZone: GOOGLE_CALENDAR_TIME_ZONE,
+        timeZone: EE_TIME_ZONE,
       },
-      extendedProperties: {
-        private: {
-          eeManaged: "1",
-          eeKey: lesson.eventKey,
-          eeDate: lesson.date,
-        },
-      },
-      reminders: useDefaultReminders
-        ? { useDefault: true }
-        : { useDefault: false },
     },
   };
-}
-
-function buildSchoolEventKey(event) {
-  return `school:${normalizeKeyText(event?.kind || "event")}:${String(event?.date || "").trim()}:${normalizeKeyText(event?.title || "event")}`;
-}
-
-function buildSchoolEventSummary(event) {
-  const kind = normalizeKeyText(event?.kind);
-  const prefix = kind === "test" ? "Test" : "Event";
-  return `${prefix}: ${String(event?.title || "").trim()}`.trim();
-}
-
-function buildSchoolEventDescription(event) {
-  const lines = [];
-  if (event?.subject) lines.push(`Subject: ${event.subject}`);
-  if (event?.details) lines.push(String(event.details).trim());
-  if (event?.href) lines.push(`Source: ${event.href}`);
-  lines.push("Source: EduPage school events");
-  return lines.join("\n");
-}
-
-function buildSchoolEventDesiredEvents(events, config = {}) {
-  if (!config.schoolEventsEnabled || !config.testEventsEnabled) {
-    return [];
-  }
-
-  return (events || [])
-    .filter((event) => event?.kind === "test" && parseDateOnly(event?.date))
-    .map((event) => {
-      const startDate = String(event.date).trim();
-      const endDate = formatDate(addDays(parseDateOnly(startDate), 1));
-      const key = buildSchoolEventKey(event);
-
-      return {
-        key,
-        startDateTime: `${startDate}T00:00:00`,
-        endDateTime: `${endDate}T00:00:00`,
-        payload: {
-          summary: buildSchoolEventSummary(event),
-          description: buildSchoolEventDescription(event),
-          start: {
-            date: startDate,
-          },
-          end: {
-            date: endDate,
-          },
-          extendedProperties: {
-            private: {
-              eeManaged: "1",
-              eeType: "school-event",
-              eeKey: key,
-              eeDate: startDate,
-            },
-          },
-          reminders: config.useDefaultReminders === true
-            ? { useDefault: true }
-            : { useDefault: false },
-        },
-      };
-    });
-}
-
-function managedEventMatchesDesired(current, desiredPayload) {
-  const currentPrivate = current?.extendedProperties?.private || {};
-  const desiredPrivate = desiredPayload?.extendedProperties?.private || {};
-
-  return String(current?.summary || "") === String(desiredPayload?.summary || "")
-    && String(current?.location || "") === String(desiredPayload?.location || "")
-    && String(current?.description || "") === String(desiredPayload?.description || "")
-    && String(current?.colorId || "") === String(desiredPayload?.colorId || "")
-    && String(current?.start?.dateTime || "") === String(desiredPayload?.start?.dateTime || "")
-    && String(current?.start?.date || "") === String(desiredPayload?.start?.date || "")
-    && String(current?.end?.dateTime || "") === String(desiredPayload?.end?.dateTime || "")
-    && String(current?.end?.date || "") === String(desiredPayload?.end?.date || "")
-    && String(current?.start?.timeZone || "") === String(desiredPayload?.start?.timeZone || "")
-    && String(current?.end?.timeZone || "") === String(desiredPayload?.end?.timeZone || "")
-    && Boolean(current?.reminders?.useDefault) === Boolean(desiredPayload?.reminders?.useDefault)
-    && String(currentPrivate.eeManaged || "") === String(desiredPrivate.eeManaged || "")
-    && String(currentPrivate.eeType || "") === String(desiredPrivate.eeType || "")
-    && String(currentPrivate.eeKey || "") === String(desiredPrivate.eeKey || "")
-    && String(currentPrivate.eeDate || "") === String(desiredPrivate.eeDate || "");
-}
-
-async function writeCalendarEvent(path, method, body = null) {
-  const result = await googleCalendarRequest(path, {
-    method,
-    query: { sendUpdates: "none" },
-    body,
-  });
-  await delay(120);
-  return result;
-}
-
-async function listManagedCalendarEvents(calendarId, timeMin, timeMax) {
-  let pageToken = "";
-  const events = [];
-
-  while (true) {
-    const payload = await googleCalendarRequest(`/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`, {
-      query: {
-        singleEvents: true,
-        orderBy: "startTime",
-        timeMin,
-        timeMax,
-        maxResults: 2500,
-        pageToken,
-      },
-    });
-
-    for (const item of payload?.items || []) {
-      if (item?.extendedProperties?.private?.eeManaged === "1") {
-        events.push(item);
-      }
-    }
-
-    if (!payload?.nextPageToken) return events;
-    pageToken = payload.nextPageToken;
-  }
-}
-
-async function upsertCalendarEvents(calendarId, desiredEvents, onProgress = null) {
-  const sorted = [...desiredEvents].sort((left, right) => {
-    if (left.startDateTime < right.startDateTime) return -1;
-    if (left.startDateTime > right.startDateTime) return 1;
-    return left.key.localeCompare(right.key);
-  });
-
-  if (sorted.length === 0) {
-    return {
-      created: 0,
-      updated: 0,
-      deleted: 0,
-      unchanged: 0,
-      total: 0,
-    };
-  }
-
-  const rangeStart = sorted[0].startDateTime;
-  const rangeEnd = sorted[sorted.length - 1].endDateTime;
-  const existing = await listManagedCalendarEvents(calendarId, rangeStart, rangeEnd);
-  const existingByKey = new Map(existing.map((item) => [item?.extendedProperties?.private?.eeKey, item]));
-  const desiredKeys = new Set(sorted.map((event) => event.key));
-  const stats = {
-    created: 0,
-    updated: 0,
-    deleted: 0,
-    unchanged: 0,
-    total: sorted.length,
-  };
-  let processed = 0;
-  let deletedProcessed = 0;
-
-  async function reportProgress(force = false) {
-    if (!onProgress) return;
-    if (!force && processed % 10 !== 0) return;
-    await onProgress({
-      phase: "events",
-      completed: processed + deletedProcessed,
-      total: sorted.length + Math.max(0, existing.length - desiredKeys.size),
-      created: stats.created,
-      updated: stats.updated,
-      deleted: stats.deleted,
-      unchanged: stats.unchanged,
-    });
-  }
-
-  for (const event of sorted) {
-    const current = existingByKey.get(event.key);
-    if (current?.id) {
-      if (managedEventMatchesDesired(current, event.payload)) {
-        stats.unchanged += 1;
-        processed += 1;
-        await reportProgress();
-        continue;
-      }
-      await writeCalendarEvent(
-        `/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(current.id)}`,
-        "PATCH",
-        event.payload,
-      );
-      stats.updated += 1;
-      processed += 1;
-      await reportProgress();
-      continue;
-    }
-
-    await writeCalendarEvent(
-      `/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
-      "POST",
-      event.payload,
-    );
-    stats.created += 1;
-    processed += 1;
-    await reportProgress();
-  }
-
-  const deleteTargets = existing.filter((item) => {
-    const key = item?.extendedProperties?.private?.eeKey;
-    return Boolean(key && !desiredKeys.has(key) && item.id);
-  });
-
-  for (const item of existing) {
-    const key = item?.extendedProperties?.private?.eeKey;
-    if (!key || desiredKeys.has(key) || !item.id) continue;
-    await writeCalendarEvent(
-      `/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(item.id)}`,
-      "DELETE",
-    );
-    stats.deleted += 1;
-    deletedProcessed += 1;
-    await reportProgress();
-  }
-
-  if (onProgress) {
-    await onProgress({
-      phase: "events",
-      completed: sorted.length + deleteTargets.length,
-      total: sorted.length + deleteTargets.length,
-      created: stats.created,
-      updated: stats.updated,
-      deleted: stats.deleted,
-      unchanged: stats.unchanged,
-    });
-  }
-
-  return stats;
-}
-
-async function clearManagedCalendarEvents() {
-  const config = await getGoogleCalendarConfig();
-  const baseStatus = {
-    mode: config.syncMode,
-    halfyearScope: config.halfyearScope,
-    calendarName: config.calendarName,
-  };
-  const existingCalendar = config.calendarId
-    ? { id: config.calendarId }
-    : await findCalendarByName(config.calendarName);
-
-  if (!existingCalendar?.id) {
-    const status = {
-      state: "idle",
-      message: "No synced EduPage calendar events were found.",
-      mode: config.syncMode,
-      halfyearScope: config.halfyearScope,
-      calendarName: config.calendarName,
-    };
-    await setGoogleCalendarStatus(status);
-    return status;
-  }
-
-  if (!config.calendarId) {
-    await storageSet({ [GOOGLE_CALENDAR_CALENDAR_ID_KEY]: existingCalendar.id });
-  }
-
-  const events = await listManagedCalendarEvents(
-    existingCalendar.id,
-    "2000-01-01T00:00:00Z",
-    "2100-01-01T00:00:00Z",
-  );
-
-  await updateGoogleCalendarProgress(baseStatus, {
-    phase: "clear",
-    completed: 0,
-    total: events.length,
-  });
-
-  let completed = 0;
-  for (const item of events) {
-    if (!item?.id) continue;
-    await writeCalendarEvent(
-      `/calendar/v3/calendars/${encodeURIComponent(existingCalendar.id)}/events/${encodeURIComponent(item.id)}`,
-      "DELETE",
-    );
-    completed += 1;
-    if (completed % 10 === 0 || completed === events.length) {
-      await updateGoogleCalendarProgress(baseStatus, {
-        phase: "clear",
-        completed,
-        total: events.length,
-      });
-    }
-  }
-
-  const status = {
-    state: "ok",
-    message: `Removed ${events.length} EduPage events from Google Calendar.`,
-    mode: config.syncMode,
-    halfyearScope: config.halfyearScope,
-    calendarName: config.calendarName,
-    lastSyncedAt: Date.now(),
-  };
-  await setGoogleCalendarStatus(status);
-  return status;
-}
-
-async function disableGoogleCalendarSyncForClear() {
-  const config = await getGoogleCalendarConfig();
-  googleCalendarClearPending = true;
-  await storageSet({ [GOOGLE_CALENDAR_PAUSED_KEY]: true });
-  await syncGoogleCalendarAlarm();
-  await setGoogleCalendarStatus({
-    state: "syncing",
-    message: "Stopping scheduled sync and clearing Google Calendar events...",
-    mode: config.syncMode,
-    halfyearScope: config.halfyearScope,
-    calendarName: config.calendarName,
-  });
-  return config;
 }
 
 function cloneLessonForDate(lesson, targetDate) {
@@ -1591,38 +793,6 @@ function shouldUseLessonInHalfyearTemplate(lesson) {
     return false;
   }
   if (lesson.changed) {
-    return false;
-  }
-
-  const titleKey = normalizeKeyText(lesson.title);
-  const hasMetadata = Boolean(
-    String(lesson.room || "").trim()
-    || String(lesson.teacher || "").trim()
-    || String(lesson.group || "").trim(),
-  );
-
-  if (!hasMetadata) {
-    if (lesson.title.includes(":")) {
-      return false;
-    }
-    if (
-      titleKey.includes("udalost")
-      || titleKey.includes("event")
-      || titleKey.includes("prijimacie-skusky")
-      || titleKey.includes("skusky")
-      || titleKey.includes("maturita")
-      || titleKey.includes("prazdniny")
-      || titleKey.includes("holiday")
-    ) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-function shouldCountActualFutureLesson(lesson) {
-  if (!lesson?.title || !lesson?.startTime || !lesson?.endTime) {
     return false;
   }
 
@@ -1837,7 +1007,7 @@ function buildIcsCalendar(events, calendarName = "EduPage Timetable") {
 }
 
 async function buildTimetableIcsExport(range, includeChanges = true) {
-  const baseConfig = await getGoogleCalendarConfig();
+  const baseConfig = await getTimetableExportConfig();
   if (!baseConfig.lastEdupageOrigin) {
     throw new Error("Open any EduPage page once so the extension can learn your school URL, then try again.");
   }
@@ -1952,121 +1122,6 @@ function buildHalfyearDesiredEvents(liveWeek, adjacentWeek) {
   }
 
   return desired.sort((left, right) => left.startDateTime.localeCompare(right.startDateTime));
-}
-
-function timeStringToMinutes(value) {
-  const match = /^(\d{1,2}):(\d{2})$/.exec(String(value || "").trim());
-  if (!match) return Number.NaN;
-  return (Number.parseInt(match[1], 10) * 60) + Number.parseInt(match[2], 10);
-}
-
-function numberOrZero(value) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function buildFutureSubjectLessonUnits(liveWeek, adjacentWeek, now = new Date()) {
-  const anchorDate = parseDateOnly(liveWeek?.dayHeaders?.[0]?.date) || now;
-  const halfyearRange = computeCurrentHalfyearRange(anchorDate, {
-    secondHalfStartOverride: liveWeek?.config?.secondHalfStartOverride,
-    secondHalfEndOverride: liveWeek?.config?.secondHalfEndOverride,
-  });
-  const currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const currentWeekStart = startOfWeek(anchorDate);
-  const accuratePredictionEnabled = liveWeek?.config?.accuratePredictionEnabled === true;
-  const templateSamples = Array.isArray(liveWeek?.config?.templateSampleWeeks) && liveWeek.config.templateSampleWeeks.length > 0
-    ? liveWeek.config.templateSampleWeeks
-    : [liveWeek, adjacentWeek].filter(Boolean);
-  const templates = buildTemplateWeekMap(templateSamples);
-  const labels = [...templates.keys()];
-  const useAlternating = labels.length === 2;
-  const primaryLabel = liveWeek.weekLabel;
-  const secondaryLabel = labels.find((label) => label !== primaryLabel) || primaryLabel;
-  const byDate = new Map();
-
-  for (let cursor = startOfWeek(halfyearRange.start); cursor <= halfyearRange.end; cursor = addDays(cursor, 7)) {
-    const weekOffset = diffWeeks(cursor, currentWeekStart);
-    const label = useAlternating && Math.abs(weekOffset % 2) === 1 ? secondaryLabel : primaryLabel;
-    const sourceWeek = templates.get(label) || liveWeek;
-
-    for (const lesson of sourceWeek.lessons.filter(shouldUseLessonInHalfyearTemplate)) {
-      const dayDate = addDays(cursor, lesson.dayIndex);
-      if (dayDate > halfyearRange.end) continue;
-      if (shouldSkipGeneratedSchoolDay(dayDate)) continue;
-      if (!byDate.has(formatDate(dayDate))) {
-        byDate.set(formatDate(dayDate), []);
-      }
-      byDate.get(formatDate(dayDate)).push({
-        ...lesson,
-        date: formatDate(dayDate),
-        changed: false,
-      });
-    }
-  }
-
-  const liveDates = new Set((liveWeek?.dayHeaders || []).map((entry) => entry.date));
-  for (const date of liveDates) {
-    byDate.delete(date);
-  }
-  for (const lesson of liveWeek?.lessons || []) {
-    if (!byDate.has(lesson.date)) {
-      byDate.set(lesson.date, []);
-    }
-    if (shouldCountActualFutureLesson(lesson)) {
-      byDate.get(lesson.date).push(lesson);
-    }
-  }
-
-  if (accuratePredictionEnabled) {
-    templateSamples
-      .filter((weekData) => weekData && weekData !== liveWeek)
-      .forEach((weekData) => {
-        const sampledDates = new Set((weekData.dayHeaders || [])
-          .map((entry) => entry?.date)
-          .filter(Boolean));
-
-        sampledDates.forEach((dateText) => {
-          const sampledDate = parseDateOnly(dateText);
-          if (!sampledDate || sampledDate < currentDate || sampledDate > halfyearRange.end) return;
-          byDate.set(dateText, []);
-        });
-
-        for (const lesson of weekData.lessons || []) {
-          const lessonDate = parseDateOnly(lesson.date);
-          if (!lessonDate || lessonDate < currentDate || lessonDate > halfyearRange.end) continue;
-          if (!shouldCountActualFutureLesson(lesson)) continue;
-          if (!byDate.has(lesson.date)) {
-            byDate.set(lesson.date, []);
-          }
-          byDate.get(lesson.date).push(lesson);
-        }
-      });
-  }
-
-  const totals = new Map();
-  byDate.forEach((lessons, dateKey) => {
-    const lessonDate = parseDateOnly(dateKey);
-    if (!lessonDate || lessonDate < currentDate || lessonDate > halfyearRange.end) return;
-
-    lessons.forEach((lesson) => {
-      if (!shouldCountActualFutureLesson(lesson)) return;
-      if (lessonDate.getTime() === currentDate.getTime()) {
-        const startMinutes = timeStringToMinutes(lesson.startTime);
-        const nowMinutes = now.getHours() * 60 + now.getMinutes();
-        if (Number.isFinite(startMinutes) && startMinutes <= nowMinutes) {
-          return;
-        }
-      }
-
-      const key = normalizeKeyText(lesson.title);
-      totals.set(key, {
-        title: lesson.title,
-        remainingUnits: numberOrZero(totals.get(key)?.remainingUnits) + Math.max(1, numberOrZero(lesson.duration)),
-      });
-    });
-  });
-
-  return Array.from(totals.values()).sort((left, right) => normalizeKeyText(left.title).localeCompare(normalizeKeyText(right.title)));
 }
 
 function selectTimetableSampleWeeks(weeks, config = {}, today = new Date()) {
@@ -2215,54 +1270,10 @@ async function extractWeekSeriesFromHiddenTab(tabId, count = 1) {
   return response.data.weeks;
 }
 
-async function extractSchoolEventsFromHiddenTab(tabId, types = {}) {
-  const response = await sendTabMessageRetry(tabId, {
-    type: "ee-extract-school-events",
-    types,
-  });
-  if (!response?.ok || !Array.isArray(response.data?.events)) {
-    throw new Error(response?.error || "EduPage school event extraction failed.");
-  }
-  return response.data.events;
-}
-
 // Note: the Suplovanie (substitution) snapshot is now fetched directly by
 // timetable-enhancer.js via the viewer.js POST (using the page's gsechash) — no
 // hidden tab or background round-trip. The old ee-substitution-snapshot handler
 // and its day-cache were removed once the direct fetch was verified live.
-
-async function collectUpcomingSchoolEvents(config) {
-  if (!config.lastEdupageOrigin || !config.schoolEventsEnabled || !config.testEventsEnabled) {
-    return [];
-  }
-
-  const candidateUrls = [
-    `${config.lastEdupageOrigin}/`,
-    `${config.lastEdupageOrigin}/user/`,
-  ];
-
-  for (const url of candidateUrls) {
-    const tab = await createTab(url);
-    try {
-      await waitForTabComplete(tab.id);
-      for (let attempt = 0; attempt < 8; attempt += 1) {
-        const events = await extractSchoolEventsFromHiddenTab(tab.id, {
-          tests: config.testEventsEnabled === true,
-        });
-        if (events.length > 0) {
-          return events;
-        }
-        await delay(400);
-      }
-    } catch (error) {
-      console.warn("[Edupage Extras] Could not extract school events from hidden tab.", error);
-    } finally {
-      await removeTab(tab.id);
-    }
-  }
-
-  return [];
-}
 
 async function collectLiveEdupageWeek(config) {
   if (!config.lastEdupageOrigin) {
@@ -2322,189 +1333,12 @@ async function collectLiveEdupageWeek(config) {
   }
 }
 
-async function performGoogleCalendarSync({ source = "background" } = {}) {
-  if (googleCalendarClearPending) {
-    const config = await getGoogleCalendarConfig();
-    return {
-      state: "idle",
-      message: "Google Calendar sync is paused while events are being cleared.",
-      mode: config.syncMode,
-      halfyearScope: config.halfyearScope,
-      calendarName: config.calendarName,
-    };
-  }
-
-  const config = await getGoogleCalendarConfig();
-  if (!config.enabled) {
-    return {
-      state: "idle",
-      message: "Google Calendar sync is disabled.",
-      mode: config.syncMode,
-      halfyearScope: config.halfyearScope,
-      calendarName: config.calendarName,
-    };
-  }
-  if (config.paused) {
-    return {
-      state: "idle",
-      message: "Google Calendar auto-sync is paused. Click Sync Now to resume.",
-      mode: config.syncMode,
-      halfyearScope: config.halfyearScope,
-      calendarName: config.calendarName,
-    };
-  }
-  if (!config.clientId) {
-    throw new Error("Paste a Google OAuth Client ID in Settings first.");
-  }
-
-  const baseStatus = {
-    mode: config.syncMode,
-    halfyearScope: config.halfyearScope,
-    calendarName: config.calendarName,
-  };
-
-  await setGoogleCalendarStatus({
-    state: "syncing",
-    message: source === "manual" ? "Syncing EduPage timetable to Google Calendar..." : "Background sync in progress...",
-    ...baseStatus,
-  });
-
-  await updateGoogleCalendarProgress(baseStatus, { phase: "prepare" });
-  const {
-    liveWeek,
-    adjacentWeek,
-    templateSampleWeeks,
-    fromCache,
-  } = await collectLiveEdupageWeek(config);
-  if (!liveWeek?.lessons?.length) {
-    throw new Error("EduPage did not return any lessons for the selected week.");
-  }
-
-  liveWeek.config = {
-    ...config,
-    templateSampleWeeks,
-  };
-  if (adjacentWeek) {
-    adjacentWeek.config = liveWeek.config;
-  }
-
-  await updateGoogleCalendarProgress(baseStatus, { phase: "calendar" });
-  const calendarId = await ensureManagedGoogleCalendar(config);
-  const timetableEvents = config.syncMode === "halfyear"
-    ? buildHalfyearDesiredEvents(liveWeek, adjacentWeek)
-    : buildWeeklyDesiredEvents(liveWeek);
-  const schoolEvents = await collectUpcomingSchoolEvents(config);
-  const desiredEvents = [
-    ...timetableEvents,
-    ...buildSchoolEventDesiredEvents(schoolEvents, config),
-  ];
-
-  const syncStats = await upsertCalendarEvents(calendarId, desiredEvents, async (progress) => {
-    await updateGoogleCalendarProgress(baseStatus, progress);
-  });
-
-  const status = {
-    state: "ok",
-    message: `Synced ${desiredEvents.length} timetable events to Google Calendar. Created ${syncStats.created}, updated ${syncStats.updated}, removed ${syncStats.deleted}.${fromCache ? " Used cached timetable data." : ""}`,
-    mode: config.syncMode,
-    halfyearScope: config.halfyearScope,
-    calendarName: config.calendarName,
-    lastSyncedAt: Date.now(),
-    liveWeekLabel: liveWeek.weekLabel,
-  };
-  await setGoogleCalendarStatus(status);
-  return status;
-}
-
-async function connectGoogleCalendar(message) {
-  const clientId = String(message?.clientId || "").trim();
-  const clientSecret = String(message?.clientSecret || "").trim();
-  if (!clientId) {
-    throw new Error("Google OAuth Client ID is required.");
-  }
-  if (!clientSecret) {
-    throw new Error("Google OAuth Client Secret is required.");
-  }
-
-  await storageSet({
-    [GOOGLE_CALENDAR_CLIENT_ID_KEY]: clientId,
-    [GOOGLE_CALENDAR_CLIENT_SECRET_KEY]: clientSecret,
-    [GOOGLE_CALENDAR_NAME_KEY]: normalizeGoogleCalendarName(message?.calendarName),
-  });
-
-  const redirectUri = getGoogleAuthRedirectUri();
-  const codeVerifier = randomBase64Url(48);
-  const codeChallenge = await sha256Base64Url(codeVerifier);
-  const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
-  authUrl.searchParams.set("client_id", clientId);
-  authUrl.searchParams.set("redirect_uri", redirectUri);
-  authUrl.searchParams.set("response_type", "code");
-  authUrl.searchParams.set("scope", GOOGLE_CALENDAR_SCOPE);
-  authUrl.searchParams.set("access_type", "offline");
-  authUrl.searchParams.set("prompt", "consent");
-  authUrl.searchParams.set("code_challenge", codeChallenge);
-  authUrl.searchParams.set("code_challenge_method", "S256");
-
-  let redirectResponse = "";
-  try {
-    redirectResponse = await launchWebAuthFlow(authUrl.toString());
-  } catch (error) {
-    throw formatGoogleConnectError(error, redirectUri);
-  }
-  const code = parseRedirectCode(redirectResponse);
-  const tokens = await exchangeGoogleAuthCode({
-    clientId,
-    clientSecret,
-    code,
-    codeVerifier,
-    redirectUri,
-  });
-
-  await storageSet({
-    [GOOGLE_CALENDAR_TOKENS_KEY]: tokens,
-    [GOOGLE_CALENDAR_ENABLED_KEY]: true,
-    [GOOGLE_CALENDAR_PAUSED_KEY]: false,
-  });
-  await syncGoogleCalendarAlarm();
-
-  const status = buildGoogleCalendarConnectedStatus({
-    syncMode: message?.syncMode,
-    halfyearScope: message?.halfyearScope,
-    calendarName: message?.calendarName,
-  });
-  await setGoogleCalendarStatus(status);
-  return status;
-}
-
-async function disconnectGoogleCalendar() {
-  await storageRemove([
-    GOOGLE_CALENDAR_TOKENS_KEY,
-    GOOGLE_CALENDAR_CALENDAR_ID_KEY,
-  ]);
-  const config = await getGoogleCalendarConfig();
-  await storageSet({
-    [GOOGLE_CALENDAR_ENABLED_KEY]: false,
-    [GOOGLE_CALENDAR_PAUSED_KEY]: false,
-  });
-  await syncGoogleCalendarAlarm();
-  const status = {
-    state: "idle",
-    message: "Google Calendar disconnected.",
-    mode: config.syncMode,
-    halfyearScope: config.halfyearScope,
-    calendarName: config.calendarName,
-  };
-  await setGoogleCalendarStatus(status);
-  return status;
-}
-
 chrome.runtime.onInstalled.addListener(() => {
   syncUpdateAlarm().then((enabled) => {
     if (enabled) {
       checkForUpdates({ notify: true });
     }
   });
-  syncGoogleCalendarAlarm();
 });
 
 chrome.runtime.onStartup.addListener(() => {
@@ -2513,7 +1347,6 @@ chrome.runtime.onStartup.addListener(() => {
       checkForUpdates({ notify: true });
     }
   });
-  syncGoogleCalendarAlarm();
 });
 
 chrome.commands.onCommand.addListener((command) => {
@@ -2543,18 +1376,6 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     return;
   }
 
-  if (alarm.name === GOOGLE_CALENDAR_SYNC_ALARM_NAME) {
-    enqueueGoogleCalendarJob(() => performGoogleCalendarSync({ source: "background" })).catch(async (error) => {
-      const config = await getGoogleCalendarConfig();
-      await setGoogleCalendarStatus({
-        state: "error",
-        message: error?.message || "Google Calendar sync failed.",
-        mode: config.syncMode,
-        halfyearScope: config.halfyearScope,
-        calendarName: config.calendarName,
-      });
-    });
-  }
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
@@ -2566,16 +1387,6 @@ chrome.storage.onChanged.addListener((changes, area) => {
         checkForUpdates({ notify: true });
       }
     });
-  }
-
-  if (
-    changes[GOOGLE_CALENDAR_ENABLED_KEY]
-    || changes[GOOGLE_CALENDAR_PAUSED_KEY]
-    || changes[GOOGLE_CALENDAR_SYNC_INTERVAL_KEY]
-    || changes[GOOGLE_CALENDAR_SYNC_MODE_KEY]
-    || changes[GOOGLE_CALENDAR_NAME_KEY]
-  ) {
-    syncGoogleCalendarAlarm();
   }
 });
 
@@ -2616,10 +1427,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
 
-  if (message?.type === "ee-google-calendar-page-context") {
+  if (message?.type === "ee-edupage-page-context") {
     if (sender.frameId === 0 && typeof message.origin === "string" && message.origin.startsWith("https://")) {
       storageSet({
-        [GOOGLE_CALENDAR_LAST_ORIGIN_KEY]: message.origin,
+        [LAST_EDUPAGE_ORIGIN_KEY]: message.origin,
       }).then(() => sendResponse({ ok: true }));
       return true;
     }
@@ -2648,57 +1459,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
 
-  if (message?.type === "ee-grades-projected-subject-totals") {
-    const origin = typeof message.origin === "string" && message.origin.startsWith("https://")
-      ? message.origin
-      : "";
-    const secondHalfStartOverride = typeof message.secondHalfStartOverride === "string"
-      ? message.secondHalfStartOverride
-      : "";
-    const secondHalfEndOverride = typeof message.secondHalfEndOverride === "string"
-      ? message.secondHalfEndOverride
-      : "";
-    const accuratePredictionEnabled = message.accuratePredictionEnabled === true;
-
-    collectLiveEdupageWeek({
-      lastEdupageOrigin: origin,
-      syncMode: "halfyear",
-      halfyearScope: "future",
-      roomInTitle: false,
-      teacherInTitle: false,
-      secondHalfStartOverride,
-      secondHalfEndOverride,
-      accuratePredictionEnabled,
-      extraHalfyearSampleWeeks: accuratePredictionEnabled ? 2 : 0,
-    })
-      .then(({ liveWeek, adjacentWeek, templateSampleWeeks }) => {
-        if (liveWeek) {
-          liveWeek.config = {
-            ...(liveWeek.config || {}),
-            templateSampleWeeks,
-            secondHalfStartOverride,
-            secondHalfEndOverride,
-            accuratePredictionEnabled,
-          };
-        }
-        if (adjacentWeek) {
-          adjacentWeek.config = liveWeek?.config || adjacentWeek.config;
-        }
-
-        sendResponse({
-          ok: true,
-          data: {
-            subjects: buildFutureSubjectLessonUnits(liveWeek, adjacentWeek, new Date()),
-          },
-        });
-      })
-      .catch((error) => sendResponse({
-        ok: false,
-        error: error?.message || "Could not build projected subject totals.",
-      }));
-    return true;
-  }
-
   if (message?.type === "ee-export-timetable-ics") {
     const range = message.range === "halfyear" ? "halfyear" : "week";
     const includeChanges = message.includeChanges !== false;
@@ -2711,62 +1471,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  if (message?.type === "ee-google-calendar-connect") {
-    connectGoogleCalendar(message)
-      .then((status) => sendResponse({ ok: true, status }))
-      .catch((error) => sendResponse({
-        ok: false,
-        error: error?.message || "Google Calendar connect failed.",
-      }));
-    return true;
-  }
-
-  if (message?.type === "ee-google-calendar-disconnect") {
-    disconnectGoogleCalendar()
-      .then((status) => sendResponse({ ok: true, status }))
-      .catch((error) => sendResponse({
-        ok: false,
-        error: error?.message || "Google Calendar disconnect failed.",
-      }));
-    return true;
-  }
-
-  if (message?.type === "ee-google-calendar-clear-events") {
-    disableGoogleCalendarSyncForClear()
-      .then(() => enqueueGoogleCalendarJob(async () => {
-        try {
-          return await clearManagedCalendarEvents();
-        } finally {
-          googleCalendarClearPending = false;
-        }
-      }))
-      .then((status) => sendResponse({ ok: true, status }))
-      .catch((error) => sendResponse({
-        ok: false,
-        error: error?.message || "Could not clear Google Calendar events.",
-      }));
-    return true;
-  }
-
-  if (message?.type === "ee-google-calendar-sync-now") {
-    storageSet({ [GOOGLE_CALENDAR_PAUSED_KEY]: false })
-      .then(() => syncGoogleCalendarAlarm())
-      .then(() => enqueueGoogleCalendarJob(() => performGoogleCalendarSync({ source: "manual" })))
-      .then((status) => sendResponse({ ok: true, status }))
-      .catch(async (error) => {
-        const config = await getGoogleCalendarConfig();
-        const status = {
-          state: "error",
-          message: error?.message || "Google Calendar sync failed.",
-          mode: config.syncMode,
-          halfyearScope: config.halfyearScope,
-          calendarName: config.calendarName,
-        };
-        await setGoogleCalendarStatus(status);
-        sendResponse({ ok: false, error: status.message, status });
-      });
-    return true;
-  }
 
   return false;
 });

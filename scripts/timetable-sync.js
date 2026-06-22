@@ -368,7 +368,7 @@
   }
 
   chrome.runtime.sendMessage({
-    type: "ee-google-calendar-page-context",
+    type: "ee-edupage-page-context",
     origin: window.location.origin,
     href: window.location.href,
   }, () => {

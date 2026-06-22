@@ -35,12 +35,3 @@ runTest("compact settings switches use screen-reader labels", () => {
     assert.match(body, /class="sr-only"/, "compact switch is missing screen-reader text");
   });
 });
-
-runTest("inline option switches keep visible text labels", () => {
-  const inlineSwitches = switchLabels.filter(([, className]) => !/\bswitch-compact\b/.test(className));
-
-  assert.ok(inlineSwitches.length > 0, "expected inline switches for option rows");
-  inlineSwitches.forEach(([, , body]) => {
-    assert.match(body, /class="switch-text"/, "inline switch is missing visible text");
-  });
-});

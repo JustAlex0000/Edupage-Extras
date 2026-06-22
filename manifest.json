@@ -2,16 +2,13 @@
   "name": "__MSG_extName__",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
-  "version": "0.6.9",
+  "version": "0.6.10",
   "manifest_version": 3,
-  "permissions": ["storage", "tabs", "alarms", "notifications", "identity"],
+  "permissions": ["storage", "tabs", "alarms", "notifications"],
   "host_permissions": [
     "https://*.edupage.org/*",
     "https://edublurtesting.ct.ws/*",
-    "https://raw.githubusercontent.com/Alexosavrua/Edupage-Extras/*",
-    "https://accounts.google.com/*",
-    "https://oauth2.googleapis.com/*",
-    "https://www.googleapis.com/*"
+    "https://raw.githubusercontent.com/Alexosavrua/Edupage-Extras/*"
   ],
   "background": {
     "service_worker": "scripts/background.js"
