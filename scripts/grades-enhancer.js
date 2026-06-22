@@ -18,7 +18,6 @@
   const GRADE_BADGES_KEY = "gradeBadgesEnabled";
   const GRADE_TITLE_OVERRIDES_KEY = "eeGradeTitleOverrides";
   const GRADES_ATTENDANCE_KEY = "gradesAttendanceStatsEnabled";
-  const ACCURATE_PREDICTED_ATTENDANCE_KEY = "eeAccuratePredictedAttendanceEnabled";
   const GRADES_ATTENDANCE_DEBUG_KEY = "gradesAttendanceDebugEnabled";
   const HALFYEAR_START_KEY = "eeHalfyearStartDate";
   const HALFYEAR_END_KEY = "eeSecondHalfEndDate";
@@ -30,7 +29,6 @@
   const CLASSBOOK_RANGE_MAX_DAYS = 30;
   let gradeBadgesEnabled = false;
   let gradesAttendanceEnabled = true;
-  let accuratePredictedAttendanceEnabled = false;
   let gradesAttendanceDebugEnabled = false;
   let halfyearStartOverride = "";
   let halfyearEndOverride = "";
@@ -1895,20 +1893,27 @@
   }
 
   // Reads the term-end "Vysvedčenie" (final report grade) column: whether it's
-  // present and the average of its numeric grades. Tag-independent (finds the
-  // column by header text + index), so it works regardless of render order.
+  // present and the average of its numeric grades.
+  //
+  // Each grade renders as its own <td>, so a row's cell count (and the
+  // Vysvedčenie column's index) varies per subject — confirmed live, index
+  // ranged 2 to 14 across rows with a fixed 9-column header. A header-derived
+  // index does not transfer to body rows, so presence is checked via the header
+  // (by text) but each row's value is read structurally as ".znPriemerCell"'s
+  // next sibling, same as tagVysvedcenieColumn.
   function readVysvedcenieColumn(table) {
     const headerRow = table.querySelector("thead tr");
     if (!headerRow) return { present: false, average: null };
-    const index = Array.from(headerRow.cells).findIndex((cell) =>
+    const headerCell = Array.from(headerRow.cells).find((cell) =>
       !cell.classList.contains("ee-attendance-header")
       && normalizeText(cell.textContent) === "vysvedcenie");
-    if (index === -1) return { present: false, average: null };
+    if (!headerCell) return { present: false, average: null };
 
     const values = [];
     table.querySelectorAll("tr.predmetRow").forEach((row) => {
-      const cell = row.cells[index];
-      if (!cell) return;
+      const priemerCell = row.querySelector(".znPriemerCell");
+      const cell = priemerCell?.nextElementSibling;
+      if (!cell || cell.tagName !== "TD") return;
       const value = parseAverage(normalizeWhitespace(cell.textContent || ""));
       if (Number.isFinite(value) && value > 0) values.push(value);
     });
@@ -3164,24 +3169,31 @@
   // between them. Tag it once so we can anchor our columns AFTER it. Fully safe —
   // a no-op — when the column isn't present (which is most of the year), so the
   // page never breaks whether it shows up or disappears again.
+  //
+  // IMPORTANT: each grade renders as its OWN <td> (not one cell holding every
+  // grade), so a row's total cell count — and therefore the Vysvedčenie column's
+  // index — varies per subject (verified live: index ranged 2 to 14 across rows
+  // with header count fixed at 9). A header-derived index does NOT line up with
+  // the same column in the body, so we never use one. Instead we confirm the
+  // column exists via the header (by text), then locate each row's cell
+  // structurally as ".znPriemerCell"'s next sibling — that relationship holds
+  // regardless of how many grade cells precede it.
   function tagVysvedcenieColumn(table) {
     const headerRow = table.querySelector("thead tr");
     if (!headerRow) return;
     if (headerRow.querySelector(".ee-vysvedcenie-header")) return; // already tagged
 
     const headerCells = Array.from(headerRow.cells);
-    const index = headerCells.findIndex((cell) =>
+    const headerCell = headerCells.find((cell) =>
       !cell.classList.contains("ee-attendance-header")
       && normalizeText(cell.textContent) === "vysvedcenie");
-    if (index === -1) return; // column absent → robust no-op
+    if (!headerCell) return; // column absent → robust no-op
 
-    headerCells[index].classList.add("ee-vysvedcenie-header");
-    Array.from(table.rows).forEach((row) => {
-      // Skip the header and our own overall row (it uses colSpans, so cells[index]
-      // wouldn't line up with the real Vysvedčenie column).
-      if (row === headerRow || row.classList.contains("ee-overall-row")) return;
-      const cell = row.cells[index];
-      if (cell) cell.classList.add("ee-vysvedcenie-cell");
+    headerCell.classList.add("ee-vysvedcenie-header");
+    Array.from(table.querySelectorAll("tr.predmetRow")).forEach((row) => {
+      const priemerCell = row.querySelector(".znPriemerCell");
+      const cell = priemerCell?.nextElementSibling;
+      if (cell && cell.tagName === "TD") cell.classList.add("ee-vysvedcenie-cell");
     });
   }
 
@@ -3551,24 +3563,6 @@
         predictedTotal,
         predictedPercent: predictedTotal > 0 ? (entry.absent / predictedTotal) * 100 : Number.NaN,
       };
-    });
-  }
-
-  async function fetchProjectedTimetableTotals() {
-    return new Promise((resolve) => {
-      chrome.runtime.sendMessage({
-        type: "ee-grades-projected-subject-totals",
-        origin: window.location.origin,
-        secondHalfStartOverride: halfyearStartOverride,
-        secondHalfEndOverride: halfyearEndOverride,
-        accuratePredictionEnabled: accuratePredictedAttendanceEnabled,
-      }, (response) => {
-        if (chrome.runtime.lastError || !response?.ok) {
-          resolve([]);
-          return;
-        }
-        resolve(Array.isArray(response.data?.subjects) ? response.data.subjects : []);
-      });
     });
   }
 
@@ -4923,7 +4917,6 @@
       GRADE_BADGES_KEY,
       GRADE_TITLE_OVERRIDES_KEY,
       GRADES_ATTENDANCE_KEY,
-      ACCURATE_PREDICTED_ATTENDANCE_KEY,
       GRADES_ATTENDANCE_DEBUG_KEY,
       HALFYEAR_START_KEY,
       HALFYEAR_END_KEY,
@@ -4935,7 +4928,6 @@
         ? result[GRADE_TITLE_OVERRIDES_KEY]
         : {};
       gradesAttendanceEnabled = result[GRADES_ATTENDANCE_KEY] !== false;
-      accuratePredictedAttendanceEnabled = result[ACCURATE_PREDICTED_ATTENDANCE_KEY] === true;
       gradesAttendanceDebugEnabled = result[GRADES_ATTENDANCE_DEBUG_KEY] === true;
       halfyearStartOverride = normalizeDateInput(result[HALFYEAR_START_KEY]);
       halfyearEndOverride = normalizeDateInput(result[HALFYEAR_END_KEY]);
@@ -4967,12 +4959,6 @@
 
       if (changes[GRADES_ATTENDANCE_KEY]) {
         gradesAttendanceEnabled = changes[GRADES_ATTENDANCE_KEY].newValue !== false;
-        shouldEnhance = true;
-      }
-
-      if (changes[ACCURATE_PREDICTED_ATTENDANCE_KEY]) {
-        accuratePredictedAttendanceEnabled = changes[ACCURATE_PREDICTED_ATTENDANCE_KEY].newValue === true;
-        attendanceStatsCache = null;
         shouldEnhance = true;
       }
 

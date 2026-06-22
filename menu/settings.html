@@ -226,18 +226,6 @@
 
         <div class="setting-row">
           <div>
-            <h3 data-i18n="accuratePredicted">More Accurate Predicted Attendance</h3>
-            <p data-i18n="accuratePredictedDesc">Sample additional weeks of your timetable through extra hidden EduPage tabs so the predicted remaining lessons reflect upcoming substitutions, room changes, and cancellations instead of a flat template. Noticeably slower to load and opens more background tabs.</p>
-          </div>
-          <label class="switch switch-compact" for="AccuratePredictedAttendanceCheckbox">
-            <input type="checkbox" id="AccuratePredictedAttendanceCheckbox">
-            <span class="switch-track" aria-hidden="true"></span>
-            <span class="sr-only" data-i18n="toggleAccuratePredicted">Toggle more accurate predicted attendance</span>
-          </label>
-        </div>
-
-        <div class="setting-row">
-          <div>
             <h3 data-i18n="attendancePercentages">Attendance Summary Percentages</h3>
             <p data-i18n-html="attendancePercentagesDesc">Add the current-halfyear absence percentage into EduPage's own <strong>Attendance</strong> summary table (the standalone attendance page, not the Grades page).</p>
           </div>
@@ -283,28 +271,23 @@
       <section class="setting-group" aria-labelledby="timetable-heading">
         <h2 id="timetable-heading" data-i18n="groupTimetable">Timetable</h2>
 
-        <div class="setting-row setting-row-stack">
+        <div class="setting-row">
           <div>
             <h3 data-i18n="exportTimetable">Export Timetable (.ics)</h3>
-            <p data-i18n="exportTimetableDesc">Download your timetable as an .ics calendar file you can import into Google Calendar, Apple Calendar, Outlook, and most other apps.</p>
+            <p data-i18n="exportTimetableDesc">Download your timetable as an .ics file for Google Calendar, Apple Calendar, Outlook, etc. Briefly opens a hidden EduPage tab to read the timetable.</p>
           </div>
         </div>
 
         <div class="setting-row">
           <div>
             <h3 data-i18n="exportTimetableIncludeChanges">Include this week's changes</h3>
-            <p data-i18n="exportTimetableIncludeChangesDesc">When on, the export keeps this week's substitutions and room changes. When off, it exports the regular timetable without them.</p>
+            <p data-i18n="exportTimetableIncludeChangesDesc">Keep this week's substitutions and room changes in the export.</p>
           </div>
           <label class="switch switch-compact" for="ExportTimetableIncludeChangesCheckbox">
             <input type="checkbox" id="ExportTimetableIncludeChangesCheckbox" checked>
             <span class="switch-track" aria-hidden="true"></span>
             <span class="sr-only" data-i18n="toggleExportIncludeChanges">Toggle including this week's changes</span>
           </label>
-        </div>
-
-        <div class="setting-note setting-note-warning" role="note" aria-label="Hidden tab disclaimer">
-          <strong data-i18n="hiddenTabDisclaimerTitle">Heads up: hidden tab</strong>
-          <p data-i18n="exportTimetableHiddenTabText">Exporting briefly opens a hidden EduPage tab to read your timetable — a new background tab opens, captures the data, then closes itself.</p>
         </div>
 
         <div class="setting-row setting-row-stack">
@@ -316,163 +299,8 @@
             <p id="ExportTimetableStatus" class="setting-note" role="status" aria-live="polite"></p>
           </div>
         </div>
-      </section>
 
-      <section class="setting-group" aria-labelledby="google-calendar-heading">
-        <h2 id="google-calendar-heading" data-i18n="groupGoogleCalendar">Google Calendar</h2>
-
-        <div class="setting-row">
-          <div>
-            <h3>
-              <span data-i18n="gcSync">Google Calendar Sync</span>
-              <span class="setting-tag setting-tag-wip" data-i18n="wipBadge">WIP</span>
-            </h3>
-            <p data-i18n="gcSyncDesc">Sync your EduPage timetable into a dedicated Google Calendar and keep the current week updated when rooms, teachers, or lessons change. This feature is still a work in progress — expect rough edges around halfyear sync and event colors.</p>
-          </div>
-          <label class="switch switch-compact" for="GoogleCalendarEnabledCheckbox">
-            <input type="checkbox" id="GoogleCalendarEnabledCheckbox">
-            <span class="switch-track" aria-hidden="true"></span>
-            <span class="sr-only" data-i18n="toggleGcSync">Toggle Google Calendar sync</span>
-          </label>
-        </div>
-
-        <div id="GoogleCalendarDetails" hidden>
-        <div class="setting-note setting-note-warning" role="note" aria-label="Google auth note">
-          <strong data-i18n="gcOauthRequiredTitle">OAuth Required</strong>
-          <p data-i18n="gcOauthRequiredText">Google Calendar writes do not work with a simple API key. Use a Google OAuth Client ID and Client Secret here instead. For a hobby setup, a free personal Google account and a free Google Cloud project are enough. You do not need Chrome Web Store publishing for the current setup.</p>
-        </div>
-
-        <div class="setting-row setting-row-stack">
-          <div>
-            <h3 data-i18n="gcSetup">Google Setup</h3>
-            <p data-i18n="gcSetupDesc">Create a Google Cloud OAuth Client ID, not an API key. You only need to do this once.</p>
-          </div>
-          <div class="tutorial-list">
-            <p data-i18n="gcStep1">1. Open Google Cloud Console and create or select a project.</p>
-            <p data-i18n="gcStep2">2. Enable the Google Calendar API for that project.</p>
-            <p data-i18n-html="gcStep3">3. Open <strong>APIs &amp; Services</strong> &rarr; <strong>Credentials</strong>.</p>
-            <p data-i18n-html="gcStep4">4. Create an <strong>OAuth client ID</strong> of type <strong>Web application</strong>.</p>
-            <p data-i18n-html="gcStep5">5. Add the exact redirect URI shown below to <strong>Authorized redirect URIs</strong>.</p>
-            <p data-i18n-html="gcStep6">6. Copy the Client ID and Client Secret, paste them below, then click <strong>Connect Google</strong>.</p>
-            <p data-i18n="gcStep7">7. No payment is required for normal hobby use.</p>
-          </div>
-        </div>
-
-        <div class="setting-row setting-row-stack calendar-config-row">
-          <div class="calendar-config-heading">
-            <h3 data-i18n="gcCredentials">Google Credentials</h3>
-            <p data-i18n="gcCredentialsDesc">Paste your Google OAuth Client ID and Client Secret here. API keys are not supported for calendar writes.</p>
-          </div>
-          <div class="calendar-config-controls">
-            <label class="text-control" for="GoogleCalendarRedirectUriInput">
-              <span data-i18n="gcRedirectUri">Authorized Redirect URI</span>
-              <input type="text" id="GoogleCalendarRedirectUriInput" readonly spellcheck="false" autocomplete="off">
-            </label>
-            <label class="text-control" for="GoogleCalendarClientIdInput">
-              <span data-i18n="gcClientId">OAuth Client ID</span>
-              <input type="text" id="GoogleCalendarClientIdInput" placeholder="1234567890-abc123.apps.googleusercontent.com" spellcheck="false" autocomplete="off">
-            </label>
-            <label class="text-control" for="GoogleCalendarClientSecretInput">
-              <span data-i18n="gcClientSecret">OAuth Client Secret</span>
-              <input type="password" id="GoogleCalendarClientSecretInput" placeholder="GOCSPX-..." spellcheck="false" autocomplete="off">
-            </label>
-            <label class="text-control" for="GoogleCalendarNameInput">
-              <span data-i18n="gcCalendarName">Calendar Name</span>
-              <input type="text" id="GoogleCalendarNameInput" placeholder="EduPage">
-            </label>
-            <label class="select-control" for="GoogleCalendarSyncModeSelect">
-              <span data-i18n="gcSyncRange">Sync Range</span>
-              <select id="GoogleCalendarSyncModeSelect">
-                <option value="week" data-i18n="gcRangeWeekOption">Current week only</option>
-                <option value="halfyear" data-i18n="gcRangeHalfyearOption">Current halfyear</option>
-              </select>
-            </label>
-            <label class="select-control" for="GoogleCalendarHalfyearScopeSelect" id="GoogleCalendarHalfyearScopeRow" hidden>
-              <span data-i18n="gcHalfyearCoverage">Halfyear Coverage</span>
-              <select id="GoogleCalendarHalfyearScopeSelect">
-                <option value="future" data-i18n="gcCoverageFuture">From today forward</option>
-                <option value="full" data-i18n="gcCoverageFull">Whole current halfyear</option>
-              </select>
-            </label>
-            <label class="select-control" for="GoogleCalendarColorModeSelect">
-              <span data-i18n="gcEventColors">Event Colors</span>
-              <select id="GoogleCalendarColorModeSelect">
-                <option value="subject" data-i18n="gcColorSubject">By subject</option>
-                <option value="single" data-i18n="gcColorSingle">Single color</option>
-                <option value="changes" data-i18n="gcColorChanges">Changed lessons only</option>
-                <option value="none" data-i18n="gcColorNone">No colors</option>
-              </select>
-            </label>
-            <label class="select-control" for="GoogleCalendarSingleColorSelect" id="GoogleCalendarSingleColorRow" hidden>
-              <span data-i18n="gcSingleColor">Single Event Color</span>
-              <select id="GoogleCalendarSingleColorSelect">
-                <option value="1" data-i18n="gcColor1">Lavender</option>
-                <option value="2" data-i18n="gcColor2">Sage</option>
-                <option value="3" data-i18n="gcColor3">Grape</option>
-                <option value="4" data-i18n="gcColor4">Flamingo</option>
-                <option value="5" data-i18n="gcColor5">Banana</option>
-                <option value="6" data-i18n="gcColor6">Tangerine</option>
-                <option value="7" data-i18n="gcColor7">Peacock</option>
-                <option value="8" data-i18n="gcColor8">Graphite</option>
-                <option value="9" data-i18n="gcColor9">Blueberry</option>
-                <option value="10" data-i18n="gcColor10">Basil</option>
-                <option value="11" data-i18n="gcColor11">Tomato</option>
-              </select>
-            </label>
-            <label class="number-control" for="GoogleCalendarSyncIntervalInput">
-              <span data-i18n="gcSyncEvery">Sync Every</span>
-              <div class="number-control-field">
-                <input type="number" id="GoogleCalendarSyncIntervalInput" min="5" max="120" step="5">
-                <span data-i18n="gcMinutes">minutes</span>
-              </div>
-            </label>
-            <div class="option-grid" aria-label="Google Calendar quality of life options">
-              <label class="switch" for="GoogleCalendarRoomInTitleCheckbox">
-                <input type="checkbox" id="GoogleCalendarRoomInTitleCheckbox">
-                <span class="switch-track" aria-hidden="true"></span>
-                <span class="switch-text" data-i18n="gcRoomInTitle">Show room in title</span>
-              </label>
-              <label class="switch" for="GoogleCalendarTeacherInTitleCheckbox">
-                <input type="checkbox" id="GoogleCalendarTeacherInTitleCheckbox">
-                <span class="switch-track" aria-hidden="true"></span>
-                <span class="switch-text" data-i18n="gcTeacherInTitle">Show teacher in title</span>
-              </label>
-              <label class="switch" for="GoogleCalendarUseDefaultRemindersCheckbox">
-                <input type="checkbox" id="GoogleCalendarUseDefaultRemindersCheckbox">
-                <span class="switch-track" aria-hidden="true"></span>
-                <span class="switch-text" data-i18n="gcUseReminders">Use Google reminders</span>
-              </label>
-            </div>
-            <div class="option-grid" aria-label="Google Calendar school event options">
-              <label class="switch" for="GoogleCalendarSchoolEventsCheckbox">
-                <input type="checkbox" id="GoogleCalendarSchoolEventsCheckbox">
-                <span class="switch-track" aria-hidden="true"></span>
-                <span class="switch-text" data-i18n="gcSchoolEvents">Sync school events</span>
-              </label>
-            </div>
-            <div class="option-grid" id="GoogleCalendarSchoolEventKinds" aria-label="Google Calendar school event kinds" hidden>
-              <label class="switch" for="GoogleCalendarTestEventsCheckbox">
-                <input type="checkbox" id="GoogleCalendarTestEventsCheckbox">
-                <span class="switch-track" aria-hidden="true"></span>
-                <span class="switch-text" data-i18n="gcTestsExams">Tests / Exams</span>
-              </label>
-            </div>
-            <div class="actions-row">
-              <button class="secondary-button" id="GoogleCalendarConnectButton" type="button" data-i18n="gcConnect">Connect Google</button>
-              <button class="secondary-button" id="GoogleCalendarDisconnectButton" type="button" data-i18n="gcDisconnect">Disconnect</button>
-              <button class="secondary-button" id="GoogleCalendarClearButton" type="button" data-i18n="gcClearEvents">Clear Events</button>
-              <button class="secondary-button" id="GoogleCalendarSyncNowButton" type="button" data-i18n="gcSyncNow">Sync Now</button>
-            </div>
-            <p class="calendar-help-text" data-i18n-html="gcHelpRedirect">Put that redirect URI into your Google OAuth client exactly as shown. If Google says <strong>redirect_uri_mismatch</strong>, this field is the fix.</p>
-            <p class="calendar-help-text" data-i18n="gcHelpModes">Week mode syncs the current whole week. On Saturday and Sunday it syncs the upcoming week instead. Halfyear mode repeats the detected timetable template through the current halfyear and then keeps the active week updated from EduPage.</p>
-            <p class="calendar-help-text" data-i18n="gcHelpSchoolEvents">School events are currently conservative: only explicitly marked tests and exams are added when that toggle is enabled.</p>
-            <p class="calendar-help-text" data-i18n="gcHelpCoverage">Halfyear coverage defaults to future events only. Whole current halfyear is available too, but it is slower and may take noticeably longer to finish.</p>
-            <p class="calendar-help-text" data-i18n-html="gcHelpEndDate">The second halfyear ends on <strong>June 30</strong>, so this sync will not continue into July or August.</p>
-            <p class="calendar-help-text" data-i18n="gcHelpThrottle">Halfyear sync is intentionally throttled so Google is less likely to reject the extension with rate limits.</p>
-            <span class="save-status" id="GoogleCalendarStatusText" role="status" data-i18n="gcStatusDisabled">Google Calendar sync is disabled.</span>
-          </div>
-        </div>
-        </div>
+        <p class="setting-tip" data-i18n="exportTimetableEdupageTip">Tip: EduPage also has its own calendar subscription, with no extension needed — Môj profil → Nastavenia kalendára → Stiahnuť ICS/WebCal.</p>
       </section>
 
       <section class="setting-group" aria-labelledby="updates-heading">

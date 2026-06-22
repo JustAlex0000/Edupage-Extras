@@ -204,6 +204,14 @@ p {
     color: var(--danger-color);
 }
 
+/* A one-line hint, lighter than .setting-note — no border/background box, just
+   muted text. For tips that don't need the visual weight of a full note. */
+.setting-tip {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
 .setting-tag {
     display: inline-block;
     vertical-align: middle;
@@ -243,79 +251,6 @@ p {
     gap: 12px;
     justify-items: end;
     max-width: 430px;
-}
-
-.calendar-config-row {
-    align-items: stretch;
-}
-
-.calendar-config-controls {
-    display: grid;
-    gap: 12px;
-    justify-items: stretch;
-    max-width: none;
-    width: 100%;
-}
-
-.calendar-config-heading {
-    max-width: none;
-}
-
-.calendar-config-controls .text-control,
-.calendar-config-controls .number-control {
-    width: 100%;
-}
-
-.calendar-config-controls .select-control {
-    display: grid;
-    gap: 6px;
-    width: 100%;
-    color: var(--text-muted);
-    font-size: 13px;
-    white-space: normal;
-}
-
-.calendar-config-controls .select-control select {
-    width: 100%;
-}
-
-#GoogleCalendarDetails {
-    display: grid;
-    gap: 12px;
-}
-
-.option-grid {
-    display: grid;
-    gap: 8px;
-    width: 100%;
-    justify-items: start;
-}
-
-.option-grid .switch {
-    background: var(--control-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    justify-content: space-between;
-    padding: 10px 12px;
-    width: 100%;
-}
-
-.calendar-config-controls .actions-row {
-    justify-content: flex-start;
-    width: 100%;
-}
-
-.calendar-config-controls .save-status {
-    text-align: left;
-}
-
-.tutorial-list {
-    display: grid;
-    gap: 6px;
-}
-
-.tutorial-list p {
-    margin-top: 0;
 }
 
 .custom-theme-grid {
@@ -529,26 +464,6 @@ p {
     white-space: nowrap;
 }
 
-.text-control,
-.number-control {
-    display: grid;
-    gap: 6px;
-    width: 100%;
-    color: var(--text-muted);
-    font-size: 13px;
-}
-
-.number-control-field {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.calendar-help-text {
-    margin-top: 0;
-    font-size: 12px;
-}
-
 input[type="color"] {
     width: 42px;
     height: 34px;
@@ -629,15 +544,6 @@ input[type="checkbox"]:disabled {
     color: var(--danger-color);
 }
 
-#GoogleCalendarStatusText[data-state="available"] {
-    color: var(--accent-color);
-    font-weight: 700;
-}
-
-#GoogleCalendarStatusText[data-state="error"] {
-    color: var(--danger-color);
-}
-
 .secondary-button {
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -701,10 +607,6 @@ input[type="checkbox"]:disabled {
     .shortcut-controls {
         justify-items: stretch;
         width: 100%;
-    }
-
-    .calendar-config-controls {
-        max-width: none;
     }
 
     .shortcut-status {
