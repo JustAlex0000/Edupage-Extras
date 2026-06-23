@@ -1,6 +1,6 @@
 # Edupage Extras
 
-Edupage Extras is a Chromium browser extension that improves the
+Edupage Extras is a browser extension that improves the
 Edupage web portal with small (and big) quality-of-life features. 
 
 **This project is not affiliated with Edupage, aSc Applied Software Consultants,

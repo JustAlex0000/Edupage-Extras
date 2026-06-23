@@ -12,8 +12,18 @@ function loadTimetableInternals() {
   );
 
   const noop = () => {};
+  // waitForTimetableReady's polling loop (timetable-sync.js) keeps scheduling
+  // setTimeout calls in the background after the test's assertions are done,
+  // which keeps Node's event loop alive for the full ~30s timeout before the
+  // process can exit. unref() lets Node exit as soon as the test itself
+  // finishes, without changing the timer's actual behavior.
+  const unrefSetTimeout = (fn, ms) => {
+    const id = setTimeout(fn, ms);
+    id?.unref?.();
+    return id;
+  };
   const window = {
-    setTimeout,
+    setTimeout: unrefSetTimeout,
     clearTimeout,
     location: {
       origin: "https://school.edupage.org",

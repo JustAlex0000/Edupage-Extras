@@ -1,0 +1,16 @@
+{
+  "name": "edupage-extras",
+  "private": true,
+  "version": "0.7.0",
+  "scripts": {
+    "lint:firefox": "web-ext lint --source-dir . --no-config-discovery --ignore-files \"docs\" \"docs/**\" \"graphify-out\" \"graphify-out/**\" \"tests\" \"tests/**\" \".github\" \".github/**\" \"scripts-dev\" \"scripts-dev/**\" \"package.json\" \"package-lock.json\" \"FIREFOX_RELEASE.md\"",
+    "run:firefox": "web-ext run --source-dir . --target firefox-desktop --no-config-discovery --ignore-files \"docs\" \"docs/**\" \"graphify-out\" \"graphify-out/**\" \"tests\" \"tests/**\" \".github\" \".github/**\" \"scripts-dev\" \"scripts-dev/**\" \"package.json\" \"package-lock.json\" \"FIREFOX_RELEASE.md\"",
+    "build:firefox": "web-ext build --source-dir . --overwrite-dest --no-config-discovery --ignore-files \"docs\" \"docs/**\" \"graphify-out\" \"graphify-out/**\" \"tests\" \"tests/**\" \".github\" \".github/**\" \"scripts-dev\" \"scripts-dev/**\" \"package.json\" \"package-lock.json\" \"FIREFOX_RELEASE.md\"",
+    "sign:firefox": "web-ext sign --source-dir . --channel listed --no-config-discovery --ignore-files \"docs\" \"docs/**\" \"graphify-out\" \"graphify-out/**\" \"tests\" \"tests/**\" \".github\" \".github/**\" \"scripts-dev\" \"scripts-dev/**\" \"package.json\" \"package-lock.json\" \"FIREFOX_RELEASE.md\" --api-key \"$WEB_EXT_API_KEY\" --api-secret \"$WEB_EXT_API_SECRET\"",
+    "verify:package": "node scripts-dev/verify-firefox-package.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "devDependencies": {
+    "web-ext": "^8.3.0"
+  }
+}

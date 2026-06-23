@@ -51,7 +51,12 @@
     document.documentElement.lang = uiLanguage.slice(0, 2);
   }
 
-  window.eeI18n = { msg, applyI18n };
+  // chrome://extensions/shortcuts (and chrome:// URLs generally) don't exist in
+  // Firefox — there's no direct deep link to its shortcuts UI, so callers need
+  // to know which browser they're in to offer the right action/explanation.
+  const isFirefox = /\bFirefox\//.test(navigator.userAgent || "");
+
+  window.eeI18n = { msg, applyI18n, isFirefox };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => applyI18n(), { once: true });

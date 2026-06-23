@@ -1,0 +1,52 @@
+name: Publish to Firefox Add-ons (AMO)
+
+# Runs when a version tag like v0.7.0 is pushed. Lints, tests, then submits the
+# build to AMO for signing — once Mozilla approves it, existing installs update
+# automatically. See FIREFOX_RELEASE.md for one-time setup steps.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch: {} # lets you trigger a re-run manually from the Actions tab
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Lint for Firefox
+        run: npm run lint:firefox
+
+      - name: Build package and verify it contains no excluded files
+        run: |
+          npm run build:firefox
+          npm run verify:package
+
+      - name: Sign and submit to addons.mozilla.org
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+          WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: npm run sign:firefox
+
+      - name: Upload signed .xpi as a workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: firefox-xpi
+          path: web-ext-artifacts/*.xpi
+          if-no-files-found: ignore

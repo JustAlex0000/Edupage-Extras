@@ -181,6 +181,13 @@ reloadTabsButton.addEventListener("click", () => {
 });
 
 openShortcutSettingsButton.addEventListener("click", () => {
+	// chrome://extensions/shortcuts doesn't exist in Firefox — there's no direct
+	// deep link to its shortcuts UI there, so point to about:addons instead.
+	if (window.eeI18n?.isFirefox) {
+		chrome.tabs.create({ url: "about:addons" });
+		setStatus(t("shortcutSettingsFirefoxHint"));
+		return;
+	}
 	chrome.tabs.create({ url: "chrome://extensions/shortcuts" }, () => {
 		if (chrome.runtime.lastError) {
 			setStatus(t("shortcutSettingsFailed"), true);

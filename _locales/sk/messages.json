@@ -229,6 +229,7 @@
   "tabsReloaded": { "message": "Karty Edupage znovu načítané" },
   "noTabsOpen": { "message": "Žiadne otvorené karty Edupage" },
   "shortcutSettingsOpened": { "message": "Nastavenia skratiek otvorené" },
+  "shortcutSettingsFirefoxHint": { "message": "Firefox správuje skratky na stránke about:addons — kliknite tam na ikonu ozubeného kolieska a vyberte \"Správa skratiek doplnkov\"." },
   "shortcutSettingsFailed": { "message": "Nepodarilo sa otvoriť nastavenia skratiek" },
 
   "gradesOverall": { "message": "Celkovo" },

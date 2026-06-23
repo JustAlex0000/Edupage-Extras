@@ -229,6 +229,7 @@
   "tabsReloaded": { "message": "Edupage tabs reloaded" },
   "noTabsOpen": { "message": "No Edupage tabs open" },
   "shortcutSettingsOpened": { "message": "Shortcut settings opened" },
+  "shortcutSettingsFirefoxHint": { "message": "Firefox manages shortcuts on the about:addons page — click the gear icon there and choose \"Manage Extension Shortcuts\"." },
   "shortcutSettingsFailed": { "message": "Could not open shortcut settings" },
 
   "gradesOverall": { "message": "Overall" },

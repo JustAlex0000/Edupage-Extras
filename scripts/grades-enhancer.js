@@ -218,6 +218,8 @@
         .replace(/&#39;/g, "'");
     }
 
+    // <textarea> is a raw-text element per the HTML spec — innerHTML here only
+    // ever decodes entities into .value, it never parses/executes child markup.
     const textarea = document.createElement("textarea");
     textarea.innerHTML = String(value || "");
     return textarea.value;
