@@ -26,7 +26,7 @@ version 0.7.0. Once the listing is live, search "Edupage Extras" on
 repository (https://addons.mozilla.org/en-US/firefox/addon/edupage-extras/). Installs from AMO
 update automatically — no manual steps needed.
 
-Note: this extension is build around chromium based browsers and is just ported to chromium so anyone can use it.
+Note: this extension is built for Chromium-based browsers and has been ported to Firefox so anyone can use it.
       if you encounter any bugs please report it on my discord. (there is a report tool built in settings.)
 ## Features
 
@@ -35,7 +35,7 @@ Note: this extension is build around chromium based browsers and is just ported 
 - **Themes** for Edupage pages and extension menus.
 - **Theme hotkey** support for toggling themes on or off through the browser's
   extension shortcuts page.
-- **Theme picker** with Midnight Blue, Ocean Cyan, Forest Green, Emerald Green,
+- **Theme picker** with Dark, Ocean Cyan, Forest Green, Emerald Green,
   Rose Pink, Royal Purple, and Light themes.
 - **Centered layout** option for a cleaner main page layout.
 - **Help text cleanup** for hiding the top-right Edupage help greeting.

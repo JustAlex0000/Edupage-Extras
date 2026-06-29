@@ -15,6 +15,14 @@ const ROZVRH_ROOM_CHANGE_COLOR_KEY = "eeRozvrhRoomChangeColor";
 const ROZVRH_SUBSTITUTION_COLOR_KEY = "eeRozvrhSubstitutionColor";
 const DEFAULT_ROZVRH_ROOM_CHANGE_COLOR = "#1565c0";
 const DEFAULT_ROZVRH_SUBSTITUTION_COLOR = "#e65100";
+const LAST_SEEN_VERSION_KEY = "eeLastSeenVersion";
+const UPDATE_REMINDER_ENABLED_KEY = "eeUpdateReminderEnabled";
+// No GitHub Releases are published for this repo (just tags), so that page
+// is always empty — link to the commit history instead, which actually has
+// real per-version descriptions in the commit messages.
+const REPO_RELEASES_URL = "https://github.com/Alexosavrua/Edupage-Extras/commits/main";
+const MOBILE_RESPONSIVE_KEY = "eeMobileResponsiveEnabled";
+const MOBILE_STYLE_ID = "ee-mobile-responsive-style";
 const CLASS_NAME = "ee-dark";
 const THEME_CLASSES = [
   "ee-theme-dark",
@@ -682,6 +690,72 @@ function buildDarkCSS() {
   `;
 }
 
+// Debug-only, off by default — structural layout fixes only (wrapping,
+// scrolling, scaling), nothing content-dependent, so it doesn't need exam-day
+// page states to verify against. Scoped under a max-width media query so it
+// has zero effect on desktop regardless of the toggle.
+function buildMobileResponsiveCSS() {
+  return `
+    @media (max-width: 768px) {
+      html.ee-mobile-responsive body {
+        overflow-x: hidden !important;
+      }
+
+      html.ee-mobile-responsive .userTopDivInner,
+      html.ee-mobile-responsive .wmaxL1,
+      html.ee-mobile-responsive .userRozvrh {
+        flex-wrap: wrap !important;
+        width: auto !important;
+        max-width: 100% !important;
+      }
+
+      html.ee-mobile-responsive .edubarSidebar,
+      html.ee-mobile-responsive .edubarSidemenu2 {
+        width: auto !important;
+        min-width: 0 !important;
+      }
+
+      html.ee-mobile-responsive table.znamkyTable,
+      html.ee-mobile-responsive .timetable,
+      html.ee-mobile-responsive .gotoDay {
+        display: block !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        max-width: 100% !important;
+      }
+
+      html.ee-mobile-responsive .userButton,
+      html.ee-mobile-responsive .userHomeOther {
+        font-size: 13px !important;
+      }
+
+      html.ee-mobile-responsive img,
+      html.ee-mobile-responsive .user-button-icon {
+        max-width: 100% !important;
+        height: auto !important;
+      }
+    }
+  `;
+}
+
+function ensureMobileResponsiveStylesheet() {
+  const existing = document.getElementById(MOBILE_STYLE_ID);
+  if (existing) {
+    existing.textContent = buildMobileResponsiveCSS();
+    return existing;
+  }
+  const style = document.createElement("style");
+  style.id = MOBILE_STYLE_ID;
+  style.textContent = buildMobileResponsiveCSS();
+  (document.head || document.documentElement).appendChild(style);
+  return style;
+}
+
+function applyMobileResponsive(enabled) {
+  ensureMobileResponsiveStylesheet();
+  document.documentElement.classList.toggle("ee-mobile-responsive", Boolean(enabled));
+}
+
 function ensureStylesheet() {
   const existing = document.getElementById(STYLE_ID);
   if (existing) {
@@ -1022,8 +1096,9 @@ function initDarkMode() {
   }
 
   chrome.storage.local.get(
-    [STORAGE_KEY, THEME_KEY, CUSTOM_THEME_KEY, CLEAN_UI_KEY, HIDE_HELP_TEXT_KEY, ROZVRH_ROOM_CHANGE_COLOR_KEY, ROZVRH_SUBSTITUTION_COLOR_KEY],
+    [STORAGE_KEY, THEME_KEY, CUSTOM_THEME_KEY, CLEAN_UI_KEY, HIDE_HELP_TEXT_KEY, ROZVRH_ROOM_CHANGE_COLOR_KEY, ROZVRH_SUBSTITUTION_COLOR_KEY, MOBILE_RESPONSIVE_KEY],
     (result) => {
+      applyMobileResponsive(result[MOBILE_RESPONSIVE_KEY] === true);
       const enabled = result[STORAGE_KEY] === true;
       const theme = normalizeTheme(result[THEME_KEY]);
       const customTheme = normalizeCustomTheme(result[CUSTOM_THEME_KEY]);
@@ -1038,8 +1113,79 @@ function initDarkMode() {
 
 initDarkMode();
 
+// Shows a one-time toast the first time the page loads after an update —
+// not on first install (lastSeen is unset then, so we just record the
+// version silently). Respects the same "Update Reminders" toggle the
+// GitHub-install update checker already uses, so muting one mutes both.
+function showUpdateToast(version) {
+  if (document.getElementById("ee-update-toast")) return;
+
+  const toast = document.createElement("div");
+  toast.id = "ee-update-toast";
+  toast.setAttribute("role", "status");
+  toast.style.cssText = [
+    "position: fixed", "bottom: 20px", "right: 20px", "z-index: 2147483000",
+    "max-width: 320px", "padding: 14px 16px", "border-radius: 10px",
+    "background: #171d28", "color: #eef2f7",
+    "font: 13px/1.4 -apple-system, 'Segoe UI', Roboto, sans-serif",
+    "box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35)",
+    "border: 1px solid rgba(255, 255, 255, 0.12)",
+  ].join(";");
+
+  const title = document.createElement("strong");
+  title.style.cssText = "display: block; margin-bottom: 4px; font-size: 13px;";
+  title.textContent = (chrome.i18n.getMessage("updateToastTitle") || "Edupage Extras updated to v{version}")
+    .replace("{version}", version);
+
+  const body = document.createElement("p");
+  body.style.cssText = "margin: 0 0 10px 0; color: #b9c2cf;";
+  body.textContent = chrome.i18n.getMessage("updateToastBody") || "See what changed in this version.";
+
+  const actions = document.createElement("div");
+  actions.style.cssText = "display: flex; gap: 10px; justify-content: flex-end; align-items: center;";
+
+  const viewLink = document.createElement("a");
+  viewLink.href = REPO_RELEASES_URL;
+  viewLink.target = "_blank";
+  viewLink.rel = "noopener noreferrer";
+  viewLink.textContent = chrome.i18n.getMessage("updateToastViewChanges") || "What's new";
+  viewLink.style.cssText = "color: #4fc3f7; text-decoration: none; font-weight: 600;";
+
+  const dismissButton = document.createElement("button");
+  dismissButton.type = "button";
+  dismissButton.textContent = chrome.i18n.getMessage("updateToastDismiss") || "Dismiss";
+  dismissButton.style.cssText = [
+    "background: #232d3d", "color: #eef2f7", "border: 1px solid rgba(255, 255, 255, 0.12)",
+    "border-radius: 6px", "padding: 4px 10px", "cursor: pointer", "font-size: 12px",
+  ].join(";");
+  dismissButton.addEventListener("click", () => toast.remove());
+
+  actions.append(viewLink, dismissButton);
+  toast.append(title, body, actions);
+  document.body.appendChild(toast);
+}
+
+function checkForUpdateToast() {
+  const currentVersion = chrome.runtime.getManifest().version;
+  chrome.storage.local.get([LAST_SEEN_VERSION_KEY, UPDATE_REMINDER_ENABLED_KEY], (result) => {
+    const lastSeenVersion = result[LAST_SEEN_VERSION_KEY];
+    const reminderEnabled = result[UPDATE_REMINDER_ENABLED_KEY] !== false;
+    if (lastSeenVersion && lastSeenVersion !== currentVersion && reminderEnabled) {
+      showUpdateToast(currentVersion);
+    }
+    if (lastSeenVersion !== currentVersion) {
+      chrome.storage.local.set({ [LAST_SEEN_VERSION_KEY]: currentVersion });
+    }
+  });
+}
+
+checkForUpdateToast();
+
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
+  if (changes[MOBILE_RESPONSIVE_KEY]) {
+    applyMobileResponsive(changes[MOBILE_RESPONSIVE_KEY].newValue === true);
+  }
   if (
     !changes[STORAGE_KEY]
     && !changes[THEME_KEY]
@@ -1080,6 +1226,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       rozvrhRoomChangeColor: message.rozvrhRoomChangeColor || currentRozvrhRoomChangeColor,
       rozvrhSubstitutionColor: message.rozvrhSubstitutionColor || currentRozvrhSubstitutionColor,
     });
+    applyMobileResponsive(message.mobileResponsiveEnabled === true);
+  }
+  if (message && message.type === "ee-preview-update-toast") {
+    showUpdateToast(chrome.runtime.getManifest().version);
   }
   return false;
 });

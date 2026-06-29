@@ -29,6 +29,7 @@ const exportCustomThemeButton = document.getElementById("ExportCustomThemeButton
 const importCustomThemeButton = document.getElementById("ImportCustomThemeButton");
 const resetCustomThemeButton = document.getElementById("ResetCustomThemeButton");
 const customThemeStatus = document.getElementById("CustomThemeStatus");
+const timetableHighlightColorsRow = document.getElementById("TimetableHighlightColorsRow");
 const rozvrhRoomChangeColorInput = document.getElementById("RozvrhRoomChangeColor");
 const rozvrhSubstitutionColorInput = document.getElementById("RozvrhSubstitutionColor");
 const customRozvrhRoomChangeInput = document.getElementById("CustomRozvrhRoomChange");
@@ -37,6 +38,15 @@ const updateReminderToggle = document.getElementById("UpdateReminderCheckbox");
 const checkUpdatesButton = document.getElementById("CheckUpdatesButton");
 const openRepositoryButton = document.getElementById("OpenRepositoryButton");
 const updateStatusText = document.getElementById("UpdateStatusText");
+const experimentalContent = document.getElementById("ExperimentalContent");
+const experimentalConfirmContinue = document.getElementById("ExperimentalConfirmContinue");
+const experimentalShortcutSettingsButton = document.getElementById("ExperimentalShortcutSettingsButton");
+const activityShieldShortcutStatus = document.getElementById("ActivityShieldShortcutStatus");
+const resetActivityShieldButton = document.getElementById("ResetActivityShieldButton");
+const reloadEdupageTabsButton = document.getElementById("ReloadEdupageTabsButton");
+const experimentalSaveStatus = document.getElementById("ExperimentalSaveStatus");
+const mobileResponsiveToggle = document.getElementById("MobileResponsiveCheckbox");
+const previewUpdateToastButton = document.getElementById("PreviewUpdateToastButton");
 const STORAGE_KEY = "darkModeEnabled";
 const THEME_KEY = "themeMode";
 const CUSTOM_THEME_KEY = "customThemeColors";
@@ -58,6 +68,42 @@ const UPDATE_STATUS_KEY = "eeUpdateStatus";
 const UPDATE_REMINDER_ENABLED_KEY = "eeUpdateReminderEnabled";
 const THEME_TOGGLE_COMMAND = "toggle-theme-mode";
 const REPO_URL = "https://github.com/Alexosavrua/Edupage-Extras";
+const ACTIVITY_SHIELD_COMMAND = "toggle-stay-active-mode";
+const MOBILE_RESPONSIVE_KEY = "eeMobileResponsiveEnabled";
+const activityShieldSettings = [
+	["ActivityShieldEnabled", "eeActivityShieldEnabled"],
+	["ActivityVisibilityState", "eeActivityShieldVisibilityState"],
+	["ActivityHidden", "eeActivityShieldHidden"],
+	["ActivityVisibilityEvents", "eeActivityShieldVisibilityEvents"],
+	["ActivityFocus", "eeActivityShieldFocus"],
+	["ActivityBlur", "eeActivityShieldBlur"],
+	["ActivityRedirect", "eeActivityShieldRedirect"],
+	["ActivityMouseleave", "eeActivityShieldMouseleave"],
+	["ActivityMouseout", "eeActivityShieldMouseout"],
+	["ActivityPointercapture", "eeActivityShieldPointercapture"],
+	["ActivityClipboard", "eeActivityShieldClipboard"],
+	["ActivityAnimationFrame", "eeActivityShieldAnimationFrame"],
+	["ActivityVisualIndicator", "eeActivityShieldVisualIndicator"],
+	["ActivityLog", "eeActivityShieldLog"],
+];
+const activityShieldDefaults = {
+	eeActivityShieldEnabled: false,
+	eeActivityShieldVisibilityState: true,
+	eeActivityShieldHidden: true,
+	eeActivityShieldVisibilityEvents: true,
+	eeActivityShieldFocus: true,
+	eeActivityShieldBlur: true,
+	eeActivityShieldRedirect: true,
+	eeActivityShieldMouseleave: true,
+	eeActivityShieldMouseout: true,
+	eeActivityShieldPointercapture: true,
+	eeActivityShieldClipboard: true,
+	eeActivityShieldAnimationFrame: true,
+	eeActivityShieldVisualIndicator: false,
+	eeActivityShieldLog: false,
+};
+const activityShieldStorageKeys = Object.keys(activityShieldDefaults);
+const activityShieldControlledSettings = activityShieldSettings.filter(([elementId]) => elementId !== "ActivityShieldEnabled");
 const THEMES = ["dark", "ocean", "forest", "emerald", "pink", "purple", "custom", "light"];
 const DEFAULT_CUSTOM_THEME = {
 	bgBase: "#11111b",
@@ -193,6 +239,7 @@ function updateDependentControls() {
 	resetCustomThemeButton.disabled = !customVisible;
 
 	const rozvrhColorsEnabled = timetableHighlightsToggle.checked;
+	if (timetableHighlightColorsRow) timetableHighlightColorsRow.hidden = !rozvrhColorsEnabled;
 	if (rozvrhRoomChangeColorInput) rozvrhRoomChangeColorInput.disabled = !rozvrhColorsEnabled;
 	if (rozvrhSubstitutionColorInput) rozvrhSubstitutionColorInput.disabled = !rozvrhColorsEnabled;
 	if (customRozvrhRoomChangeInput) customRozvrhRoomChangeInput.disabled = !(rozvrhColorsEnabled && customVisible);
@@ -204,6 +251,7 @@ function notifyEdupageTabs() {
 	const theme = themeSelect.value;
 	const cleanUiEnabled = cleanUiToggle.checked;
 	const hideHelpTextEnabled = hideHelpTextToggle.checked;
+	const mobileResponsiveEnabled = mobileResponsiveToggle?.checked === true;
 
 	chrome.tabs.query({ url: "*://*.edupage.org/*" }, (tabs) => {
 		tabs.forEach((tab) => {
@@ -217,6 +265,7 @@ function notifyEdupageTabs() {
 					hideHelpTextEnabled,
 					rozvrhRoomChangeColor,
 					rozvrhSubstitutionColor,
+					mobileResponsiveEnabled,
 				}, () => {
 					void chrome.runtime.lastError;
 				});
@@ -731,26 +780,173 @@ openShortcutSettingsButton.addEventListener("click", () => {
 	chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
 });
 
+// Experimental is a real tab like the others (wired into the generic nav
+// click handler above), but its content stays hidden until confirmed via a
+// real modal dialog for this browser session — no separate page/URL exists
+// to type around the gate, since it's all one document now.
 const experimentalConfirmDialog = document.getElementById("ExperimentalConfirmDialog");
 const experimentalConfirmCancel = document.getElementById("ExperimentalConfirmCancel");
-const experimentalConfirmContinue = document.getElementById("ExperimentalConfirmContinue");
+
+function isExperimentalConfirmed() {
+	return sessionStorage.getItem("eeExperimentalConfirmed") === "1";
+}
+
+function revealExperimentalContent() {
+	if (experimentalContent) experimentalContent.hidden = false;
+}
 
 experimentalSettingsButton.addEventListener("click", () => {
-	experimentalConfirmDialog.showModal();
+	if (isExperimentalConfirmed()) {
+		revealExperimentalContent();
+	} else {
+		experimentalConfirmDialog.showModal();
+	}
 });
 
 experimentalConfirmCancel.addEventListener("click", () => {
 	experimentalConfirmDialog.close();
+	activateSettingsSection(settingsNavItems[0]?.dataset.target);
+});
+
+experimentalConfirmDialog.addEventListener("click", (event) => {
+	if (event.target === experimentalConfirmDialog) {
+		experimentalConfirmDialog.close();
+		activateSettingsSection(settingsNavItems[0]?.dataset.target);
+	}
 });
 
 experimentalConfirmContinue.addEventListener("click", () => {
 	sessionStorage.setItem("eeExperimentalConfirmed", "1");
-	window.location.href = "experimental.html";
+	experimentalConfirmDialog.close();
+	revealExperimentalContent();
 });
 
-experimentalConfirmDialog.addEventListener("click", (event) => {
-	if (event.target === experimentalConfirmDialog) experimentalConfirmDialog.close();
+function renderActivityShieldShortcutStatus() {
+	if (!activityShieldShortcutStatus) return;
+	if (!chrome.commands?.getAll) {
+		activityShieldShortcutStatus.textContent = t("shortcutUnavailable");
+		return;
+	}
+	chrome.commands.getAll((commands) => {
+		const command = commands.find((entry) => entry.name === ACTIVITY_SHIELD_COMMAND);
+		const shortcut = command?.shortcut?.trim();
+		activityShieldShortcutStatus.textContent = shortcut
+			? t("currentHotkey", [shortcut])
+			: t("noHotkey");
+	});
+}
+
+function setExperimentalStatus(message, isError = false) {
+	if (!experimentalSaveStatus) return;
+	experimentalSaveStatus.textContent = message;
+	experimentalSaveStatus.style.color = isError ? "var(--danger-color)" : "var(--accent-color)";
+	window.clearTimeout(setExperimentalStatus.timer);
+	setExperimentalStatus.timer = window.setTimeout(() => {
+		experimentalSaveStatus.textContent = "";
+	}, 2200);
+}
+
+function updateActivityShieldDependentControls() {
+	const enabled = document.getElementById("ActivityShieldEnabled")?.checked === true;
+	activityShieldControlledSettings.forEach(([elementId]) => {
+		const element = document.getElementById(elementId);
+		if (element) element.disabled = !enabled;
+	});
+}
+
+function renderActivityShieldSettings(result) {
+	activityShieldSettings.forEach(([elementId, key]) => {
+		const element = document.getElementById(elementId);
+		if (element) element.checked = result[key];
+	});
+	updateActivityShieldDependentControls();
+}
+
+activityShieldSettings.forEach(([elementId, key]) => {
+	const element = document.getElementById(elementId);
+	if (!element) return;
+	element.addEventListener("change", () => {
+		chrome.storage.local.set({ [key]: element.checked }, () => {
+			if (elementId === "ActivityShieldEnabled") updateActivityShieldDependentControls();
+			setExperimentalStatus(t("savedStatus"));
+		});
+	});
 });
+
+if (resetActivityShieldButton) {
+	resetActivityShieldButton.addEventListener("click", () => {
+		chrome.storage.local.remove("eeActivityShieldPolicies", () => {
+			chrome.storage.local.set(activityShieldDefaults, () => {
+				renderActivityShieldSettings(activityShieldDefaults);
+				setExperimentalStatus(t("resetStatus"));
+			});
+		});
+	});
+}
+
+if (reloadEdupageTabsButton) {
+	reloadEdupageTabsButton.addEventListener("click", () => {
+		chrome.tabs.query({ url: "*://*.edupage.org/*" }, (tabs) => {
+			tabs.forEach((tab) => {
+				if (tab.id) chrome.tabs.reload(tab.id);
+			});
+			setExperimentalStatus(tabs.length ? t("tabsReloaded") : t("noTabsOpen"));
+		});
+	});
+}
+
+if (experimentalShortcutSettingsButton) {
+	experimentalShortcutSettingsButton.addEventListener("click", () => {
+		if (window.eeI18n?.isFirefox) {
+			chrome.tabs.create({ url: "about:addons" });
+			setExperimentalStatus(t("shortcutSettingsFirefoxHint"));
+			return;
+		}
+		chrome.tabs.create({ url: "chrome://extensions/shortcuts" }, () => {
+			if (chrome.runtime.lastError) {
+				setExperimentalStatus(t("shortcutSettingsFailed"), true);
+				return;
+			}
+			setExperimentalStatus(t("shortcutSettingsOpened"));
+		});
+	});
+}
+
+chrome.storage.local.get(activityShieldDefaults, renderActivityShieldSettings);
+renderActivityShieldShortcutStatus();
+window.addEventListener("focus", renderActivityShieldShortcutStatus);
+
+chrome.storage.onChanged.addListener((changes, area) => {
+	if (area !== "local") return;
+	if (activityShieldStorageKeys.some((key) => changes[key])) {
+		chrome.storage.local.get(activityShieldDefaults, renderActivityShieldSettings);
+	}
+});
+
+if (mobileResponsiveToggle) {
+	chrome.storage.local.get([MOBILE_RESPONSIVE_KEY], (result) => {
+		mobileResponsiveToggle.checked = result[MOBILE_RESPONSIVE_KEY] === true;
+	});
+	mobileResponsiveToggle.addEventListener("change", () => {
+		chrome.storage.local.set({ [MOBILE_RESPONSIVE_KEY]: mobileResponsiveToggle.checked });
+		notifyEdupageTabs();
+	});
+}
+
+if (previewUpdateToastButton) {
+	previewUpdateToastButton.addEventListener("click", () => {
+		chrome.tabs.query({ url: "*://*.edupage.org/*" }, (tabs) => {
+			if (reportStatus) {
+				reportStatus.textContent = tabs.length
+					? t("previewUpdateToastSent", [String(tabs.length)])
+					: t("noTabsOpen");
+			}
+			tabs.forEach((tab) => {
+				if (tab.id) chrome.tabs.sendMessage(tab.id, { type: "ee-preview-update-toast" });
+			});
+		});
+	});
+}
 
 renderShortcutStatus();
 renderDefaultHalfyearHints();
@@ -812,6 +1008,11 @@ if (settingsNavItems.length) {
 	chrome.storage.local.get([SETTINGS_SECTION_KEY], (result) => {
 		const saved = result[SETTINGS_SECTION_KEY];
 		const validTargets = settingsNavItems.map((item) => item.dataset.target);
-		activateSettingsSection(validTargets.includes(saved) ? saved : validTargets[0]);
+		let target = validTargets.includes(saved) ? saved : validTargets[0];
+		// A fresh page load has no session-confirmed Experimental access yet,
+		// even if it was the last-viewed tab before — never silently land on
+		// the gated content without going through the click handler first.
+		if (target === "experimental" && !isExperimentalConfirmed()) target = validTargets[0];
+		activateSettingsSection(target);
 	});
 }

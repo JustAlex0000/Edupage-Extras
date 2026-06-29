@@ -103,6 +103,16 @@
   "secondHalfEndDesc": { "message": "Override when the second halfyear ends for predicted attendance in grades. Leave this empty to use EduPage's default end date for the current school year." },
 
   "groupDebug": { "message": "Debug" },
+  "mobileResponsive": { "message": "Mobile-Responsive Layout" },
+  "mobileResponsiveDesc": { "message": "Inject structural CSS (flex-wrap, scrollable tables, scaled sidebar/fonts) to make Edupage usable on small screens. Off by default — not fully verified on every page yet." },
+  "toggleMobileResponsive": { "message": "Toggle mobile-responsive layout" },
+  "previewUpdateToast": { "message": "Preview Update Toast" },
+  "previewUpdateToastDesc": { "message": "Show the \"what's new\" toast on an open Edupage tab right now, without waiting for an actual version change." },
+  "previewUpdateToastButton": { "message": "Preview" },
+  "previewUpdateToastSent": {
+    "message": "Sent to $count$ open Edupage tab(s).",
+    "placeholders": { "count": { "content": "$1" } }
+  },
   "gradesDebug": { "message": "Grades Attendance Debug" },
   "gradesDebugDesc": { "message": "Print detailed fetch, parsing, matching, and rendering diagnostics for the grades attendance feature into the browser console." },
   "toggleGradesDebug": { "message": "Toggle grades attendance debug" },
@@ -142,6 +152,10 @@
   "updateReminders": { "message": "Update Reminders" },
   "updateRemindersDesc": { "message": "Check the public GitHub project for a newer unpacked version." },
   "toggleUpdateReminders": { "message": "Toggle update reminders" },
+  "updateToastTitle": { "message": "Edupage Extras updated to v{version}" },
+  "updateToastBody": { "message": "See what changed in this version." },
+  "updateToastViewChanges": { "message": "What's new" },
+  "updateToastDismiss": { "message": "Dismiss" },
   "versionCheck": { "message": "Version Check" },
   "noUpdateCheck": { "message": "No update check has run yet." },
   "checkForUpdates": { "message": "Check For Updates" },

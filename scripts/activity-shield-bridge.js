@@ -85,7 +85,7 @@
     ].join(";");
 
     indicator.addEventListener("click", () => {
-      window.open(chrome.runtime.getURL("menu/experimental.html"), "_blank", "noopener");
+      window.open(chrome.runtime.getURL("menu/settings.html"), "_blank", "noopener");
     });
     document.documentElement.append(indicator);
     return indicator;

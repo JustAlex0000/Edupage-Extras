@@ -2,7 +2,7 @@
   "name": "__MSG_extName__",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "manifest_version": 3,
   "browser_specific_settings": {
     "gecko": {
@@ -11,6 +11,9 @@
       "data_collection_permissions": {
         "required": ["none"]
       }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
     }
   },
   "permissions": ["storage", "tabs", "alarms", "notifications"],
