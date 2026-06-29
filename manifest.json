@@ -2,7 +2,7 @@
   "name": "__MSG_extName__",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "manifest_version": 3,
   "browser_specific_settings": {
     "gecko": {
@@ -33,7 +33,7 @@
   },
   "action": {
     "default_popup": "menu/menu.html",
-    "default_icon": "images/placeholder_icon.png"
+    "default_icon": "images/Edupage-Extras.png"
   },
   "options_ui": {
     "page": "menu/settings.html",

@@ -28,6 +28,13 @@ const THEME_CLASSES = [
 ];
 const CLEAN_UI_CLASS = "ee-clean-ui";
 const HIDE_HELP_TEXT_CLASS = "ee-hide-help-text";
+// "pink" is a light pastel theme, not a dark one — it still goes through the
+// ee-dark code path (recolors EduPage's containers via the --ee-* vars), but
+// dark-mode-specific sensory adjustments (forced color-scheme: dark, image
+// dimming, icon inversion) would look broken on its light background, so
+// those are gated behind SCHEME_DARK_CLASS instead of CLASS_NAME.
+const LIGHT_TONED_THEMES = ["pink"];
+const SCHEME_DARK_CLASS = "ee-scheme-dark";
 const STYLE_ID = "ee-dark-mode-style";
 const SURFACE_CLASS = "ee-dark-surface";
 const ELEVATED_CLASS = "ee-dark-elevated";
@@ -62,115 +69,177 @@ const DEFAULT_CUSTOM_THEME = {
 
 function buildDarkCSS() {
   return `
-    html.ee-dark {
+    /* === Dark mode, rebuilt from real measured stock colors ==============
+       Token set mirrors the actual distinct regions EduPage's own *light*
+       skin uses (measured live against a real school instance), not an
+       invented design system:
+         --ee-page-bg     page body, cards, dialogs — in stock these are
+                          ALL literally the same white. No separate "card"
+                          tier exists in EduPage's own design, so we don't
+                          invent one either.
+         --ee-header-bg   the blue top bar (#edubar / .edubarHeader).
+         --ee-brand-dark  the one specific dark-navy block EduPage itself
+                          hardcodes regardless of skin — the homepage
+                          timetable-strip background AND the active sidebar
+                          nav item reuse this exact same color in stock, so
+                          they share one token here too.
+         --ee-sidebar-bg  the left nav column — barely off-white in stock,
+                          barely off-page-bg here.
+         --ee-border      hairline dividers between cards/rows.
+         --ee-text        body/heading text.
+         --ee-text-muted  secondary text (timestamps, subtitles).
+         --ee-link        clickable text / highlighted values.
+       Only "dark" has real designed values below. The other theme classes
+       intentionally alias to the same values for now — recoloring them
+       properly is the next step once this base is confirmed good, not a
+       bug. */
+    html.ee-dark.ee-scheme-dark {
       color-scheme: dark !important;
-      --ee-bg-base: #11111b;
-      --ee-bg-raised: #181825;
-      --ee-bg-elevated: #1e1e2e;
-      --ee-bg-muted: #2a2b3d;
-      --ee-border: #313244;
-      --ee-text-main: #cdd6f4;
-      --ee-text-muted: #a6adc8;
-      --ee-accent: #89b4fa;
-      --ee-warning: #fab387;
-      --ee-danger: #f38ba8;
+    }
+
+    html.ee-dark:not(.ee-scheme-dark) {
+      color-scheme: light !important;
+    }
+
+    html.ee-dark {
+      --ee-page-bg: #11161f;
+      --ee-card-bg: #171d28;
+      --ee-card-bg-bright: #1d2532;
+      --ee-card-hover: #232d3d;
+      --ee-header-bg: #255b87;
+      --ee-brand-dark: #11263d;
+      --ee-sidebar-bg: #171d28;
+      --ee-sidebar-hover: #1b2738;
+      --ee-border: rgba(255, 255, 255, 0.08);
+      --ee-text: #eef2f7;
+      --ee-text-muted: #8c96a6;
+      --ee-link: #4fc3f7;
+      --ee-warning: #ffb74d;
+      --ee-danger: #ef5350;
     }
 
     html.ee-theme-ocean {
-      --ee-bg-base: #071a1f;
-      --ee-bg-raised: #0c252c;
-      --ee-bg-elevated: #12343d;
-      --ee-bg-muted: #1d4b55;
-      --ee-border: #2e6470;
-      --ee-text-main: #d8f3f0;
-      --ee-text-muted: #9cc6c8;
-      --ee-accent: #61d4d4;
-      --ee-warning: #ffd166;
-      --ee-danger: #ff6b7a;
+      --ee-page-bg: #071a1f;
+      --ee-card-bg: #0d242b;
+      --ee-card-bg-bright: #123039;
+      --ee-card-hover: #173b46;
+      --ee-header-bg: #0e6675;
+      --ee-brand-dark: #082b33;
+      --ee-sidebar-bg: #0d242b;
+      --ee-sidebar-hover: #123640;
+      --ee-border: rgba(255, 255, 255, 0.08);
+      --ee-text: #d8f3f0;
+      --ee-text-muted: #7fa8ac;
+      --ee-link: #4dd0e1;
+      --ee-warning: #ffb74d;
+      --ee-danger: #ef5350;
     }
 
     html.ee-theme-forest {
-      --ee-bg-base: #11170f;
-      --ee-bg-raised: #182316;
-      --ee-bg-elevated: #21311d;
-      --ee-bg-muted: #30452b;
-      --ee-border: #466241;
-      --ee-text-main: #e5f2df;
-      --ee-text-muted: #b2c7aa;
-      --ee-accent: #93d36b;
-      --ee-warning: #e9c46a;
-      --ee-danger: #ef767a;
+      --ee-page-bg: #11170f;
+      --ee-card-bg: #182015;
+      --ee-card-bg-bright: #1e291a;
+      --ee-card-hover: #243321;
+      --ee-header-bg: #2e5a2e;
+      --ee-brand-dark: #15241a;
+      --ee-sidebar-bg: #182015;
+      --ee-sidebar-hover: #20301f;
+      --ee-border: rgba(255, 255, 255, 0.08);
+      --ee-text: #e5f2df;
+      --ee-text-muted: #93a78c;
+      --ee-link: #81c784;
+      --ee-warning: #ffb74d;
+      --ee-danger: #ef5350;
     }
 
     html.ee-theme-emerald {
-      --ee-bg-base: #071a12;
-      --ee-bg-raised: #0b2619;
-      --ee-bg-elevated: #103621;
-      --ee-bg-muted: #15512e;
-      --ee-border: #1f7a45;
-      --ee-text-main: #eafff3;
-      --ee-text-muted: #a7e8c0;
-      --ee-accent: #2ff28a;
-      --ee-warning: #ffe66d;
-      --ee-danger: #ff6b7a;
-    }
-
-    html.ee-theme-pink {
-      --ee-bg-base: #fff5fa;
-      --ee-bg-raised: #ffe3f0;
-      --ee-bg-elevated: #ffd0e4;
-      --ee-bg-muted: #f2a6c9;
-      --ee-border: #c76491;
-      --ee-text-main: #25111b;
-      --ee-text-muted: #5f2d44;
-      --ee-accent: #b0005c;
-      --ee-warning: #ffd166;
-      --ee-danger: #8f003f;
+      --ee-page-bg: #071a12;
+      --ee-card-bg: #0d241a;
+      --ee-card-bg-bright: #123121;
+      --ee-card-hover: #173d29;
+      --ee-header-bg: #0f6b4a;
+      --ee-brand-dark: #0a2c1f;
+      --ee-sidebar-bg: #0d241a;
+      --ee-sidebar-hover: #133c2a;
+      --ee-border: rgba(255, 255, 255, 0.08);
+      --ee-text: #eafff3;
+      --ee-text-muted: #7fb89e;
+      --ee-link: #4adfa3;
+      --ee-warning: #ffb74d;
+      --ee-danger: #ef5350;
     }
 
     html.ee-theme-purple {
-      --ee-bg-base: #171326;
-      --ee-bg-raised: #211a33;
-      --ee-bg-elevated: #2d2444;
-      --ee-bg-muted: #41335f;
-      --ee-border: #5b4a7f;
-      --ee-text-main: #f0eaff;
-      --ee-text-muted: #c4b5e6;
-      --ee-accent: #b69cff;
-      --ee-warning: #f3c969;
-      --ee-danger: #ff7aa2;
+      --ee-page-bg: #171326;
+      --ee-card-bg: #1f1a33;
+      --ee-card-bg-bright: #26203f;
+      --ee-card-hover: #2e274c;
+      --ee-header-bg: #4a3a8f;
+      --ee-brand-dark: #211a3d;
+      --ee-sidebar-bg: #1f1a33;
+      --ee-sidebar-hover: #2a2247;
+      --ee-border: rgba(255, 255, 255, 0.08);
+      --ee-text: #f0eaff;
+      --ee-text-muted: #a79bc7;
+      --ee-link: #b39ddb;
+      --ee-warning: #ffb74d;
+      --ee-danger: #ef5350;
+    }
+
+    /* Pink is light-toned (see isLightTonedTheme()) so its tiers run the
+       opposite direction of the dark themes — "elevated" surfaces get
+       brighter/whiter, not darker, same way EduPage's own light skin does. */
+    html.ee-theme-pink {
+      --ee-page-bg: #fff5fa;
+      --ee-card-bg: #ffffff;
+      --ee-card-bg-bright: #fff0f7;
+      --ee-card-hover: #ffe4ef;
+      --ee-header-bg: #f48fb1;
+      --ee-brand-dark: #f8c1d8;
+      --ee-sidebar-bg: #fff9fc;
+      --ee-sidebar-hover: #ffeaf3;
+      --ee-border: rgba(0, 0, 0, 0.08);
+      --ee-text: #25111b;
+      --ee-text-muted: #8a6373;
+      --ee-link: #e91e63;
+      --ee-warning: #ed6c02;
+      --ee-danger: #d32f2f;
     }
 
     html.ee-theme-custom {
-      --ee-bg-base: var(--ee-custom-bg-base, #11111b);
-      --ee-bg-raised: var(--ee-custom-bg-raised, #181825);
-      --ee-bg-elevated: var(--ee-custom-bg-elevated, #1e1e2e);
-      --ee-bg-muted: var(--ee-custom-bg-muted, #2a2b3d);
-      --ee-border: var(--ee-custom-border, #313244);
-      --ee-text-main: var(--ee-custom-text-main, #cdd6f4);
-      --ee-text-muted: var(--ee-custom-text-muted, #a6adc8);
-      --ee-accent: var(--ee-custom-accent, #89b4fa);
-      --ee-warning: var(--ee-custom-warning, #fab387);
-      --ee-danger: var(--ee-custom-danger, #f38ba8);
+      --ee-page-bg: var(--ee-custom-bg-base, #11161f);
+      --ee-card-bg: var(--ee-custom-bg-raised, #171d28);
+      --ee-card-bg-bright: var(--ee-custom-bg-elevated, #1d2532);
+      --ee-card-hover: var(--ee-custom-bg-muted, #232d3d);
+      --ee-header-bg: var(--ee-custom-bg-elevated, #255b87);
+      --ee-brand-dark: var(--ee-custom-bg-muted, #11263d);
+      --ee-sidebar-bg: var(--ee-custom-bg-raised, #171d28);
+      --ee-sidebar-hover: var(--ee-custom-bg-elevated, #1b2738);
+      --ee-border: var(--ee-custom-border, rgba(255, 255, 255, 0.08));
+      --ee-text: var(--ee-custom-text-main, #eef2f7);
+      --ee-text-muted: var(--ee-custom-text-muted, #8c96a6);
+      --ee-link: var(--ee-custom-accent, #4fc3f7);
+      --ee-warning: var(--ee-custom-warning, #ffb74d);
+      --ee-danger: var(--ee-custom-danger, #ef5350);
     }
 
     html.ee-dark,
     html.ee-dark body {
-      background-color: var(--ee-bg-base) !important;
-      color: var(--ee-text-main) !important;
+      background-color: var(--ee-page-bg) !important;
+      color: var(--ee-text) !important;
     }
 
     html.ee-dark ::selection {
-      background-color: #45475a !important;
-      color: var(--ee-text-main) !important;
+      background-color: var(--ee-brand-dark) !important;
+      color: var(--ee-text) !important;
     }
 
     html.ee-dark input,
     html.ee-dark textarea,
     html.ee-dark select,
     html.ee-dark button {
-      background-color: var(--ee-bg-elevated) !important;
-      color: var(--ee-text-main) !important;
+      background-color: var(--ee-card-bg) !important;
+      color: var(--ee-text) !important;
       border-color: var(--ee-border) !important;
     }
 
@@ -179,7 +248,7 @@ function buildDarkCSS() {
       color: var(--ee-text-muted) !important;
     }
 
-    /* Known Edupage containers and modules */
+    /* Page: full-bleed wrappers with no visible card boundary of their own. */
     html.ee-dark .bgDiv,
     html.ee-dark .userHomeWidget,
     html.ee-dark .userTopDiv,
@@ -193,120 +262,175 @@ function buildDarkCSS() {
     html.ee-dark .edubarMainNoSkin,
     html.ee-dark #bar_mainDiv,
     html.ee-dark #eb_main_content,
-    html.ee-dark .smartb,
     html.ee-dark .timeline-container,
-    html.ee-dark .timeline-item,
-    html.ee-dark .tml-item,
     html.ee-dark .grid-container,
-    html.ee-dark .notifBox,
     html.ee-dark .hwMainListMain,
     html.ee-dark body.skindefault {
-      background-color: var(--ee-bg-base) !important;
-      color: var(--ee-text-main) !important;
-    }
-
-    html.ee-dark .userTopLogo,
-    html.ee-dark .userTopLogo div {
-      color: var(--ee-text-main) !important;
-      background-color: transparent !important;
+      background-color: var(--ee-page-bg) !important;
       background-image: none !important;
+      color: var(--ee-text) !important;
+      border-color: var(--ee-border) !important;
     }
 
+    /* Cards: dashboard tiles, calendar cells, homework items, grade table,
+       popovers/dialogs — one step up from the page so every card boundary
+       stays as visible as it is in the light theme (border is brighter
+       than the page/card contrast alone to guarantee that). */
     html.ee-dark .userButton,
-    html.ee-dark .userRozvrh,
     html.ee-dark .userHomeOther,
     html.ee-dark .userHomeTitle,
-    html.ee-dark .userStats,
     html.ee-dark .rozvrhItem,
     html.ee-dark .rozvrhItemAlign,
     html.ee-dark .userCal2,
     html.ee-dark .calendar,
-    html.ee-dark .gotoDay,
-    html.ee-dark .day,
     html.ee-dark .userCalInner,
     html.ee-dark .usercalendarTitle,
     html.ee-dark .usercalendarTitle h1,
-    html.ee-dark #edubar,
-    html.ee-dark .edubarHeader,
-    html.ee-dark .edubarHeaderRight,
-    html.ee-dark .edubarSidebar,
-    html.ee-dark .edubarSidemenu2,
-    html.ee-dark #edubarStartButton,
+    html.ee-dark .tml-in-reply,
+    html.ee-dark .substitution-item,
+    html.ee-dark .attendance-box,
+    html.ee-dark .attendanceItem,
+    html.ee-dark .gadgetBox,
+    html.ee-dark .hw-content,
+    html.ee-dark .print-box,
+    html.ee-dark .zsvHeader,
+    html.ee-dark .zsvFilterElem,
+    html.ee-dark #znamkyTableHeaderBg,
+    html.ee-dark .zsvActionButtonsInner,
+    html.ee-dark table.znamkyTable,
+    html.ee-dark table.znamkyTable tr,
+    html.ee-dark .notifBox,
+    html.ee-dark .smartb,
+    html.ee-dark .timeline-item,
+    html.ee-dark .tml-item,
     html.ee-dark .profilemenu,
     html.ee-dark .profilemenu li,
     html.ee-dark .profilemenu a,
     html.ee-dark .edubarProfilebox,
     html.ee-dark .edubarProfilebox .display,
     html.ee-dark .edubarProfilebox .display span,
+    html.ee-dark .dialog,
+    html.ee-dark .popup,
+    html.ee-dark .modal-content,
+    html.ee-dark .zsvHeaderTab,
+    html.ee-dark .dropDownPanel,
+    html.ee-dark .dropDown,
+    html.ee-dark .zsvFilterItem select,
+    html.ee-dark .flat-button:not([class*="flat-button-"]) {
+      background-color: var(--ee-card-bg) !important;
+      background-image: none !important;
+      color: var(--ee-text) !important;
+      border-color: var(--ee-border) !important;
+      border-width: 1px !important;
+      border-style: solid !important;
+    }
+
+    /* The message/news card reads as the "primary" card in stock too
+       (first item, boldest content) — give it the brighter card tier so
+       it still stands out the same way against its neighbors. */
+    html.ee-dark li.news .userButton,
+    html.ee-dark li.news .userHomeOther {
+      background-color: var(--ee-card-bg-bright) !important;
+    }
+
+    /* .hwItem and its inner wrappers (homework/notification list rows) are
+       natively transparent in stock — there's no card box around each row,
+       just plain rows stacked on the page background. Giving them a card
+       background+border (like the old rule here did) invents a box that
+       doesn't exist in stock and was the source of "random boxes" on the
+       Notifikácie/Učivo pages. */
     html.ee-dark .hwItem,
     html.ee-dark .hwItemBg,
     html.ee-dark .hwItemInner,
     html.ee-dark .hwListElem,
-    html.ee-dark .edubarRibbon,
-    html.ee-dark .ribbon-tab,
-    html.ee-dark .ribbon-section,
-    html.ee-dark .ribbon-button,
     html.ee-dark .hwDateItem,
-    html.ee-dark .hwWeekItem,
-    html.ee-dark .tml-in-reply,
+    html.ee-dark .hwWeekItem {
+      background-color: transparent !important;
+      background-image: none !important;
+      color: var(--ee-text) !important;
+      border-color: var(--ee-border) !important;
+    }
+
+    /* The "selected" pill in side list-menus (e.g. "Všetky správy" on the
+       Notifikácie page) is hardcoded solid white in stock with a drop
+       shadow — left unstyled it shows as a glaring white box in dark mode. */
+    html.ee-dark .hwMenuListItem.selected {
+      background-color: var(--ee-card-bg-bright) !important;
+      box-shadow: none !important;
+    }
+
+    html.ee-dark .hwMenuListItem .hwMenuListItemName,
+    html.ee-dark .hwMenuListItem {
+      color: var(--ee-text) !important;
+    }
+
+    /* Timetable cells: slightly lighter than regular cards and a softer
+       border at all — in stock this entire strip is one continuous dark
+       navy panel with no per-cell dividers, not a grid of boxes. */
+    html.ee-dark .gotoDay,
+    html.ee-dark .day,
     html.ee-dark .ttday,
     html.ee-dark .ttItem,
     html.ee-dark .tt-day,
     html.ee-dark .timetable,
-    html.ee-dark .timetable-cell,
-    html.ee-dark .substitution-item,
-    html.ee-dark .attendance-box,
-    html.ee-dark .attendanceItem,
-    html.ee-dark .dialog,
-    html.ee-dark .popup,
-    html.ee-dark .gadgetBox,
-    html.ee-dark .hw-content,
-    html.ee-dark .print-box,
-    html.ee-dark .modal-content,
-    html.ee-dark .zsvHeader,
-    html.ee-dark .zsvFilterElem,
-    html.ee-dark #znamkyTableHeaderBg,
-    html.ee-dark .zsvActionButtonsInner,
-    html.ee-dark table.znamkyTable,
-    html.ee-dark table.znamkyTable tr {
-      background-color: var(--ee-bg-raised) !important;
-      color: var(--ee-text-main) !important;
+    html.ee-dark .timetable-cell {
+      background-color: var(--ee-brand-dark) !important;
+      background-image: none !important;
+      color: var(--ee-text) !important;
+      border: none !important;
+    }
+
+    /* The top info row ("hurá víkend" / teacher info) sits directly under
+       the timetable strip in stock as ONE continuous dark navy panel —
+       same color, no seam between them — not its own separate card. */
+    html.ee-dark .userStats {
+      background-color: var(--ee-brand-dark) !important;
+      border: none !important;
+      color: var(--ee-text) !important;
+    }
+
+    html.ee-dark .userTopLogo,
+    html.ee-dark .userTopLogo div {
+      color: var(--ee-text) !important;
+      background-color: transparent !important;
+      background-image: none !important;
+    }
+
+    /* Header: the blue top bar, recolored to a darker blue — same hue
+       family as stock's own blue header, just dark, not a different color
+       entirely. */
+    html.ee-dark #edubar,
+    html.ee-dark .edubarHeader,
+    html.ee-dark .edubarHeaderRight,
+    html.ee-dark #edubarStartButton,
+    html.ee-dark .edubarRibbon,
+    html.ee-dark .ribbon-tab,
+    html.ee-dark .ribbon-section,
+    html.ee-dark .ribbon-button {
+      background-color: var(--ee-header-bg) !important;
+      color: var(--ee-text) !important;
       border-color: var(--ee-border) !important;
     }
 
-    html.ee-dark .userTopDivInner .userHomeOther,
-    html.ee-dark .userTopDivInner .userHomeTitle,
-    html.ee-dark .userHomeOther,
-    html.ee-dark .userHomeTitle,
-    html.ee-dark .userStats {
-      background-color: var(--ee-bg-raised) !important;
-      background-image: none !important;
-      color: var(--ee-text-main) !important;
+    /* Sidebar: barely off the page background, the same small step stock
+       takes (its sidebar is #f6f7f9 against a white page). */
+    html.ee-dark .edubarSidebar,
+    html.ee-dark .edubarSidemenu2 {
+      background-color: var(--ee-sidebar-bg) !important;
+      color: var(--ee-text) !important;
+      border-color: var(--ee-border) !important;
     }
 
+    /* The one specific dark-navy block EduPage hardcodes in stock — the
+       homepage timetable strip and the active sidebar item share this
+       exact same color natively, so they share one token here too. */
     html.ee-dark .userRozvrh,
     html.ee-dark .userRozvrh ul.rozvrh,
-    html.ee-dark .userTopDiv ul.rozvrh {
-      background-color: var(--ee-bg-raised) !important;
+    html.ee-dark .userTopDiv ul.rozvrh,
+    html.ee-dark .edubarMenuitem.active > a {
+      background-color: var(--ee-brand-dark) !important;
       background-image: none !important;
-      color: var(--ee-text-main) !important;
-    }
-
-    html.ee-dark .edubarProfilebox,
-    html.ee-dark .edubarProfilebox:hover {
-      background: var(--ee-bg-elevated) !important;
-      border: 1px solid var(--ee-border) !important;
-      border-radius: 8px !important;
-      box-shadow: none !important;
-      color: var(--ee-text-main) !important;
-    }
-
-    html.ee-dark .edubarProfilebox .display,
-    html.ee-dark .edubarProfilebox .display b,
-    html.ee-dark .edubarProfilebox .display span {
-      background-color: transparent !important;
-      background-image: none !important;
-      color: var(--ee-text-main) !important;
+      color: var(--ee-text) !important;
     }
 
     html.ee-dark .edubarProfilebox .display b {
@@ -315,42 +439,44 @@ function buildDarkCSS() {
 
     html.ee-dark .edubarProfilebox .profilemenu,
     html.ee-dark .edubarHelpMenu .edubarHelpSubmenu {
-      background: var(--ee-bg-elevated) !important;
+      background: var(--ee-card-bg) !important;
       border-color: var(--ee-border) !important;
-      color: var(--ee-text-main) !important;
+      color: var(--ee-text) !important;
     }
 
     html.ee-dark .edubarProfilebox .profilemenu a,
     html.ee-dark .edubarProfilebox .profilemenu h1,
     html.ee-dark .edubarProfilebox .profilemenu span {
-      color: var(--ee-text-main) !important;
+      color: var(--ee-text) !important;
     }
 
     html.ee-dark .edubarProfilebox .profilemenu a:hover {
-      background: var(--ee-bg-muted) !important;
-      color: var(--ee-accent) !important;
+      background: var(--ee-card-hover) !important;
+      color: var(--ee-link) !important;
     }
 
     html.ee-dark .userButton:hover,
     html.ee-dark .profilemenu a:hover,
-    html.ee-dark .edubarMenuitem.active > a,
-    html.ee-dark .edubarMenuitem:hover > a,
     html.ee-dark .zsvHeaderTab.selected,
     html.ee-dark .zsvHeaderTab:hover,
-    html.ee-dark .flat-button:hover,
+    html.ee-dark .flat-button:not([class*="flat-button-"]):hover,
     html.ee-dark table.znamkyTable tr.predmetRow:nth-child(even) {
-      background-color: var(--ee-bg-elevated) !important;
+      background-color: var(--ee-card-hover) !important;
+    }
+
+    /* Sidebar item hover gets its own subtle blue tint, separate from the
+       generic card-hover tier, so the active/hover states stay in the
+       same family as the active block instead of looking like a card. */
+    html.ee-dark .edubarMenuitem:hover > a {
+      background-color: var(--ee-sidebar-hover) !important;
     }
 
     html.ee-dark .userButton {
       border: 1px solid var(--ee-border) !important;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
-      transition: transform 0.2s, background-color 0.2s !important;
     }
 
     html.ee-dark .userButton:hover {
-      border-color: var(--ee-accent) !important;
-      transform: translateY(-2px);
+      border-color: var(--ee-link) !important;
     }
 
     html.ee-dark .userButton .title,
@@ -359,15 +485,22 @@ function buildDarkCSS() {
     html.ee-dark h3,
     html.ee-dark table.znamkyTable td,
     html.ee-dark table.znamkyTable th {
-      color: var(--ee-text-main) !important;
+      color: var(--ee-text) !important;
     }
 
-    html.ee-dark .userButton .subtitle,
-    html.ee-dark .userButton .subtitle *,
     html.ee-dark .zsvHeaderTitle span,
     html.ee-dark .edubarMenuitem > a,
     html.ee-dark .rozvrhItem .casy {
       color: var(--ee-text-muted) !important;
+    }
+
+    /* .subtitle's native stock color is the same link-blue used for
+       actual links (rgb(3, 169, 244)), not muted gray — every dashboard
+       tile's caption line ("Posledná zmena: ...", message bodies, etc.)
+       reads in that cyan in stock, so it does here too. */
+    html.ee-dark .userButton .subtitle,
+    html.ee-dark .userButton .subtitle * {
+      color: var(--ee-link) !important;
     }
 
     html.ee-dark .subtitle b,
@@ -380,18 +513,18 @@ function buildDarkCSS() {
     html.ee-dark .edubarMenuitem:hover > a,
     html.ee-dark table.znamkyTable thead th,
     html.ee-dark a {
-      color: var(--ee-accent) !important;
+      color: var(--ee-link) !important;
     }
 
     html.ee-dark .calendar .day.today,
     html.ee-dark .rozvrhItem.selected {
-      background-color: #1e3a5f !important;
-      border: 1px solid var(--ee-accent) !important;
+      background-color: color-mix(in srgb, var(--ee-link) 25%, var(--ee-card-bg)) !important;
+      border: 1px solid var(--ee-link) !important;
     }
 
     html.ee-dark .events li {
-      background-color: var(--ee-bg-muted) !important;
-      color: var(--ee-text-main) !important;
+      background-color: var(--ee-card-bg-bright) !important;
+      color: var(--ee-text) !important;
       border: none !important;
     }
 
@@ -401,35 +534,30 @@ function buildDarkCSS() {
 
     html.ee-dark .notif {
       background-color: var(--ee-danger) !important;
-      color: var(--ee-bg-base) !important;
+      color: var(--ee-page-bg) !important;
     }
 
     html.ee-dark .zsvHeaderTabs {
       background-color: transparent !important;
     }
 
-    html.ee-dark .zsvHeaderTab,
-    html.ee-dark .dropDownPanel,
-    html.ee-dark .dropDown,
-    html.ee-dark .zsvFilterItem select,
-    html.ee-dark .flat-button {
-      background-color: var(--ee-bg-elevated) !important;
-      color: var(--ee-text-main) !important;
-      border-color: var(--ee-border) !important;
-    }
+    /* Brand-colored action buttons (e.g. the red "Videl som" acknowledge
+       button, blue print button) keep their native color regardless of
+       theme — red/blue convey "acknowledge/primary action," not a surface
+       to recolor, so they're deliberately excluded from the rules above. */
 
     html.ee-dark .ee-avg-bar-track {
       background-color: var(--ee-border) !important;
     }
 
     html.ee-dark tr.ee-overall-row td {
-      background-color: var(--ee-bg-elevated) !important;
-      border-top-color: var(--ee-accent) !important;
-      color: var(--ee-text-main) !important;
+      background-color: var(--ee-card-bg-bright) !important;
+      border-top-color: var(--ee-link) !important;
+      color: var(--ee-text) !important;
     }
 
     html.ee-dark tr.ee-overall-row .ee-overall-label {
-      color: var(--ee-accent) !important;
+      color: var(--ee-link) !important;
     }
 
     html.ee-dark .warning,
@@ -440,22 +568,22 @@ function buildDarkCSS() {
 
     /* Runtime-normalized unknown Edupage markup */
     html.ee-dark .${SURFACE_CLASS} {
-      background-color: var(--ee-bg-raised) !important;
+      background-color: var(--ee-card-bg) !important;
       background-image: none !important;
     }
 
     html.ee-dark .${ELEVATED_CLASS} {
-      background-color: var(--ee-bg-elevated) !important;
+      background-color: var(--ee-sidebar-bg) !important;
       background-image: none !important;
     }
 
     html.ee-dark .${MUTED_SURFACE_CLASS} {
-      background-color: var(--ee-bg-muted) !important;
+      background-color: var(--ee-brand-dark) !important;
       background-image: none !important;
     }
 
     html.ee-dark .${TEXT_CLASS} {
-      color: var(--ee-text-main) !important;
+      color: var(--ee-text) !important;
     }
 
     html.ee-dark .${MUTED_TEXT_CLASS} {
@@ -478,30 +606,36 @@ function buildDarkCSS() {
     html.ee-dark *[style*="background-color: #f5f5f5"],
     html.ee-dark *[style*="background-color: #eeeeee"],
     html.ee-dark *[style*="background-color: #f6f7f9"] {
-      background-color: var(--ee-bg-raised) !important;
-      color: var(--ee-text-main) !important;
+      background-color: var(--ee-card-bg) !important;
+      color: var(--ee-text) !important;
     }
 
-    html.ee-dark img {
+    html.ee-dark.ee-scheme-dark img {
       filter: brightness(0.82) contrast(1.08) !important;
     }
 
-    html.ee-dark .user-button-icon,
-    html.ee-dark .ebicon,
-    html.ee-dark .qbutton img,
-    html.ee-dark img[src*="Icon"],
-    html.ee-dark img[src*="icon"] {
-      filter: invert(0.82) hue-rotate(180deg) !important;
+    /* NOTE: dashboard/sidebar icons (.user-button-icon, .ebicon) and most
+       img[src*="icon"] assets are full-color illustrations, not simple
+       monochrome glyphs — a blanket invert+hue-rotate(180deg) used to be
+       applied here to make dark icons visible on a dark page, but rotating
+       hue 180° on a colorful icon (e.g. an orange/brown briefcase) shifts
+       it to an unrelated color (blue) instead of just inverting lightness.
+       That broke "preserve original icon colors," so it's removed — icons
+       now only get the gentle brightness/contrast dimming below, which
+       doesn't touch hue. */
+
+    /* The top-bar action icons (chat/mail/help/etc, .qbutton img) are
+       already white-on-transparent assets (served from EduPage's own
+       /bar/white/ icon set) meant for its colored header skins. Inverting
+       an already-white icon turns it almost black, making it disappear
+       against our dark header — so these are left at their native color
+       instead of going through the generic dark-icon inversion above. */
+    html.ee-dark.ee-scheme-dark .qbutton img {
+      filter: none !important;
     }
 
     html.ee-dark * {
       box-shadow: none !important;
-    }
-
-    html.ee-dark .userButton,
-    html.ee-dark .profilemenu,
-    html.ee-dark .day {
-      box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.4) !important;
     }
 
     html.ee-clean-ui .adsbygoogle,
@@ -539,17 +673,6 @@ function buildDarkCSS() {
 
     html.ee-clean-ui .userRozvrh {
       width: min(100%, 1180px) !important;
-    }
-
-    html.ee-clean-ui .userButton,
-    html.ee-clean-ui .userHomeWidget,
-    html.ee-clean-ui .hwItem,
-    html.ee-clean-ui .timeline-item,
-    html.ee-clean-ui .tml-item,
-    html.ee-clean-ui .notifBox,
-    html.ee-clean-ui table.znamkyTable,
-    html.ee-clean-ui .zsvHeader {
-      border-radius: 8px !important;
     }
 
     html.ee-hide-help-text .userTopLogo,
@@ -599,6 +722,27 @@ function luminance(color) {
   });
 
   return (0.2126 * channels[0]) + (0.7152 * channels[1]) + (0.0722 * channels[2]);
+}
+
+function hexToRgb(hex) {
+  const match = /^#([0-9a-f]{6})$/i.exec(String(hex || ""));
+  if (!match) return null;
+  const value = match[1];
+  return {
+    r: Number.parseInt(value.slice(0, 2), 16),
+    g: Number.parseInt(value.slice(2, 4), 16),
+    b: Number.parseInt(value.slice(4, 6), 16),
+  };
+}
+
+// Pink is statically known to be light. Custom is user-defined, so its
+// "light or dark" tone is derived from the actual background color picked
+// instead of guessed.
+function isLightTonedTheme(theme, customTheme) {
+  if (LIGHT_TONED_THEMES.includes(theme)) return true;
+  if (theme !== "custom") return false;
+  const rgb = hexToRgb(customTheme?.bgBase);
+  return rgb ? luminance(rgb) > 0.5 : false;
 }
 
 function shouldSkipElement(element) {
@@ -814,12 +958,13 @@ function applyRozvrhColorProperties(roomChangeColor, substitutionColor) {
   root.style.setProperty("--ee-rozvrh-substitution-color", normalizeColor(substitutionColor, DEFAULT_ROZVRH_SUBSTITUTION_COLOR));
 }
 
-function setThemeClasses(theme, cleanEnabled, helpHidden) {
+function setThemeClasses(theme, cleanEnabled, helpHidden, schemeIsLight) {
   const root = document.documentElement;
   root.classList.remove(...THEME_CLASSES);
   root.classList.toggle(CLEAN_UI_CLASS, cleanEnabled);
   root.classList.toggle(HIDE_HELP_TEXT_CLASS, helpHidden);
   root.classList.add(`ee-theme-${theme}`);
+  root.classList.toggle(SCHEME_DARK_CLASS, theme !== "light" && !schemeIsLight);
   root.dataset.eeTheme = theme;
 }
 
@@ -847,7 +992,7 @@ function applyTheme({
   applyCustomThemeProperties(currentCustomTheme);
   applyRozvrhColorProperties(currentRozvrhRoomChangeColor, currentRozvrhSubstitutionColor);
   ensureStylesheet();
-  setThemeClasses(selectedTheme, cleanEnabled, helpHidden);
+  setThemeClasses(selectedTheme, cleanEnabled, helpHidden, isLightTonedTheme(selectedTheme, currentCustomTheme));
 
   if (selectedTheme !== "light") {
     document.documentElement.classList.add(CLASS_NAME);
