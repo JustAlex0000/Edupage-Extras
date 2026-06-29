@@ -285,6 +285,14 @@ p {
     margin-top: 6px;
 }
 
+.section-heading {
+    margin-bottom: 12px;
+}
+
+.prominent-row {
+    border-color: var(--accent-color);
+}
+
 .setting-row {
     display: flex;
     align-items: center;

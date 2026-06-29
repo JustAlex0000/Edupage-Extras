@@ -23,7 +23,7 @@
           <button class="settings-nav-item" type="button" role="tab" id="nav-timetable" aria-controls="panel-timetable" aria-selected="false" tabindex="-1" data-target="timetable" data-i18n="groupTimetable">Timetable</button>
           <button class="settings-nav-item" type="button" role="tab" id="nav-updates" aria-controls="panel-updates" aria-selected="false" tabindex="-1" data-target="updates" data-i18n="groupUpdates">Updates</button>
           <button class="settings-nav-item" type="button" role="tab" id="nav-debug" aria-controls="panel-debug" aria-selected="false" tabindex="-1" data-target="debug" data-i18n="groupDebug">Debug</button>
-          <button class="settings-nav-item settings-nav-item-experimental" type="button" id="ExperimentalSettingsButton" data-i18n="experimentalButton">Experimental</button>
+          <button class="settings-nav-item settings-nav-item-experimental" type="button" role="tab" id="ExperimentalSettingsButton" aria-controls="panel-experimental" aria-selected="false" tabindex="-1" data-target="experimental" data-i18n="experimentalButton">Experimental</button>
         </nav>
 
         <div class="settings-content">
@@ -33,7 +33,10 @@
 
         <div class="setting-row">
           <div>
-            <h3 data-i18n="themesLabel">Themes</h3>
+            <h3>
+              <span data-i18n="themesLabel">Themes</span>
+              <span class="setting-tag setting-tag-wip" data-i18n="wipBadge">WIP</span>
+            </h3>
             <p data-i18n="themesDesc">Apply Edupage Extras colors across Edupage and the extension menus.</p>
           </div>
           <label class="switch switch-compact" for="DarkModeCheckbox">
@@ -183,10 +186,7 @@
 
         <div class="setting-row">
           <div>
-            <h3>
-              <span data-i18n="timetableHighlights">Timetable Change Highlights</span>
-              <span class="setting-tag setting-tag-wip" data-i18n="wipBadge">WIP</span>
-            </h3>
+            <h3 data-i18n="timetableHighlights">Timetable Change Highlights</h3>
             <p data-i18n="timetableHighlightsDesc">Color-code substitutions (orange) and classroom changes (blue) on the main page schedule widget.</p>
           </div>
           <label class="switch switch-compact" for="TimetableHighlightsCheckbox">
@@ -196,7 +196,7 @@
           </label>
         </div>
 
-        <div class="setting-row">
+        <div class="setting-row" id="TimetableHighlightColorsRow">
           <div>
             <h3 data-i18n="timetableHighlightColorsLabel">Highlight Colors</h3>
           </div>
@@ -351,6 +351,26 @@
 
         <div class="setting-row">
           <div>
+            <h3 data-i18n="mobileResponsive">Mobile-Responsive Layout</h3>
+            <p data-i18n="mobileResponsiveDesc">Inject structural CSS (flex-wrap, scrollable tables, scaled sidebar/fonts) to make Edupage usable on small screens. Off by default — not fully verified on every page yet.</p>
+          </div>
+          <label class="switch switch-compact" for="MobileResponsiveCheckbox">
+            <input type="checkbox" id="MobileResponsiveCheckbox">
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only" data-i18n="toggleMobileResponsive">Toggle mobile-responsive layout</span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <h3 data-i18n="previewUpdateToast">Preview Update Toast</h3>
+            <p data-i18n="previewUpdateToastDesc">Show the "what's new" toast on an open Edupage tab right now, without waiting for an actual version change.</p>
+          </div>
+          <button class="secondary-button" id="PreviewUpdateToastButton" type="button" data-i18n="previewUpdateToastButton">Preview</button>
+        </div>
+
+        <div class="setting-row">
+          <div>
             <h3 data-i18n="gradesDebug">Grades Attendance Debug</h3>
             <p data-i18n="gradesDebugDesc">Print detailed fetch, parsing, matching, and rendering diagnostics for the grades attendance feature into the browser console.</p>
           </div>
@@ -381,6 +401,219 @@
             </div>
             <p id="ReportStatus" class="setting-note" role="status" aria-live="polite"></p>
             <textarea id="ReportOutput" class="report-output" readonly hidden aria-label="Diagnostic report"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <section class="setting-group" id="panel-experimental" role="tabpanel" aria-labelledby="experimental-heading ExperimentalSettingsButton" tabindex="0" hidden>
+        <div id="ExperimentalContent" hidden>
+          <h2 id="experimental-heading" data-i18n="experimentalHeading">Experimental</h2>
+          <p data-i18n="experimentalSubtitle">Test activity and visibility protections on Edupage pages.</p>
+          <p><a class="inline-link" href="https://edublurtesting.ct.ws/" target="_blank" rel="noopener noreferrer" data-i18n="openTestingSite">Open the testing website</a></p>
+          <div class="section-heading">
+            <h3 id="activity-heading" data-i18n="samHeading">Stay Active Mode</h3>
+            <p data-i18n="samDesc">Controls how Edupage sees tab activity, focus, mouse movement, and clipboard actions. Changes apply live, but reloading open Edupage tabs gives the cleanest start.</p>
+          </div>
+
+          <div class="setting-row prominent-row">
+            <div>
+              <h3 data-i18n="samMaster">Stay Active Mode (Master Switch)</h3>
+              <p data-i18n="samMasterDesc">Turn the full Stay Active feature set on or off at once for Edupage pages.</p>
+            </div>
+            <label class="switch switch-compact" for="ActivityShieldEnabled">
+              <input type="checkbox" id="ActivityShieldEnabled">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleSam">Toggle Stay Active Mode</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="samHotkey">Master Switch Hotkey</h3>
+              <p data-i18n="samHotkeyDesc">Optional. No default hotkey is assigned. Use Chrome's extension shortcuts page if you want a shortcut for toggling Stay Active Mode.</p>
+            </div>
+            <div class="shortcut-controls">
+              <button class="secondary-button" id="ExperimentalShortcutSettingsButton" type="button" data-i18n="openShortcutSettings">Open Shortcut Settings</button>
+              <span class="shortcut-status" id="ActivityShieldShortcutStatus" data-i18n="noHotkey">No hotkey assigned.</span>
+            </div>
+          </div>
+
+          <div class="section-heading">
+            <h3 id="spoofing-heading" data-i18n="sectVisibility">Visibility & Focus</h3>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="keepVisible">Keep Tab Marked Visible</h3>
+              <p data-i18n-html="keepVisibleDesc">Make Edupage read the tab as <code>visible</code> even after switching away.</p>
+            </div>
+            <label class="switch switch-compact" for="ActivityVisibilityState">
+              <input type="checkbox" id="ActivityVisibilityState">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleKeepVisible">Toggle keep tab marked visible</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="keepNotHidden">Keep Tab Marked Not Hidden</h3>
+              <p data-i18n-html="keepNotHiddenDesc">Make Edupage read <code>document.hidden</code> as <code>false</code>.</p>
+            </div>
+            <label class="switch switch-compact" for="ActivityHidden">
+              <input type="checkbox" id="ActivityHidden">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleKeepNotHidden">Toggle keep tab marked not hidden</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="hideTabSwitch">Hide Tab-Switch Events</h3>
+              <p data-i18n="hideTabSwitchDesc">Stop Edupage scripts from receiving visibility and page-hide events.</p>
+            </div>
+            <label class="switch switch-compact" for="ActivityVisibilityEvents">
+              <input type="checkbox" id="ActivityVisibilityEvents">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleHideTabSwitch">Toggle hide tab-switch events</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="keepFocused">Keep Page Marked Focused</h3>
+              <p data-i18n="keepFocusedDesc">Make Edupage read the page as focused and hide focus-in events.</p>
+            </div>
+            <label class="switch switch-compact" for="ActivityFocus">
+              <input type="checkbox" id="ActivityFocus">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleKeepFocused">Toggle keep page marked focused</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="hideFocusLoss">Hide Focus Loss</h3>
+              <p data-i18n="hideFocusLossDesc">Stop Edupage scripts from receiving blur and focus-out events.</p>
+            </div>
+            <label class="switch switch-compact" for="ActivityBlur">
+              <input type="checkbox" id="ActivityBlur">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleHideFocusLoss">Toggle hide focus loss</span>
+            </label>
+          </div>
+
+          <div class="section-heading">
+            <h3 id="input-heading" data-i18n="sectInput">Mouse & Input</h3>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="hideCursorLeave">Hide Cursor Leaving The Page</h3>
+              <p data-i18n="hideCursorLeaveDesc">Stop Edupage scripts from seeing mouse enter and leave events.</p>
+            </div>
+            <label class="switch switch-compact" for="ActivityMouseleave">
+              <input type="checkbox" id="ActivityMouseleave">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleHideCursorLeave">Toggle hide cursor leaving the page</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="hideCursorMove">Hide Cursor Moving Between Areas</h3>
+              <p data-i18n="hideCursorMoveDesc">Stop Edupage scripts from seeing mouse over and out events.</p>
+            </div>
+            <label class="switch switch-compact" for="ActivityMouseout">
+              <input type="checkbox" id="ActivityMouseout">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleHideCursorMove">Toggle hide cursor moving between areas</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="hidePointerCapture">Hide Pointer Capture Changes</h3>
+              <p data-i18n="hidePointerCaptureDesc">Stop Edupage scripts from seeing pointer capture and release events.</p>
+            </div>
+            <label class="switch switch-compact" for="ActivityPointercapture">
+              <input type="checkbox" id="ActivityPointercapture">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleHidePointerCapture">Toggle hide pointer capture changes</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="hideClipboard">Hide Copy, Paste, Selection, And Dragging</h3>
+              <p data-i18n="hideClipboardDesc">Stop Edupage scripts from seeing clipboard, context menu, selection, drag, and drop events.</p>
+            </div>
+            <label class="switch switch-compact" for="ActivityClipboard">
+              <input type="checkbox" id="ActivityClipboard">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleHideClipboard">Toggle hide copy paste selection and dragging</span>
+            </label>
+          </div>
+
+          <div class="section-heading">
+            <h3 id="background-heading" data-i18n="sectBackground">Background Behavior</h3>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="stopRedirects">Stop Hidden-Tab Reload Redirects</h3>
+              <p data-i18n="stopRedirectsDesc">Try to block reload redirects that start after Edupage becomes hidden.</p>
+            </div>
+            <label class="switch switch-compact" for="ActivityRedirect">
+              <input type="checkbox" id="ActivityRedirect">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleStopRedirects">Toggle hidden-tab reload redirects</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="keepAnimation">Keep Page Animation Running In Background</h3>
+              <p data-i18n-html="keepAnimationDesc">Keep <code>requestAnimationFrame</code> callbacks moving while the tab is hidden.</p>
+            </div>
+            <label class="switch switch-compact" for="ActivityAnimationFrame">
+              <input type="checkbox" id="ActivityAnimationFrame">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleKeepAnimation">Toggle keep page animation running in background</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="showStatusDot">Show Status Dot On Edupage</h3>
+              <p data-i18n="showStatusDotDesc">Show a small dot so users can see whether Stay Active Mode is active or paused.</p>
+            </div>
+            <label class="switch switch-compact" for="ActivityVisualIndicator">
+              <input type="checkbox" id="ActivityVisualIndicator">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleShowStatusDot">Toggle status dot on Edupage</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="showConsoleDebug">Show Console Debug Messages</h3>
+              <p data-i18n="showConsoleDebugDesc">Print technical diagnostics in the page console when something cannot be changed.</p>
+            </div>
+            <label class="switch switch-compact" for="ActivityLog">
+              <input type="checkbox" id="ActivityLog">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleShowConsoleDebug">Toggle console debug messages</span>
+            </label>
+          </div>
+
+          <div class="section-heading">
+            <h3 id="maintenance-heading" data-i18n="sectMaintenance">Maintenance</h3>
+            <p data-i18n="maintenanceDesc">Reset restores the experimental defaults and keeps Stay Active Mode turned off.</p>
+          </div>
+          <div class="actions-row">
+            <button class="secondary-button" id="ResetActivityShieldButton" type="button" data-i18n="resetSam">Reset Stay Active Mode</button>
+            <button class="secondary-button" id="ReloadEdupageTabsButton" type="button" data-i18n="reloadTabs">Reload Edupage Tabs</button>
+            <span class="save-status" id="ExperimentalSaveStatus" role="status"></span>
           </div>
         </div>
       </section>

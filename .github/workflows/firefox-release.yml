@@ -47,6 +47,18 @@ jobs:
           npm run build:firefox
           npm run verify:package
 
+      - name: Upload Chrome-compatible .zip as a workflow artifact
+        # Same manifest.json serves both browsers (Chrome ignores the
+        # Firefox-only browser_specific_settings key), so the plain .zip
+        # web-ext build produces is exactly what Chrome Web Store wants too
+        # — no separate build needed when that submission happens.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-zip
+          path: web-ext-artifacts/*.zip
+          if-no-files-found: ignore
+
       - name: Sign and submit to addons.mozilla.org
         env:
           # AMO_API_KEY = the AMO "JWT issuer"; AMO_API_SECRET = the "JWT secret".

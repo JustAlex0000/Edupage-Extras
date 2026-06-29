@@ -88,6 +88,9 @@ function loadContentInternals(pathname = "/") {
           get(_keys, callback) {
             callback({});
           },
+          set(_values, callback) {
+            if (callback) callback();
+          },
         },
         onChanged: {
           addListener() {},
@@ -96,6 +99,14 @@ function loadContentInternals(pathname = "/") {
       runtime: {
         onMessage: {
           addListener() {},
+        },
+        getManifest() {
+          return { version: "0.0.0-test" };
+        },
+      },
+      i18n: {
+        getMessage() {
+          return "";
         },
       },
     },

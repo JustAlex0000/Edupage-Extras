@@ -103,6 +103,16 @@
   "secondHalfEndDesc": { "message": "Prepíšte, kedy končí druhý polrok pre predpovedanú dochádzku v známkach. Ponechajte prázdne, aby sa použil predvolený dátum konca EduPage pre aktuálny školský rok." },
 
   "groupDebug": { "message": "Ladenie" },
+  "mobileResponsive": { "message": "Responzívne rozloženie pre mobil" },
+  "mobileResponsiveDesc": { "message": "Vloží štrukturálne CSS (zalamovanie, posúvateľné tabuľky, zmenšený postranný panel/písmo), aby bol Edupage použiteľný na malých obrazovkách. Predvolene vypnuté — ešte nie je overené na všetkých stránkach." },
+  "toggleMobileResponsive": { "message": "Prepnúť responzívne rozloženie pre mobil" },
+  "previewUpdateToast": { "message": "Náhľad oznámenia o aktualizácii" },
+  "previewUpdateToastDesc": { "message": "Zobrazí oznámenie \"čo je nové\" na otvorenej karte Edupage hneď, bez čakania na skutočnú zmenu verzie." },
+  "previewUpdateToastButton": { "message": "Náhľad" },
+  "previewUpdateToastSent": {
+    "message": "Odoslané na $count$ otvorených kárt Edupage.",
+    "placeholders": { "count": { "content": "$1" } }
+  },
   "gradesDebug": { "message": "Ladenie dochádzky známok" },
   "gradesDebugDesc": { "message": "Vypisovať podrobné diagnostiky načítania, analýzy, priraďovania a vykresľovania funkcie dochádzky známok do konzoly prehliadača." },
   "toggleGradesDebug": { "message": "Prepnúť ladenie dochádzky známok" },
@@ -142,6 +152,10 @@
   "updateReminders": { "message": "Pripomienky aktualizácií" },
   "updateRemindersDesc": { "message": "Kontrolovať verejný projekt na GitHube na novšiu rozbalenú verziu." },
   "toggleUpdateReminders": { "message": "Prepnúť pripomienky aktualizácií" },
+  "updateToastTitle": { "message": "Edupage Extras bolo aktualizované na v{version}" },
+  "updateToastBody": { "message": "Pozrite si, čo sa zmenilo v tejto verzii." },
+  "updateToastViewChanges": { "message": "Čo je nové" },
+  "updateToastDismiss": { "message": "Zavrieť" },
   "versionCheck": { "message": "Kontrola verzie" },
   "noUpdateCheck": { "message": "Zatiaľ neprebehla žiadna kontrola aktualizácií." },
   "checkForUpdates": { "message": "Skontrolovať aktualizácie" },

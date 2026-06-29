@@ -23,11 +23,11 @@ function collectSwitchLabels(html) {
   );
 }
 
-runTest("experimental page switches all include tracks and screen-reader labels", () => {
-  const html = readHtml(path.join("menu", "experimental.html"));
+runTest("settings page switches (including the merged Experimental tab) all include tracks and screen-reader labels", () => {
+  const html = readHtml(path.join("menu", "settings.html"));
   const labels = collectSwitchLabels(html);
 
-  assert.ok(labels.length > 0, "expected experimental switches");
+  assert.ok(labels.length > 0, "expected settings switches");
   labels.forEach(([, className, body]) => {
     assert.match(className, /\bswitch-compact\b/);
     assert.match(body, /class="switch-track"/);

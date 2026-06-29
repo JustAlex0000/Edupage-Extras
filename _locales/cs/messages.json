@@ -103,6 +103,16 @@
   "secondHalfEndDesc": { "message": "Přepište, kdy končí druhé pololetí pro předpovězenou docházku ve známkách. Ponechte prázdné pro použití výchozího data konce EduPage pro aktuální školní rok." },
 
   "groupDebug": { "message": "Ladění" },
+  "mobileResponsive": { "message": "Responzivní rozvržení pro mobil" },
+  "mobileResponsiveDesc": { "message": "Vloží strukturální CSS (zalamování, posuvné tabulky, zmenšený postranní panel/písmo), aby byl Edupage použitelný na malých obrazovkách. Výchozí stav vypnuto — ještě není ověřeno na všech stránkách." },
+  "toggleMobileResponsive": { "message": "Přepnout responzivní rozvržení pro mobil" },
+  "previewUpdateToast": { "message": "Náhled oznámení o aktualizaci" },
+  "previewUpdateToastDesc": { "message": "Zobrazí oznámení \"co je nové\" na otevřené kartě Edupage hned, bez čekání na skutečnou změnu verze." },
+  "previewUpdateToastButton": { "message": "Náhled" },
+  "previewUpdateToastSent": {
+    "message": "Odesláno na $count$ otevřených karet Edupage.",
+    "placeholders": { "count": { "content": "$1" } }
+  },
   "gradesDebug": { "message": "Ladění docházky známek" },
   "gradesDebugDesc": { "message": "Vypisovat podrobné diagnostiky načítání, analýzy, párování a vykreslování funkce docházky známek do konzole prohlížeče." },
   "toggleGradesDebug": { "message": "Přepnout ladění docházky známek" },
@@ -142,6 +152,10 @@
   "updateReminders": { "message": "Připomínky aktualizací" },
   "updateRemindersDesc": { "message": "Kontrolovat veřejný projekt na GitHubu na novější rozbalenou verzi." },
   "toggleUpdateReminders": { "message": "Přepnout připomínky aktualizací" },
+  "updateToastTitle": { "message": "Edupage Extras bylo aktualizováno na v{version}" },
+  "updateToastBody": { "message": "Podívejte se, co se v této verzi změnilo." },
+  "updateToastViewChanges": { "message": "Co je nové" },
+  "updateToastDismiss": { "message": "Zavřít" },
   "versionCheck": { "message": "Kontrola verze" },
   "noUpdateCheck": { "message": "Zatím neproběhla žádná kontrola aktualizací." },
   "checkForUpdates": { "message": "Zkontrolovat aktualizace" },
