@@ -1,3 +1,10 @@
+// Only reachable after confirming the risk dialog on the Settings page —
+// typing/rewriting this URL directly in a fresh tab has no sessionStorage
+// entry to find, so it bounces back instead of exposing the page.
+if (sessionStorage.getItem("eeExperimentalConfirmed") !== "1") {
+	window.location.replace("settings.html");
+}
+
 const backButton = document.getElementById("BackButton");
 const resetButton = document.getElementById("ResetActivityShieldButton");
 const reloadTabsButton = document.getElementById("ReloadEdupageTabsButton");

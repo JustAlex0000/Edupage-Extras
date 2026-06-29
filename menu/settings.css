@@ -104,17 +104,20 @@ body {
     margin: 0;
     background: var(--page-bg);
     color: var(--text-main);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 
 body {
     min-height: 100vh;
-    font-family: Arial, sans-serif;
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
 .settings {
     display: flex;
     flex-direction: column;
-    max-width: 760px;
+    max-width: 920px;
     min-height: 100vh;
     margin: 0 auto;
     padding: 32px 18px;
@@ -126,6 +129,125 @@ body {
     justify-content: space-between;
     gap: 16px;
     margin-bottom: 22px;
+}
+
+.settings-body {
+    display: flex;
+    align-items: stretch;
+    gap: 24px;
+    flex: 1;
+}
+
+.settings-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 0 0 180px;
+    position: sticky;
+    top: 32px;
+}
+
+.settings-nav-item {
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font: inherit;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 10px 12px;
+    text-align: left;
+    transition: background-color 150ms cubic-bezier(0.23, 1, 0.32, 1), color 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.settings-nav-item:hover {
+    background: var(--surface-bg);
+    color: var(--text-main);
+}
+
+.settings-nav-item[aria-selected="true"] {
+    background: var(--control-bg);
+    color: var(--accent-color);
+}
+
+.settings-nav-item:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+.settings-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.settings-nav-item-experimental {
+    margin-top: auto;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-color);
+    border-radius: 0;
+    padding-top: 14px;
+}
+
+.settings-nav-item-experimental[aria-selected="true"] {
+    background: transparent;
+    color: var(--text-muted);
+}
+
+.confirm-dialog {
+    max-width: 360px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--surface-bg);
+    color: var(--text-main);
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.18),
+        0 12px 32px rgba(0, 0, 0, 0.16);
+    padding: 20px;
+}
+
+.confirm-dialog[open] {
+    animation: confirmDialogIn 200ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+@keyframes confirmDialogIn {
+    from {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.confirm-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.confirm-dialog h2 {
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.confirm-dialog p {
+    margin-top: 0;
+}
+
+.confirm-dialog-actions {
+    justify-content: flex-end;
+    margin-top: 16px;
+}
+
+.confirm-dialog-confirm {
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+}
+
+.confirm-dialog-confirm:hover,
+.confirm-dialog-confirm:focus-visible {
+    background: var(--danger-color);
+    color: var(--surface-bg);
 }
 
 h1,
@@ -599,6 +721,26 @@ input[type="checkbox"]:disabled {
 .made-by a:focus-visible {
     text-decoration: underline;
     outline: none;
+}
+
+@media (max-width: 720px) {
+    .settings-body {
+        flex-direction: column;
+    }
+
+    .settings-nav {
+        flex-direction: row;
+        flex-wrap: wrap;
+        position: static;
+        width: 100%;
+    }
+
+    .settings-nav-item-experimental {
+        margin-top: 0;
+        margin-left: auto;
+        border-top: none;
+        padding-top: 10px;
+    }
 }
 
 @media (max-width: 560px) {

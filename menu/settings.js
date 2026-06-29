@@ -276,6 +276,18 @@ function renderUpdateStatus(status) {
 			"This install updates automatically through your browser's add-on store.";
 		return;
 	}
+	// Same staleness check as menu.js: a cached status from before this version
+	// was loaded would show the OLD version as "downloaded" — never trust it
+	// blindly. Treat a version mismatch as "no check yet" and silently ask the
+	// background to recheck so it self-heals with the correct numbers.
+	const liveVersion = chrome.runtime.getManifest().version;
+	if (status && status.localVersion !== liveVersion) {
+		chrome.runtime.sendMessage({ type: "ee-check-update", notify: false }, () => {
+			void chrome.runtime.lastError;
+		});
+		status = null;
+	}
+
 	const reloadReminder = t("updateReloadReminder");
 	updateStatusText.dataset.state = "";
 	if (!status) {
@@ -719,8 +731,25 @@ openShortcutSettingsButton.addEventListener("click", () => {
 	chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
 });
 
+const experimentalConfirmDialog = document.getElementById("ExperimentalConfirmDialog");
+const experimentalConfirmCancel = document.getElementById("ExperimentalConfirmCancel");
+const experimentalConfirmContinue = document.getElementById("ExperimentalConfirmContinue");
+
 experimentalSettingsButton.addEventListener("click", () => {
+	experimentalConfirmDialog.showModal();
+});
+
+experimentalConfirmCancel.addEventListener("click", () => {
+	experimentalConfirmDialog.close();
+});
+
+experimentalConfirmContinue.addEventListener("click", () => {
+	sessionStorage.setItem("eeExperimentalConfirmed", "1");
 	window.location.href = "experimental.html";
+});
+
+experimentalConfirmDialog.addEventListener("click", (event) => {
+	if (event.target === experimentalConfirmDialog) experimentalConfirmDialog.close();
 });
 
 renderShortcutStatus();
@@ -745,5 +774,44 @@ if (chrome.management && typeof chrome.management.getSelf === "function") {
 		updateReminderToggle?.closest(".setting-row")?.setAttribute("hidden", "");
 		if (checkUpdatesButton) checkUpdatesButton.hidden = true;
 		renderUpdateStatus(null);
+	});
+}
+
+const SETTINGS_SECTION_KEY = "settingsActiveSection";
+const settingsNavItems = Array.from(document.querySelectorAll(".settings-nav-item"));
+
+function activateSettingsSection(target, { focusNav = false } = {}) {
+	settingsNavItems.forEach((item) => {
+		const isActive = item.dataset.target === target;
+		item.setAttribute("aria-selected", String(isActive));
+		item.tabIndex = isActive ? 0 : -1;
+		const panel = document.getElementById(`panel-${item.dataset.target}`);
+		if (panel) panel.hidden = !isActive;
+		if (isActive && focusNav) item.focus();
+	});
+	chrome.storage.local.set({ [SETTINGS_SECTION_KEY]: target });
+}
+
+settingsNavItems.forEach((item) => {
+	item.addEventListener("click", () => activateSettingsSection(item.dataset.target));
+});
+
+if (settingsNavItems.length) {
+	document.querySelector(".settings-nav")?.addEventListener("keydown", (event) => {
+		if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+		event.preventDefault();
+		const currentIndex = settingsNavItems.findIndex((item) => item.tabIndex === 0);
+		let nextIndex = currentIndex;
+		if (event.key === "ArrowDown") nextIndex = (currentIndex + 1) % settingsNavItems.length;
+		else if (event.key === "ArrowUp") nextIndex = (currentIndex - 1 + settingsNavItems.length) % settingsNavItems.length;
+		else if (event.key === "Home") nextIndex = 0;
+		else if (event.key === "End") nextIndex = settingsNavItems.length - 1;
+		activateSettingsSection(settingsNavItems[nextIndex].dataset.target, { focusNav: true });
+	});
+
+	chrome.storage.local.get([SETTINGS_SECTION_KEY], (result) => {
+		const saved = result[SETTINGS_SECTION_KEY];
+		const validTargets = settingsNavItems.map((item) => item.dataset.target);
+		activateSettingsSection(validTargets.includes(saved) ? saved : validTargets[0]);
 	});
 }

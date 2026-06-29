@@ -1,5 +1,9 @@
 const toggle = document.getElementById("DarkModeCheckbox");
 const settingsButton = document.getElementById("SettingsButton");
+const menuVersion = document.getElementById("MenuVersion");
+if (menuVersion) {
+	menuVersion.textContent = chrome.runtime.getManifest().version;
+}
 const updateNotice = document.getElementById("UpdateNotice");
 const updateNoticeText = document.getElementById("UpdateNoticeText");
 const openUpdateButton = document.getElementById("OpenUpdateButton");
@@ -61,7 +65,24 @@ function applyMenuTheme(theme, darkModeEnabled = false, colors = customTheme) {
 }
 
 function renderUpdateNotice(status) {
-	const visible = status?.updateAvailable && status.latestVersion;
+	// The stored status is a snapshot from whenever checkForUpdates() last ran in
+	// the background — if this extension has been reloaded/updated since then
+	// (e.g. right after pulling a new unpacked version), status.localVersion is
+	// stale and would show the OLD version as "downloaded" even though we're
+	// already running the new one. Never trust it blindly: compare against the
+	// live manifest version, and if they disagree, treat the cached status as
+	// unusable (hide the notice) and ask the background to recheck silently so
+	// it self-heals instead of showing wrong numbers indefinitely.
+	const liveVersion = chrome.runtime.getManifest().version;
+	if (!status || status.localVersion !== liveVersion) {
+		updateNotice.hidden = true;
+		chrome.runtime.sendMessage({ type: "ee-check-update", notify: false }, () => {
+			void chrome.runtime.lastError;
+		});
+		return;
+	}
+
+	const visible = status.updateAvailable && status.latestVersion;
 	updateNotice.hidden = !visible;
 	if (visible) {
 		updateNoticeText.textContent = window.eeI18n.msg("menuUpdateNotice", [

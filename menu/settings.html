@@ -13,10 +13,22 @@
           <h1 data-i18n="settingsHeading">Settings</h1>
           <p data-i18n="settingsSubtitle">Choose how Edupage Extras works.</p>
         </div>
-        <button class="secondary-button" id="ExperimentalSettingsButton" type="button" data-i18n="experimentalButton">Experimental</button>
       </header>
 
-      <section class="setting-group" aria-labelledby="appearance-heading">
+      <div class="settings-body">
+        <nav class="settings-nav" role="tablist" aria-orientation="vertical" aria-label="Settings categories">
+          <button class="settings-nav-item" type="button" role="tab" id="nav-appearance" aria-controls="panel-appearance" aria-selected="true" data-target="appearance" data-i18n="groupAppearance">Appearance</button>
+          <button class="settings-nav-item" type="button" role="tab" id="nav-cleanup" aria-controls="panel-cleanup" aria-selected="false" tabindex="-1" data-target="cleanup" data-i18n="groupCleanup">Cleanup</button>
+          <button class="settings-nav-item" type="button" role="tab" id="nav-features" aria-controls="panel-features" aria-selected="false" tabindex="-1" data-target="features" data-i18n="groupFeatures">Features</button>
+          <button class="settings-nav-item" type="button" role="tab" id="nav-timetable" aria-controls="panel-timetable" aria-selected="false" tabindex="-1" data-target="timetable" data-i18n="groupTimetable">Timetable</button>
+          <button class="settings-nav-item" type="button" role="tab" id="nav-updates" aria-controls="panel-updates" aria-selected="false" tabindex="-1" data-target="updates" data-i18n="groupUpdates">Updates</button>
+          <button class="settings-nav-item" type="button" role="tab" id="nav-debug" aria-controls="panel-debug" aria-selected="false" tabindex="-1" data-target="debug" data-i18n="groupDebug">Debug</button>
+          <button class="settings-nav-item settings-nav-item-experimental" type="button" id="ExperimentalSettingsButton" data-i18n="experimentalButton">Experimental</button>
+        </nav>
+
+        <div class="settings-content">
+
+      <section class="setting-group" id="panel-appearance" role="tabpanel" aria-labelledby="appearance-heading nav-appearance" tabindex="0">
         <h2 id="appearance-heading" data-i18n="groupAppearance">Appearance</h2>
 
         <div class="setting-row">
@@ -137,7 +149,7 @@
         </div>
       </section>
 
-      <section class="setting-group" aria-labelledby="cleanup-heading">
+      <section class="setting-group" id="panel-cleanup" role="tabpanel" aria-labelledby="cleanup-heading nav-cleanup" tabindex="0" hidden>
         <h2 id="cleanup-heading" data-i18n="groupCleanup">Cleanup</h2>
 
         <div class="setting-row">
@@ -166,7 +178,7 @@
 
       </section>
 
-      <section class="setting-group" aria-labelledby="features-heading">
+      <section class="setting-group" id="panel-features" role="tabpanel" aria-labelledby="features-heading nav-features" tabindex="0" hidden>
         <h2 id="features-heading" data-i18n="groupFeatures">Features</h2>
 
         <div class="setting-row">
@@ -272,7 +284,7 @@
 
       </section>
 
-      <section class="setting-group" aria-labelledby="timetable-heading">
+      <section class="setting-group" id="panel-timetable" role="tabpanel" aria-labelledby="timetable-heading nav-timetable" tabindex="0" hidden>
         <h2 id="timetable-heading" data-i18n="groupTimetable">Timetable</h2>
 
         <div class="setting-row">
@@ -307,7 +319,7 @@
         <p class="setting-tip" data-i18n="exportTimetableEdupageTip">Tip: EduPage also has its own calendar subscription, with no extension needed — Môj profil → Nastavenia kalendára → Stiahnuť ICS/WebCal.</p>
       </section>
 
-      <section class="setting-group" aria-labelledby="updates-heading">
+      <section class="setting-group" id="panel-updates" role="tabpanel" aria-labelledby="updates-heading nav-updates" tabindex="0" hidden>
         <h2 id="updates-heading" data-i18n="groupUpdates">Updates</h2>
 
         <div class="setting-row">
@@ -334,7 +346,7 @@
         </div>
       </section>
 
-      <section class="setting-group" aria-labelledby="debug-heading">
+      <section class="setting-group" id="panel-debug" role="tabpanel" aria-labelledby="debug-heading nav-debug" tabindex="0" hidden>
         <h2 id="debug-heading" data-i18n="groupDebug">Debug</h2>
 
         <div class="setting-row">
@@ -373,9 +385,21 @@
         </div>
       </section>
 
+        </div>
+      </div>
+
       <footer class="made-by">
         <span data-i18n="madeBy">Made by</span> <a href="https://github.com/Alexosavrua" target="_blank" rel="noopener noreferrer">JustAlex</a>
       </footer>
+
+      <dialog class="confirm-dialog" id="ExperimentalConfirmDialog" aria-labelledby="experimental-confirm-title">
+        <h2 id="experimental-confirm-title" data-i18n="experimentalConfirmTitle">Enter Experimental Settings?</h2>
+        <p data-i18n="experimentalConfirmBody">This section holds features still in development. They may be unstable, change without notice, or not work as expected. Proceed only if you're comfortable with that.</p>
+        <div class="actions-row confirm-dialog-actions">
+          <button class="secondary-button" id="ExperimentalConfirmCancel" type="button" data-i18n="experimentalConfirmCancel">Cancel</button>
+          <button class="secondary-button confirm-dialog-confirm" id="ExperimentalConfirmContinue" type="button" data-i18n="experimentalConfirmContinue">Continue</button>
+        </div>
+      </dialog>
     </main>
     <script src="i18n.js"></script>
     <script src="settings.js"></script>
