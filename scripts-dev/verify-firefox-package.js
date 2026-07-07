@@ -24,7 +24,7 @@ const FORBIDDEN_PREFIXES = [
   ".claude/",
   "node_modules/",
 ];
-const FORBIDDEN_EXACT = ["package.json", "package-lock.json", "FIREFOX_RELEASE.md"];
+const FORBIDDEN_EXACT = ["package.json", "package-lock.json", "FIREFOX_RELEASE.md", "CHROME_RELEASE.md"];
 
 function findLatestZip() {
   if (!fs.existsSync(artifactsDir)) return null;

@@ -1,8 +1,9 @@
-name: Publish to Firefox Add-ons (AMO)
+name: Publish to Firefox Add-ons (AMO) and Chrome Web Store
 
 # Runs when a version tag like v0.7.0 is pushed. Lints, tests, then submits the
-# build to AMO for signing — once Mozilla approves it, existing installs update
-# automatically. See FIREFOX_RELEASE.md for one-time setup steps.
+# build to AMO for signing and (once CWS_* secrets are set) to the Chrome Web
+# Store — once each store approves a version, existing installs update
+# automatically. One-time setup: FIREFOX_RELEASE.md / CHROME_RELEASE.md.
 
 on:
   push:
@@ -47,17 +48,37 @@ jobs:
           npm run build:firefox
           npm run verify:package
 
-      - name: Upload Chrome-compatible .zip as a workflow artifact
-        # Same manifest.json serves both browsers (Chrome ignores the
-        # Firefox-only browser_specific_settings key), so the plain .zip
-        # web-ext build produces is exactly what Chrome Web Store wants too
-        # — no separate build needed when that submission happens.
+      - name: Build Chrome package and verify it contains no excluded files
+        # Chrome needs its own zip: build-chrome.js strips the Firefox-only
+        # manifest keys (background.scripts, browser_specific_settings) that
+        # the Chrome Web Store validator rejects. See CHROME_RELEASE.md.
+        run: |
+          npm run build:chrome
+          npm run verify:package
+
+      - name: Upload Chrome .zip as a workflow artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: chrome-zip
-          path: web-ext-artifacts/*.zip
+          path: web-ext-artifacts/*-chrome.zip
           if-no-files-found: ignore
+
+      - name: Publish to Chrome Web Store
+        # Skips quietly until the CWS secrets exist (see CHROME_RELEASE.md for
+        # the one-time setup). The first version must be uploaded by hand on
+        # the dashboard; after that this step handles every release.
+        env:
+          EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+          CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+        run: |
+          if [ -z "$EXTENSION_ID" ]; then
+            echo "CWS_* secrets not configured — skipping Chrome Web Store upload."
+            exit 0
+          fi
+          npm run upload:chrome
 
       - name: Sign and submit to addons.mozilla.org
         env:

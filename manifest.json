@@ -2,7 +2,7 @@
   "name": "__MSG_extName__",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
-  "version": "0.7.7",
+  "version": "0.8.0",
   "manifest_version": 3,
   "browser_specific_settings": {
     "gecko": {
@@ -54,6 +54,7 @@
         "scripts/timetable-enhancer.js",
         "scripts/grades-enhancer.js",
         "scripts/attendance-enhancer.js",
+        "scripts/ucivo-enhancer.js",
         "scripts/autologin.js"
       ],
       "run_at": "document_start",

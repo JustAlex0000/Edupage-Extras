@@ -91,9 +91,8 @@ without pushing a new tag, e.g. to retry a failed run.
 
 ## Notes
 
-- The Chrome Web Store has the same two-step story (one manual first listing,
-  then API-driven updates) if you want to automate that side too later — ask
-  and it can be added as a second job in the same workflow.
+- The Chrome Web Store side works the same way and lives in the same
+  workflow — see `CHROME_RELEASE.md` for its one-time setup.
 - `npm run lint:firefox` / `npm run build:firefox` / `npm run run:firefox` all
   work locally too, for testing before you tag a release.
 - If a release fails review, fix the issue, bump the version again (AMO

@@ -722,6 +722,18 @@ function buildDarkCSS() {
       color: var(--ee-text) !important;
     }
 
+    /* Brand-colored action buttons (flat-button-red/-blue/-graym etc.) keep
+       their native saturated background so "acknowledge"/"action" still
+       reads regardless of theme (see the dedicated flat-button rule above).
+       But the DOM normalizer classifies text color purely by its own
+       luminance, with no notion of "sits on a colored button" — a button's
+       native medium-toned label text got reclassified as muted-gray and
+       forced to --ee-text-muted, which is unreadable against a saturated
+       blue/gray button fill. Force full-contrast text back on these. */
+    html.ee-dark [class*="flat-button-"].${MUTED_TEXT_CLASS} {
+      color: var(--ee-text) !important;
+    }
+
     html.ee-dark .${BORDER_CLASS} {
       border-color: var(--ee-border) !important;
       outline-color: var(--ee-border) !important;

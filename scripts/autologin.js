@@ -7,7 +7,14 @@
   const AUTOLOGIN_KEY = "eeAutoLoginEnabled";
   const STYLE_ID = "ee-autologin-style";
   let autoLoginEnabled = false;
+  // EduPage's login is a multi-step modal (SSO trigger → account picker →
+  // username → password). Each auto-advance fires at most once; the password
+  // submit is terminal so a rejected password never loops.
+  let ssoOpened = false;
+  let accountPicked = false;
+  let usernameSubmitted = false;
   let submitted = false;
+  let userTyped = false;
 
   function injectStyles() {
     if (document.getElementById(STYLE_ID)) return;
@@ -50,26 +57,8 @@
     setTimeout(() => badge.remove(), 3500);
   }
 
-  function findLoginForm() {
-    const passwordInput = document.querySelector(
-      'input[type="password"]:not([hidden]):not([style*="display: none"])'
-    );
-    if (!passwordInput) return null;
-
-    const form = passwordInput.closest("form");
-    const container = form || document.body;
-
-    const usernameInput = container.querySelector(
-      'input[type="text"], input[type="email"], input:not([type])'
-    );
-    if (!usernameInput) return null;
-
-    const submitButton =
-      container.querySelector('button[type="submit"]') ||
-      container.querySelector('input[type="submit"]') ||
-      container.querySelector('button:not([type="button"]):not([type="reset"])');
-
-    return { usernameInput, passwordInput, submitButton, form };
+  function isVisible(el) {
+    return !!(el && (el.offsetWidth || el.offsetHeight));
   }
 
   function isFieldFilled(input) {
@@ -83,45 +72,114 @@
     return false;
   }
 
-  function tryAutoSubmit() {
-    if (submitted || !autoLoginEnabled) return;
+  function findSubmitControl(container) {
+    return (
+      container.querySelector('button[type="submit"], input[type="submit"]') ||
+      container.querySelector('button:not([type="button"]):not([type="reset"])')
+    );
+  }
 
-    const elements = findLoginForm();
-    if (!elements) return;
-
-    const { usernameInput, passwordInput, submitButton, form } = elements;
-
-    if (!isFieldFilled(usernameInput) || !isFieldFilled(passwordInput)) return;
-
-    submitted = true;
-
-    showBadge(chrome.i18n.getMessage("autoLoginSubmitting") || "Auto-logging in…");
-
+  function submitVia(control, form) {
     setTimeout(() => {
-      if (submitButton) {
-        submitButton.click();
+      if (control) {
+        control.click();
       } else if (form) {
         form.requestSubmit();
       }
     }, 200);
   }
 
+  function tryAdvance() {
+    if (submitted || !autoLoginEnabled || userTyped) return;
+
+    // Password step (also covers legacy single-form layouts that still have a
+    // username field next to the password).
+    const passwordInput = document.querySelector('input[type="password"]');
+    if (isVisible(passwordInput)) {
+      const form = passwordInput.closest("form");
+      const container = form || document.body;
+      const usernameInput = container.querySelector(
+        'input[type="text"], input[type="email"], input:not([type])'
+      );
+      if (isVisible(usernameInput) && !isFieldFilled(usernameInput)) return;
+      if (!isFieldFilled(passwordInput)) return;
+
+      submitted = true;
+      showBadge(chrome.i18n.getMessage("autoLoginSubmitting") || "Auto-logging in…");
+      submitVia(findSubmitControl(container), form);
+      return;
+    }
+
+    // Username-only step ("Použiť iný účet" flow asks for the name first).
+    const usernameField = document.getElementById("usernamefield");
+    if (!usernameSubmitted && isVisible(usernameField)) {
+      if (!isFieldFilled(usernameField)) return;
+      usernameSubmitted = true;
+      const form = usernameField.closest("form");
+      submitVia(form && findSubmitControl(form), form);
+      return;
+    }
+
+    // Account picker: only auto-pick when there is exactly one saved account,
+    // so multi-account users still choose themselves.
+    const savedAccounts = document.querySelectorAll(".mainlogin-userlist-item.userItem");
+    if (!accountPicked && savedAccounts.length === 1 && isVisible(savedAccounts[0])) {
+      accountPicked = true;
+      savedAccounts[0].click();
+      return;
+    }
+
+    // Landing page: open the EduPage login modal.
+    const ssoButton = document.querySelector(".skgdSsoLoginBtn");
+    if (
+      !ssoOpened &&
+      !accountPicked &&
+      isVisible(ssoButton) &&
+      !document.querySelector(".mainlogin-outer")
+    ) {
+      ssoOpened = true;
+      ssoButton.click();
+    }
+  }
+
+  function watchManualTyping() {
+    // A keystroke in any credential field hands control back to the user —
+    // never auto-submit a half-typed password.
+    document.addEventListener(
+      "keydown",
+      (event) => {
+        const target = event.target;
+        if (!target || target.tagName !== "INPUT") return;
+        if (
+          target.type === "password" ||
+          target.id === "usernamefield" ||
+          /username|current-password/.test(target.autocomplete || "")
+        ) {
+          userTyped = true;
+        }
+      },
+      true
+    );
+  }
+
   function startWatching() {
+    watchManualTyping();
+
     let attempts = 0;
     const maxAttempts = 40;
     const interval = 250;
 
     const timer = setInterval(() => {
       attempts += 1;
-      if (submitted || attempts >= maxAttempts) {
+      if (submitted || userTyped || attempts >= maxAttempts) {
         clearInterval(timer);
         return;
       }
-      tryAutoSubmit();
+      tryAdvance();
     }, interval);
 
     const observer = new MutationObserver(() => {
-      if (!submitted) tryAutoSubmit();
+      if (!submitted && !userTyped) tryAdvance();
     });
 
     if (document.body) {

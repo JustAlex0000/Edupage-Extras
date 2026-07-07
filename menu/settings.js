@@ -47,6 +47,7 @@ const reloadEdupageTabsButton = document.getElementById("ReloadEdupageTabsButton
 const experimentalSaveStatus = document.getElementById("ExperimentalSaveStatus");
 const mobileResponsiveToggle = document.getElementById("MobileResponsiveCheckbox");
 const autoLoginToggle = document.getElementById("AutoLoginCheckbox");
+const ucivoExportToggle = document.getElementById("UcivoExportCheckbox");
 const previewUpdateToastButton = document.getElementById("PreviewUpdateToastButton");
 const STORAGE_KEY = "darkModeEnabled";
 const THEME_KEY = "themeMode";
@@ -72,6 +73,7 @@ const REPO_URL = "https://github.com/Alexosavrua/Edupage-Extras";
 const ACTIVITY_SHIELD_COMMAND = "toggle-stay-active-mode";
 const MOBILE_RESPONSIVE_KEY = "eeMobileResponsiveEnabled";
 const AUTOLOGIN_KEY = "eeAutoLoginEnabled";
+const UCIVO_EXPORT_KEY = "eeUcivoExportEnabled";
 const activityShieldSettings = [
 	["ActivityShieldEnabled", "eeActivityShieldEnabled"],
 	["ActivityVisibilityState", "eeActivityShieldVisibilityState"],
@@ -943,6 +945,15 @@ if (autoLoginToggle) {
 	});
 	autoLoginToggle.addEventListener("change", () => {
 		chrome.storage.local.set({ [AUTOLOGIN_KEY]: autoLoginToggle.checked });
+	});
+}
+
+if (ucivoExportToggle) {
+	chrome.storage.local.get([UCIVO_EXPORT_KEY], (result) => {
+		ucivoExportToggle.checked = result[UCIVO_EXPORT_KEY] !== false;
+	});
+	ucivoExportToggle.addEventListener("change", () => {
+		chrome.storage.local.set({ [UCIVO_EXPORT_KEY]: ucivoExportToggle.checked });
 	});
 }
 

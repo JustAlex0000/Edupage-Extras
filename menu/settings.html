@@ -301,12 +301,24 @@
         <div class="setting-row">
           <div>
             <h3 data-i18n="autoLogin">Auto-Login</h3>
-            <p data-i18n="autoLoginDesc">Automatically submit the login form when the browser has autofilled your saved username and password.</p>
+            <p data-i18n="autoLoginDesc">Automatically clicks through the EduPage login (account picker included) and submits once your browser autofills the saved password. Stops the moment you type anything yourself.</p>
           </div>
           <label class="switch switch-compact" for="AutoLoginCheckbox">
             <input type="checkbox" id="AutoLoginCheckbox">
             <span class="switch-track" aria-hidden="true"></span>
             <span class="sr-only" data-i18n="toggleAutoLogin">Toggle auto-login</span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <h3 data-i18n="ucivoExport">Curriculum Export</h3>
+            <p data-i18n="ucivoExportDesc">Add export buttons to a subject's Učivo page to download the topic plan (with taught dates) as .txt or .csv.</p>
+          </div>
+          <label class="switch switch-compact" for="UcivoExportCheckbox">
+            <input type="checkbox" id="UcivoExportCheckbox">
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="sr-only" data-i18n="toggleUcivoExport">Toggle curriculum export</span>
           </label>
         </div>
 
