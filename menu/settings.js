@@ -48,6 +48,7 @@ const experimentalSaveStatus = document.getElementById("ExperimentalSaveStatus")
 const mobileResponsiveToggle = document.getElementById("MobileResponsiveCheckbox");
 const autoLoginToggle = document.getElementById("AutoLoginCheckbox");
 const ucivoExportToggle = document.getElementById("UcivoExportCheckbox");
+const etestCopyToggle = document.getElementById("EtestCopyCheckbox");
 const previewUpdateToastButton = document.getElementById("PreviewUpdateToastButton");
 const STORAGE_KEY = "darkModeEnabled";
 const THEME_KEY = "themeMode";
@@ -74,6 +75,7 @@ const ACTIVITY_SHIELD_COMMAND = "toggle-stay-active-mode";
 const MOBILE_RESPONSIVE_KEY = "eeMobileResponsiveEnabled";
 const AUTOLOGIN_KEY = "eeAutoLoginEnabled";
 const UCIVO_EXPORT_KEY = "eeUcivoExportEnabled";
+const ETEST_COPY_KEY = "eeEtestCopyEnabled";
 const activityShieldSettings = [
 	["ActivityShieldEnabled", "eeActivityShieldEnabled"],
 	["ActivityVisibilityState", "eeActivityShieldVisibilityState"],
@@ -960,6 +962,15 @@ if (ucivoExportToggle) {
 	});
 	ucivoExportToggle.addEventListener("change", () => {
 		chrome.storage.local.set({ [UCIVO_EXPORT_KEY]: ucivoExportToggle.checked });
+	});
+}
+
+if (etestCopyToggle) {
+	chrome.storage.local.get([ETEST_COPY_KEY], (result) => {
+		etestCopyToggle.checked = result[ETEST_COPY_KEY] !== false;
+	});
+	etestCopyToggle.addEventListener("change", () => {
+		chrome.storage.local.set({ [ETEST_COPY_KEY]: etestCopyToggle.checked });
 	});
 }
 
