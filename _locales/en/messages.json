@@ -112,6 +112,11 @@
   "toggleUcivoExport": { "message": "Toggle curriculum export" },
   "ucivoExportTxt": { "message": "Export (.txt)" },
   "ucivoExportCsv": { "message": "Export (.csv)" },
+  "etestCopy": { "message": "Copy Test Questions" },
+  "etestCopyDesc": { "message": "Add a copy button to each question in EduPage tests (eTest), plus a button to copy the whole numbered test at once." },
+  "toggleEtestCopy": { "message": "Toggle test question copy button" },
+  "etestCopyQuestion": { "message": "Copy question" },
+  "etestCopyAllQuestions": { "message": "Copy whole test" },
 
   "groupDebug": { "message": "Debug" },
   "mobileResponsive": { "message": "Mobile-Responsive Layout" },

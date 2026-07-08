@@ -112,6 +112,11 @@
   "toggleUcivoExport": { "message": "Přepnout export učiva" },
   "ucivoExportTxt": { "message": "Exportovat (.txt)" },
   "ucivoExportCsv": { "message": "Exportovat (.csv)" },
+  "etestCopy": { "message": "Kopírování otázek testu" },
+  "etestCopyDesc": { "message": "Přidá k jednotlivým otázkám v testech EduPage (eTest) tlačítko pro zkopírování textu, plus tlačítko pro zkopírování celého očíslovaného testu najednou." },
+  "toggleEtestCopy": { "message": "Přepnout tlačítko kopírování otázky" },
+  "etestCopyQuestion": { "message": "Kopírovat otázku" },
+  "etestCopyAllQuestions": { "message": "Kopírovat celý test" },
 
   "groupDebug": { "message": "Ladění" },
   "mobileResponsive": { "message": "Responzivní rozvržení pro mobil" },

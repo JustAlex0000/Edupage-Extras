@@ -4,6 +4,13 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.8.3 — 2026-07-09
+
+- Added copy buttons to EduPage tests (eTest): a per-question copy button
+  next to the existing report/clear icons, plus a "Copy whole test" button
+  that copies every question numbered as one block. Toggle in Settings →
+  Curriculum Export.
+
 ## 0.8.2 — 2026-07-08
 
 - Fixed the extension icon failing to decode ("Could not decode image") on
