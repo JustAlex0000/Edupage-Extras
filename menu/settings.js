@@ -337,8 +337,14 @@ function renderUpdateStatus(status) {
 	// background to recheck so it self-heals with the correct numbers.
 	const liveVersion = chrome.runtime.getManifest().version;
 	if (status && status.localVersion !== liveVersion) {
-		chrome.runtime.sendMessage({ type: "ee-check-update", notify: false }, () => {
+		chrome.runtime.sendMessage({ type: "ee-check-update", notify: false }, (response) => {
 			void chrome.runtime.lastError;
+			if (response?.ok) {
+				renderUpdateStatus(response.status);
+			} else if (!chrome.runtime.lastError) {
+				updateStatusText.dataset.state = "error";
+				updateStatusText.textContent = response?.error || t("updateCheckFailed");
+			}
 		});
 		status = null;
 	}
@@ -346,7 +352,7 @@ function renderUpdateStatus(status) {
 	const reloadReminder = t("updateReloadReminder");
 	updateStatusText.dataset.state = "";
 	if (!status) {
-		updateStatusText.textContent = t("noUpdateCheck");
+		updateStatusText.textContent = t("checkingGithub");
 		return;
 	}
 

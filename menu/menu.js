@@ -79,8 +79,9 @@ function renderUpdateNotice(status) {
 	const liveVersion = chrome.runtime.getManifest().version;
 	if (!status || status.localVersion !== liveVersion) {
 		updateNotice.hidden = true;
-		chrome.runtime.sendMessage({ type: "ee-check-update", notify: false }, () => {
+		chrome.runtime.sendMessage({ type: "ee-check-update", notify: false }, (response) => {
 			void chrome.runtime.lastError;
+			if (response?.ok) renderUpdateNotice(response.status);
 		});
 		return;
 	}

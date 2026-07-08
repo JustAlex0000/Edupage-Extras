@@ -8,7 +8,13 @@ or any school using Edupage.**
 
 ## Installation
 
-### Load unpacked in Chrome or Edge
+### Chrome / Edge (Chrome Web Store)
+
+Install directly from the
+[Chrome Web Store](https://chromewebstore.google.com/detail/edupage-extras/ljakjcljhfkjgndmopmpaakklgnkccca).
+Updates automatically — no manual steps needed.
+
+### Load unpacked in Chrome or Edge (development)
 
 1. Download or clone this repository. (Do not forget to extract it if downloading directly)
 **Updating with git pull WILL NOT WORK when downloading directly!**
@@ -20,11 +26,11 @@ or any school using Edupage.**
 
 ### Installation in Firefox
 
-Edupage Extras is being submitted to addons.mozilla.org (AMO) starting with
-version 0.7.0. Once the listing is live, search "Edupage Extras" on
-[addons.mozilla.org](https://addons.mozilla.org) or follow the link from this
-repository (https://addons.mozilla.org/en-US/firefox/addon/edupage-extras/). Installs from AMO
-update automatically — no manual steps needed.
+Search "Edupage Extras" on [addons.mozilla.org](https://addons.mozilla.org) or
+install directly from
+[the AMO listing](https://addons.mozilla.org/en-US/firefox/addon/edupage-extras/).
+Also available on Firefox for Android through the same listing. Installs from
+AMO update automatically — no manual steps needed.
 
 Note: this extension is built for Chromium-based browsers and has been ported to Firefox so anyone can use it.
       if you encounter any bugs please report it on my discord. (there is a report tool built in settings.)
@@ -39,6 +45,9 @@ Note: this extension is built for Chromium-based browsers and has been ported to
   Rose Pink, Royal Purple, and Light themes.
 - **Centered layout** option for a cleaner main page layout.
 - **Help text cleanup** for hiding the top-right Edupage help greeting.
+- **Mobile-responsive layout** (opt-in, not fully verified on every page yet) —
+  injects layout overrides (flex-wrap, scrollable tables, scaled sidebar/fonts)
+  so Edupage's normally desktop-only UI is usable on small screens.
 
 ### Grades
 
@@ -64,6 +73,20 @@ Note: this extension is built for Chromium-based browsers and has been ported to
 The extension reads the values from Edupage's existing grade table. It does not
 log in, use credentials, fetch grades from a server, or calculate hidden grade data.
 
+### Učivo / Curriculum
+
+- **Curriculum export** — on a subject's Učivo (topic plan) page, export the
+  full year's chapters, topics, and taught dates as `.txt` or `.csv`.
+
+### Activity Shield
+
+- **Stay Active Mode** — for Edupage test/e-learning pages that watch tab
+  visibility, focus, and mouse activity to detect if you've switched away or
+  gone idle. When enabled, it keeps the page reporting itself as focused and
+  active. Individual signals (visibility, focus, mouse, clipboard, etc.) can
+  be toggled independently, toggled via a keyboard shortcut, and reset to
+  defaults from Settings.
+
 ### Timetable
 
 - **Substitution and room-change highlights**, colored by change type instead
@@ -82,14 +105,16 @@ log in, use credentials, fetch grades from a server, or calculate hidden grade d
 
 ### Updates
 
-- **Chrome/Edge (unpacked installs):** an update reminder checks the public
-  GitHub project manifest and compares it with the installed version. If a
-  newer version is available, it prompts you to pull the latest project and
-  reload the unpacked extension from `chrome://extensions/`.
-- **Firefox (installed from AMO):** updates automatically through Firefox's
-  own add-on update mechanism — no manual steps, and the GitHub-based reminder
-  above doesn't apply.
+- **Chrome Web Store / AMO installs:** update automatically through the
+  browser's own add-on store — no manual steps.
+- **Chrome/Edge (unpacked/development installs only):** an update reminder
+  checks the public GitHub project manifest and compares it with the
+  installed version. If a newer version is available, it prompts you to pull
+  the latest project and reload the unpacked extension from
+  `chrome://extensions/`.
 - Update checks do not send Edupage data anywhere.
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
 
 ## Usage
 
@@ -148,6 +173,10 @@ The extension does not request access to all websites.
   homepage timetable widget.
 - `scripts/timetable-sync.js` - reads the EduPage timetable page, used by the
   `.ics` export.
+- `scripts/ucivo-enhancer.js` - curriculum/topic-plan export (`.txt`/`.csv`)
+  on the Učivo page.
+- `scripts/activity-shield-main.js` / `activity-shield-bridge.js` - Stay
+  Active Mode (see Activity Shield above).
 - `menu/settings.html` - normal user-facing settings.
 - `menu/experimental.html` - experimental features that are kept
   separate from normal settings.

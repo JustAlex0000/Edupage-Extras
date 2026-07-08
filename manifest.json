@@ -4,6 +4,12 @@
   "default_locale": "en",
   "version": "0.8.2",
   "manifest_version": 3,
+  "icons": {
+    "16": "images/icon-16.png",
+    "32": "images/icon-32.png",
+    "48": "images/icon-48.png",
+    "128": "images/icon-128.png"
+  },
   "browser_specific_settings": {
     "gecko": {
       "id": "edupage-extras@alexosavrua.github.io",
@@ -36,7 +42,12 @@
   },
   "action": {
     "default_popup": "menu/menu.html",
-    "default_icon": "images/Edupage-Extras.png"
+    "default_icon": {
+      "16": "images/icon-16.png",
+      "32": "images/icon-32.png",
+      "48": "images/icon-48.png",
+      "128": "images/icon-128.png"
+    }
   },
   "options_ui": {
     "page": "menu/settings.html",
