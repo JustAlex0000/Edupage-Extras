@@ -17,10 +17,9 @@ const DEFAULT_ROZVRH_ROOM_CHANGE_COLOR = "#1565c0";
 const DEFAULT_ROZVRH_SUBSTITUTION_COLOR = "#e65100";
 const LAST_SEEN_VERSION_KEY = "eeLastSeenVersion";
 const UPDATE_REMINDER_ENABLED_KEY = "eeUpdateReminderEnabled";
-// No GitHub Releases are published for this repo (just tags), so that page
-// is always empty — link to the commit history instead, which actually has
-// real per-version descriptions in the commit messages.
-const REPO_RELEASES_URL = "https://github.com/Alexosavrua/Edupage-Extras/blob/main/CHANGELOG.md";
+// The release workflow publishes a GitHub Release per tag (notes pulled from
+// CHANGELOG.md, zip/xpi attached), so link straight to the Releases page.
+const REPO_RELEASES_URL = "https://github.com/Alexosavrua/Edupage-Extras/releases";
 const MOBILE_RESPONSIVE_KEY = "eeMobileResponsiveEnabled";
 const THEME_CACHE_KEY = "eeThemeCacheV1";
 

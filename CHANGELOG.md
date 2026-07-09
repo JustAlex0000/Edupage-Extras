@@ -4,6 +4,13 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.8.23 — 2026-07-09
+
+- Release workflow now creates a GitHub Release on every tag push, with
+  notes taken from this changelog and the Chrome .zip + Firefox .xpi
+  attached. The update toast's "what's new" link points at the Releases
+  page again. ([#28](https://github.com/Alexosavrua/Edupage-Extras/issues/28))
+
 ## 0.8.22 — 2026-07-09
 
 - Added GitHub issue forms (bug report matching the built-in "Report a

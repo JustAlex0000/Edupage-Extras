@@ -11,6 +11,9 @@ on:
       - "v*.*.*"
   workflow_dispatch: {} # lets you trigger a re-run manually from the Actions tab
 
+permissions:
+  contents: write # needed to create the GitHub Release on tag push
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -94,3 +97,19 @@ jobs:
           name: firefox-xpi
           path: web-ext-artifacts/*.xpi
           if-no-files-found: ignore
+
+      - name: Create GitHub Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          # Extract this version's section from CHANGELOG.md as release notes
+          awk "/^## ${VERSION//./\\.} /{flag=1;next}/^## /{flag=0}flag" CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "No CHANGELOG.md section found for $VERSION" > notes.md
+          fi
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file notes.md \
+            web-ext-artifacts/*-chrome.zip web-ext-artifacts/*.xpi
