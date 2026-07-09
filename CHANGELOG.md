@@ -4,6 +4,10 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.8.10 — 2026-07-09
+
+- Added Czech public holidays to the half-year .ics export (previously only Slovak holidays were recognized). ([#27](https://github.com/Alexosavrua/Edupage-Extras/issues/27))
+
 ## 0.8.9 — 2026-07-09
 
 - Fixed attendance percentages showing the wrong child's numbers on parent accounts with multiple children — now skips the injected row instead of guessing. ([#22](https://github.com/Alexosavrua/Edupage-Extras/issues/22))

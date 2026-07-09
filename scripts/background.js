@@ -450,9 +450,40 @@ function isSlovakPublicHoliday(date) {
   return dateKey === formatDate(goodFriday) || dateKey === formatDate(easterMonday);
 }
 
+function isCzechPublicHoliday(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return false;
+
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const fixedHolidays = new Set([
+    "1-1",
+    "5-1",
+    "5-8",
+    "7-5",
+    "7-6",
+    "9-28",
+    "10-28",
+    "11-17",
+    "12-24",
+    "12-25",
+    "12-26",
+  ]);
+  if (fixedHolidays.has(`${month}-${day}`)) {
+    return true;
+  }
+
+  const easterSunday = computeEasterSunday(date.getFullYear());
+  const goodFriday = addDays(easterSunday, -2);
+  const easterMonday = addDays(easterSunday, 1);
+  const dateKey = formatDate(date);
+  return dateKey === formatDate(goodFriday) || dateKey === formatDate(easterMonday);
+}
+
 function shouldSkipGeneratedSchoolDay(date) {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return false;
-  return EE_TIME_ZONE === "Europe/Bratislava" && isSlovakPublicHoliday(date);
+  if (EE_TIME_ZONE === "Europe/Bratislava") return isSlovakPublicHoliday(date);
+  if (EE_TIME_ZONE === "Europe/Prague") return isCzechPublicHoliday(date);
+  return false;
 }
 
 function formatOffset(date) {
