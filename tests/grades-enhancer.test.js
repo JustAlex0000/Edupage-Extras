@@ -8,7 +8,7 @@ function loadGradesEnhancerInternals() {
   const source = fs.readFileSync(scriptPath, "utf8");
   const instrumentedSource = source.replace(
     'if (document.readyState === "loading") {',
-    'globalThis.__eeTest = { parseAverage, gradeColor, gradePercentage, parseDateOnly, normalizeDateInput, parseSubjectMap, computeSubjectAbsences, summarizeAttendance, summarizeRenderableAttendance, finalizeSubjectStats, resolveAttendanceBreakdown, resolveOfficialHalfSummary, matchSubjectStats, parseGradeTitleSegments, buildGradeOriginalTitleHtml, buildGradeTitleOverrideKey, gradeTableRowCount, resolveCurrentHalfWindow, computeProjectedSubjectTotals, buildAttendancePlaceholderState, shouldRenderPredictedAttendance, computeSummaryColumnLayout, calcWeightedAvg, projectAverageWithVirtualGrades, parseGradeWeight, readExistingGradeMass, buildGradeWeightModel }; if (document.readyState === "loading") {',
+    'globalThis.__eeTest = { parseAverage, gradeColor, gradePercentage, parseDateOnly, normalizeDateInput, parseSubjectMap, computeSubjectAbsences, summarizeAttendance, summarizeRenderableAttendance, finalizeSubjectStats, resolveAttendanceBreakdown, resolveOfficialHalfSummary, resolveUnambiguousStudentId, matchSubjectStats, parseGradeTitleSegments, buildGradeOriginalTitleHtml, buildGradeTitleOverrideKey, gradeTableRowCount, resolveCurrentHalfWindow, computeProjectedSubjectTotals, buildAttendancePlaceholderState, shouldRenderPredictedAttendance, computeSummaryColumnLayout, calcWeightedAvg, projectAverageWithVirtualGrades, parseGradeWeight, readExistingGradeMass, buildGradeWeightModel }; if (document.readyState === "loading") {',
   );
 
   const context = {
@@ -785,4 +785,42 @@ runTest("resolveOfficialHalfSummary returns null when only distant lessons exist
   // present + absent = 0, so there is no attendance data to show a % for.
   const summary = resolveOfficialHalfSummary(attendanceInfo, { halfKey: "1" });
   assert.equal(summary, null);
+});
+
+// Regression for #41 (mirrors #22 in attendance-enhancer.js): a parent
+// account's attendance payload has one entry per child. Picking order[0] /
+// the first student key unconditionally showed the wrong child's absences
+// next to whichever child's grades table was actually open.
+runTest("resolveOfficialHalfSummary skips rather than guesses on a multi-child payload", () => {
+  const { resolveOfficialHalfSummary } = loadGradesEnhancerInternals();
+
+  const attendanceInfo = {
+    payload: { order: ["child-a", "child-b"], students: { "child-a": {}, "child-b": {} } },
+    halfStats: {
+      "child-a": { "1": { present: 80, distant: 0, absent: 20 } },
+      "child-b": { "1": { present: 95, distant: 0, absent: 5 } },
+    },
+  };
+
+  const summary = resolveOfficialHalfSummary(attendanceInfo, { halfKey: "1" });
+  assert.equal(summary, null, "must not guess a child's absences when more than one is present");
+});
+
+runTest("resolveUnambiguousStudentId picks the sole student and rejects multi-student payloads", () => {
+  const { resolveUnambiguousStudentId } = loadGradesEnhancerInternals();
+
+  assert.equal(
+    resolveUnambiguousStudentId({ order: ["only-child"], students: { "only-child": {} } }),
+    "only-child",
+  );
+  assert.equal(
+    resolveUnambiguousStudentId({ order: [], students: { "only-child": {} } }),
+    "only-child",
+    "falls back to the sole students key when order is empty",
+  );
+  assert.equal(
+    resolveUnambiguousStudentId({ order: ["a", "b"], students: { a: {}, b: {} } }),
+    "",
+  );
+  assert.equal(resolveUnambiguousStudentId(undefined), "");
 });

@@ -4,6 +4,13 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.8.13 — 2026-07-09
+
+- Fixed grades-page attendance columns (Abs %, predicted attendance, overall
+  summary row) showing the wrong child's numbers on parent accounts with
+  multiple children — mirrors the #22 fix already applied to the standalone
+  attendance page. ([#41](https://github.com/Alexosavrua/Edupage-Extras/issues/41))
+
 ## 0.8.12 — 2026-07-09
 
 - Fixed the half-year .ics export silently dropping A/B-week alternation when the timetable preload cache was warm. ([#18](https://github.com/Alexosavrua/Edupage-Extras/issues/18))

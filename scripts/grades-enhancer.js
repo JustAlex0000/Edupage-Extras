@@ -2570,12 +2570,21 @@
     };
   }
 
+  // Parent accounts with multiple children get one entry per child in both
+  // `order` and `students`; nothing here tells us which child's grades table
+  // is currently displayed, so — same policy as the #22 fix in
+  // attendance-enhancer.js — resolve a student id only when it's
+  // unambiguous. Guessing `order[0]`/first key would silently show one
+  // child's absences next to another child's grades.
+  function resolveUnambiguousStudentId(payload) {
+    const order = Array.isArray(payload?.order) ? payload.order : [];
+    const studentKeys = Object.keys(payload?.students || {});
+    if (order.length > 1 || studentKeys.length > 1) return "";
+    return String(order[0] || studentKeys[0] || "").trim();
+  }
+
   function resolveOfficialHalfSummary(attendanceInfo, halfWindow) {
-    const studentId = String(
-      attendanceInfo?.payload?.order?.[0]
-      || Object.keys(attendanceInfo?.payload?.students || {})[0]
-      || "",
-    ).trim();
+    const studentId = resolveUnambiguousStudentId(attendanceInfo?.payload);
 
     if (!studentId) return null;
 
@@ -2819,7 +2828,7 @@
     diagnostics = [],
   ) {
     const entryMap = new Map();
-    const studentId = attendancePayload?.order?.[0] || Object.keys(attendancePayload?.students || {})[0];
+    const studentId = resolveUnambiguousStudentId(attendancePayload);
     const dailyRecords = attendancePayload?.students?.[studentId] || {};
 
     const unresolvedAbsencesByDate = new Map();
@@ -3898,7 +3907,7 @@
   }
 
   function countOverallAbsenceLessons(attendancePayload, absenceTypeMap, halfWindow) {
-    const studentId = attendancePayload?.order?.[0] || Object.keys(attendancePayload?.students || {})[0];
+    const studentId = resolveUnambiguousStudentId(attendancePayload);
     const dailyRecords = attendancePayload?.students?.[studentId] || {};
     let absent = 0;
 
