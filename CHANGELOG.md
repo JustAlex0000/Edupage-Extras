@@ -4,6 +4,14 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.8.24 — 2026-07-09
+
+- Fixed the Activity Shield "ActivityRedirect" protection doing nothing on
+  browsers without the Navigation API (Firefox) — the beforeunload blocker
+  now registers unconditionally in the top frame, and the Navigation API is
+  only used as an optional refinement where available.
+  ([#47](https://github.com/Alexosavrua/Edupage-Extras/issues/47))
+
 ## 0.8.23 — 2026-07-09
 
 - Release workflow now creates a GitHub Release on every tag push, with
