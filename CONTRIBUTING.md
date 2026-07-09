@@ -50,8 +50,10 @@ update the anchors in the same change.
 
 Every page enhancer follows the same skeleton — top-frame guard → path guard
 → storage toggle key → MutationObserver with debounce → `enhance()` →
-cleanup when disabled → `storage.onChanged` re-apply. See existing enhancers
-in `scripts/` (e.g. `attendance-enhancer.js`).
+cleanup when disabled → `storage.onChanged` re-apply. Start from
+[`scripts/_template-enhancer.js`](scripts/_template-enhancer.js) (a
+copy-paste skeleton with TODO markers, excluded from store packages) or see
+existing enhancers in `scripts/` (e.g. `ucivo-enhancer.js`).
 
 A new feature touches four places:
 

@@ -25,6 +25,9 @@ for (const entry of SHIP) {
   fs.cpSync(path.join(root, entry), path.join(staging, entry), { recursive: true });
 }
 
+// Dev-only skeleton for new enhancers — never referenced by the manifest.
+fs.rmSync(path.join(staging, "scripts", "_template-enhancer.js"), { force: true });
+
 const manifestPath = path.join(staging, "manifest.json");
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 delete manifest.browser_specific_settings;

@@ -4,6 +4,14 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.8.26 — 2026-07-09
+
+- Added `scripts/_template-enhancer.js` — a copy-paste skeleton for new page
+  enhancers with TODO markers (top-frame/path guards, storage toggle,
+  debounced observer, cleanup, live re-apply), documented in CONTRIBUTING.md
+  and excluded from store packages.
+  ([#33](https://github.com/Alexosavrua/Edupage-Extras/issues/33))
+
 ## 0.8.25 — 2026-07-09
 
 - Added public `ARCHITECTURE.md` (content-script timing, FOUC theme cache,

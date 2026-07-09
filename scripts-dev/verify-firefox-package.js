@@ -31,6 +31,7 @@ const FORBIDDEN_EXACT = [
   "CHROME_RELEASE.md",
   "ARCHITECTURE.md",
   "CONTRIBUTING.md",
+  "scripts/_template-enhancer.js",
 ];
 
 function findLatestZip() {
