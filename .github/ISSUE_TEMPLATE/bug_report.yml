@@ -1,0 +1,64 @@
+name: Bug report
+description: Something in Edupage Extras is broken or behaves unexpectedly.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tip: the extension can pre-fill most of this for you — open
+        **Settings → Report a Problem → Generate report → Open issue**.
+        The fields below mirror that report's structure.
+  - type: textarea
+    id: what-went-wrong
+    attributes:
+      label: What went wrong
+      description: Describe what you expected and what actually happened.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1.
+        2.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Extension version
+      description: Shown at the bottom of the extension settings page.
+      placeholder: "0.8.21"
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      placeholder: "Chrome 138 / Firefox 142"
+    validations:
+      required: true
+  - type: input
+    id: page
+    attributes:
+      label: Affected page
+      description: Which EduPage page is affected (grades, timetable, attendance, login, dashboard, …).
+      placeholder: "grades (Známky)"
+    validations:
+      required: true
+  - type: input
+    id: origin
+    attributes:
+      label: School EduPage URL (optional)
+      placeholder: "https://yourschool.edupage.org"
+  - type: textarea
+    id: diagnostic-report
+    attributes:
+      label: Diagnostic report
+      description: >
+        Settings → Report a Problem → Generate report, then attach the
+        downloaded .json file or paste its contents here. Personal data is
+        redacted by default.
+      render: json

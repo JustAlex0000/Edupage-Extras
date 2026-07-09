@@ -4,6 +4,12 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.8.22 — 2026-07-09
+
+- Added GitHub issue forms (bug report matching the built-in "Report a
+  Problem" diagnostic structure, feature request) and a PR checklist
+  template. ([#30](https://github.com/Alexosavrua/Edupage-Extras/issues/30))
+
 ## 0.8.21 — 2026-07-09
 
 - Added a CI workflow running unit tests and the Firefox lint on every push

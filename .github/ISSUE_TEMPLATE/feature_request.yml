@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest an improvement or a new feature for Edupage Extras.
+labels: ["enhancement"]
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Which page
+      description: Which EduPage page/screen the feature applies to (grades, timetable, attendance, dashboard, settings, …).
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What should it do
+      description: What data or behavior you want, and what problem it solves for you.
+    validations:
+      required: true
+  - type: textarea
+    id: mock
+    attributes:
+      label: Mock or screenshot
+      description: Optional — a sketch, mockup, or screenshot of the page as it looks today (drag & drop images here).
