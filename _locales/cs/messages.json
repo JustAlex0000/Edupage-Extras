@@ -281,5 +281,10 @@
   "gradesColAbsTotal": { "message": "Abs./Hod." },
   "gradesColPredAbsPercent": { "message": "Předp. abs. %" },
   "gradesColPredAbsTotal": { "message": "Předp. abs./hod." },
-  "gradesExportJson": { "message": "Exportovat JSON" }
+  "gradesExportJson": { "message": "Exportovat JSON" },
+  "gradesExport": { "message": "Export známek" },
+  "gradesExportDesc": { "message": "Přidá nad tabulku známek tlačítka ke stažení všech známek (předmět, datum, hodnota, váha, název, průměr) jako .csv nebo .txt, vedle JSON souhrnu." },
+  "toggleGradesExport": { "message": "Přepnout export známek" },
+  "gradesExportCsv": { "message": "Exportovat (.csv)" },
+  "gradesExportTxt": { "message": "Exportovat (.txt)" }
 }

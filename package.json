@@ -1,7 +1,7 @@
 {
   "name": "edupage-extras",
   "private": true,
-  "version": "0.9.3",
+  "version": "0.9.4",
   "scripts": {
     "version": "node scripts-dev/sync-version.js && git add manifest.json",
     "sync-version": "node scripts-dev/sync-version.js",

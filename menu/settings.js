@@ -49,6 +49,7 @@ const mobileResponsiveToggle = document.getElementById("MobileResponsiveCheckbox
 const autoLoginToggle = document.getElementById("AutoLoginCheckbox");
 const autoLoginPreferredAccountInput = document.getElementById("AutoLoginPreferredAccountInput");
 const ucivoExportToggle = document.getElementById("UcivoExportCheckbox");
+const gradesExportToggle = document.getElementById("GradesExportCheckbox");
 const etestCopyToggle = document.getElementById("EtestCopyCheckbox");
 const previewUpdateToastButton = document.getElementById("PreviewUpdateToastButton");
 const STORAGE_KEY = "darkModeEnabled";
@@ -77,6 +78,7 @@ const MOBILE_RESPONSIVE_KEY = "eeMobileResponsiveEnabled";
 const AUTOLOGIN_KEY = "eeAutoLoginEnabled";
 const AUTOLOGIN_PREFERRED_ACCOUNT_KEY = "eeAutoLoginPreferredAccount";
 const UCIVO_EXPORT_KEY = "eeUcivoExportEnabled";
+const GRADES_EXPORT_KEY = "eeGradesExportEnabled";
 const ETEST_COPY_KEY = "eeEtestCopyEnabled";
 const activityShieldSettings = [
 	["ActivityShieldEnabled", "eeActivityShieldEnabled"],
@@ -969,6 +971,15 @@ if (ucivoExportToggle) {
 	ucivoExportToggle.addEventListener("change", () => {
 		chrome.storage.local.set({ [UCIVO_EXPORT_KEY]: ucivoExportToggle.checked });
 	});
+
+if (gradesExportToggle) {
+	chrome.storage.local.get([GRADES_EXPORT_KEY], (result) => {
+		gradesExportToggle.checked = result[GRADES_EXPORT_KEY] !== false;
+	});
+	gradesExportToggle.addEventListener("change", () => {
+		chrome.storage.local.set({ [GRADES_EXPORT_KEY]: gradesExportToggle.checked });
+	});
+}
 }
 
 if (etestCopyToggle) {

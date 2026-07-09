@@ -281,5 +281,10 @@
   "gradesColAbsTotal": { "message": "Abs/Hours" },
   "gradesColPredAbsPercent": { "message": "Pred. Abs %" },
   "gradesColPredAbsTotal": { "message": "Pred. Abs/Hours" },
-  "gradesExportJson": { "message": "Export JSON" }
+  "gradesExportJson": { "message": "Export JSON" },
+  "gradesExport": { "message": "Grades Export" },
+  "gradesExportDesc": { "message": "Add export buttons above the grades table to download every grade (subject, date, value, weight, title, average) as .csv or .txt, plus the JSON summary." },
+  "toggleGradesExport": { "message": "Toggle grades export" },
+  "gradesExportCsv": { "message": "Export (.csv)" },
+  "gradesExportTxt": { "message": "Export (.txt)" }
 }

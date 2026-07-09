@@ -211,5 +211,25 @@
     return values;
   };
 
+  // RFC 4180-style CSV field escaping.
+  EE.csvEscape = function csvEscape(value) {
+    const text = String(value == null ? "" : value);
+    if (/[",\n]/.test(text)) return '"' + text.replace(/"/g, '""') + '"';
+    return text;
+  };
+
+  // Trigger a client-side download of a text file (content script context).
+  EE.downloadTextFile = function downloadTextFile(filename, mime, content) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  };
+
   globalThis.EE = EE;
 })();

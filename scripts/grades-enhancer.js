@@ -23,11 +23,13 @@
   const HALFYEAR_END_KEY = "eeSecondHalfEndDate";
   const GRADES_ATTENDANCE_CACHE_KEY = "eeGradesAttendanceStatsCache";
   const GRADES_ATTENDANCE_CACHE_VERSION = 14;
+  const GRADES_EXPORT_KEY = "eeGradesExportEnabled";
   const VIRTUAL_GRADES_KEY = "eeVirtualGrades";
   const EXISTING_MASS_OVERRIDES_KEY = "eeVirtualGradeExistingMassOverrides";
   const CACHE_TTL_MS = 15 * 60 * 1000;
   const CLASSBOOK_RANGE_MAX_DAYS = 30;
   let gradeBadgesEnabled = false;
+  let gradesExportEnabled = true;
   let gradesAttendanceEnabled = true;
   let gradesAttendanceDebugEnabled = false;
   let halfyearStartOverride = "";
@@ -4582,6 +4584,88 @@
     window.setTimeout(() => URL.revokeObjectURL(url), 2000);
   }
 
+  // Per-grade rows for the .csv/.txt export: one row per grade cell, with
+  // the same weight resolution the projection math uses (per-cell tooltip
+  // weight first, then the category sub-row's "Váha udalosti" label, then 1).
+  function collectGradeRowsForExport(table) {
+    const rows = [];
+    Array.from(table.querySelectorAll("tr.predmetRow")).forEach((row) => {
+      const name = readPrimaryRowSubjectText(row);
+      if (!name) return;
+
+      const priemerCell = row.querySelector(".znPriemerCell");
+      const rawAverage = (priemerCell?.dataset.eeOriginalAverage || readAverageText(priemerCell) || "").trim();
+
+      const seen = new Set();
+      [row, ...findSubjectSubRows(row)].forEach((container) => {
+        if (typeof container.querySelectorAll !== "function") return;
+        const rowWeight = container === row ? null : parseGradeWeight(container.textContent || "");
+        container.querySelectorAll("span.tips").forEach((tip) => {
+          if (seen.has(tip)) return;
+          seen.add(tip);
+          const valueEl = tip.querySelector(".znZnamka");
+          if (!valueEl) return;
+          const gradeValue = normalizeWhitespace(valueEl.textContent || "");
+          if (!gradeValue) return;
+
+          const originalTitle = String(
+            tip.getAttribute("data-ee-original-grade-title")
+            || tip.getAttribute("original-title")
+            || tip.getAttribute("title")
+            || "",
+          ).trim();
+          const { title, detailHtml } = parseGradeTitleSegments(originalTitle);
+          const dateMatch = stripHtmlTags(detailHtml).match(/D[aá]tum zn[aá]mky:\s*([0-9]{2}\.[0-9]{2}\.[0-9]{4})/i);
+          const tooltipWeight = parseGradeWeight(stripHtmlTags(originalTitle));
+
+          rows.push({
+            subject: name,
+            date: dateMatch?.[1] || "",
+            grade: gradeValue,
+            weight: tooltipWeight !== null ? tooltipWeight : (rowWeight !== null ? rowWeight : 1),
+            title,
+            average: rawAverage,
+          });
+        });
+      });
+    });
+    return rows;
+  }
+
+  function buildGradesCsv(table) {
+    const rows = [["subject", "date", "grade", "weight", "title", "average"]];
+    collectGradeRowsForExport(table).forEach((entry) => {
+      rows.push([entry.subject, entry.date, entry.grade, String(entry.weight), entry.title, entry.average]);
+    });
+    return "\ufeff" + rows.map((row) => row.map(EE.csvEscape).join(",")).join("\n") + "\n";
+  }
+
+  function buildGradesTxt(table) {
+    const lines = [];
+    lines.push(`Známky — ${formatDateISO(new Date())}`);
+    let currentSubject = null;
+    collectGradeRowsForExport(table).forEach((entry) => {
+      if (entry.subject !== currentSubject) {
+        currentSubject = entry.subject;
+        lines.push("");
+        lines.push(`== ${entry.subject}${entry.average ? ` (⌀ ${entry.average})` : ""} ==`);
+      }
+      const date = entry.date ? `${entry.date}  ` : "";
+      const weight = entry.weight !== 1 ? ` (w${entry.weight})` : "";
+      lines.push(`  - ${date}${entry.grade}${weight}${entry.title ? ` — ${entry.title}` : ""}`);
+    });
+    return lines.join("\n") + "\n";
+  }
+
+  function downloadGradesFlat(table, format) {
+    const stamp = formatDateISO(new Date());
+    if (format === "csv") {
+      EE.downloadTextFile(`edupage-grades-${stamp}.csv`, "text/csv;charset=utf-8", buildGradesCsv(table));
+    } else {
+      EE.downloadTextFile(`edupage-grades-${stamp}.txt`, "text/plain;charset=utf-8", buildGradesTxt(table));
+    }
+  }
+
   function ensureCsvExportButton(table) {
     if (!table.parentElement) return;
     if (table.previousElementSibling?.classList?.contains("ee-grades-toolbar")) return;
@@ -4599,6 +4683,19 @@
     });
 
     toolbar.appendChild(button);
+
+    [["csv", t("gradesExportCsv")], ["txt", t("gradesExportTxt")]].forEach(([format, label]) => {
+      const exportButton = document.createElement("button");
+      exportButton.type = "button";
+      exportButton.className = "ee-grades-export-btn";
+      exportButton.textContent = label;
+      exportButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        downloadGradesFlat(table, format);
+      });
+      toolbar.appendChild(exportButton);
+    });
+
     table.parentElement.insertBefore(toolbar, table);
   }
 
@@ -4610,7 +4707,11 @@
     markInternalMutation();
     injectStyles();
     tables.forEach((gradesTable) => applyStoredGradeTitles(gradesTable));
-    ensureCsvExportButton(table);
+    if (gradesExportEnabled) {
+      ensureCsvExportButton(table);
+    } else {
+      document.querySelectorAll(".ee-grades-toolbar").forEach((toolbar) => toolbar.remove());
+    }
 
     if (gradesAttendanceEnabled) {
       tables.forEach((gradesTable) => ensureAttendanceColumns(gradesTable));
@@ -4826,10 +4927,12 @@
       GRADES_ATTENDANCE_DEBUG_KEY,
       HALFYEAR_START_KEY,
       HALFYEAR_END_KEY,
+      GRADES_EXPORT_KEY,
       VIRTUAL_GRADES_KEY,
       EXISTING_MASS_OVERRIDES_KEY,
     ], (result) => {
       gradeBadgesEnabled = result[GRADE_BADGES_KEY] === true;
+      gradesExportEnabled = result[GRADES_EXPORT_KEY] !== false;
       gradeTitleOverrides = result[GRADE_TITLE_OVERRIDES_KEY] && typeof result[GRADE_TITLE_OVERRIDES_KEY] === "object"
         ? result[GRADE_TITLE_OVERRIDES_KEY]
         : {};
@@ -4860,6 +4963,11 @@
 
       if (changes[GRADE_BADGES_KEY]) {
         gradeBadgesEnabled = changes[GRADE_BADGES_KEY].newValue === true;
+        shouldEnhance = true;
+      }
+
+      if (changes[GRADES_EXPORT_KEY]) {
+        gradesExportEnabled = changes[GRADES_EXPORT_KEY].newValue !== false;
         shouldEnhance = true;
       }
 

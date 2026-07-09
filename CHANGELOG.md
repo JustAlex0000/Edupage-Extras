@@ -4,6 +4,15 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.9.4 — 2026-07-09
+
+- Added grades export to .csv and .txt next to the existing JSON export —
+  one row per grade with subject, date, value, weight, title and the
+  subject's average (same weight resolution the projection math uses), CSV
+  with UTF-8 BOM for Excel. New "Grades Export" settings toggle (default
+  on) controls the whole export toolbar.
+  ([#25](https://github.com/Alexosavrua/Edupage-Extras/issues/25))
+
 ## 0.9.3 — 2026-07-09
 
 - Half-year .ics export now skips school vacation weeks, not just public
