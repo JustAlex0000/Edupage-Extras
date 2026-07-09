@@ -75,11 +75,16 @@
   wrapConsole("error");
   wrapConsole("warn");
 
+  // Firefox extension pages/scripts live under moz-extension://, not
+  // chrome-extension:// — match either scheme so uncaught errors/rejections
+  // aren't silently dropped on Firefox (see #45).
+  const EXTENSION_SCHEME_RE = /(chrome|moz)-extension:\/\//;
+
   function stackMentionsExtension(stack) {
     if (typeof stack !== "string") return false;
     const id = (chrome?.runtime?.id) || "";
     return (id && stack.includes(id)) ||
-      stack.includes("chrome-extension://") &&
+      EXTENSION_SCHEME_RE.test(stack) &&
       /diagnostics\.js|content\.js|timetable-sync\.js|timetable-enhancer\.js|grades-enhancer\.js|attendance-enhancer\.js|activity-shield/.test(stack);
   }
 
@@ -87,7 +92,7 @@
     try {
       const stack = event?.error?.stack || "";
       // Keep uncaught errors that originate from our own scripts only.
-      if (!stackMentionsExtension(stack) && !String(event?.filename || "").startsWith("chrome-extension://")) {
+      if (!stackMentionsExtension(stack) && !EXTENSION_SCHEME_RE.test(String(event?.filename || ""))) {
         return;
       }
       pushLog({

@@ -4,6 +4,13 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.8.17 — 2026-07-09
+
+- Fixed diagnostics ("Report a Problem") silently dropping every uncaught
+  error/rejection on Firefox — the extension-origin check only matched
+  `chrome-extension://` stacks/filenames, never Firefox's
+  `moz-extension://`. ([#45](https://github.com/Alexosavrua/Edupage-Extras/issues/45))
+
 ## 0.8.16 — 2026-07-09
 
 - Fixed a wrong-layout flash on the first page load after toggling "Mobile
