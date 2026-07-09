@@ -4,6 +4,16 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.9.6 — 2026-07-09
+
+- Internal: split the ~5,000-line `scripts/grades-enhancer.js` into feature
+  modules — `grades-enhancer.js` (core/shared state), `grades-debug.js`,
+  `grades-badges.js`, `grades-virtual.js`, `grades-summary.js`,
+  `grades-attendance.js`, `grades-export.js`, and `grades-bootstrap.js`
+  (starts everything once the other modules have loaded). No functional
+  changes; each module now shares helpers/state via a `scripts/lib/ee-common.js`
+  and a small shared `GE` namespace instead of one giant closure.
+
 ## 0.9.5 — 2026-07-09
 
 - Enhancer UI strings now go through i18n instead of being hardcoded:

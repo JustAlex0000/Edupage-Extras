@@ -3,9 +3,23 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 
+// Same relative order as the content_scripts js array in manifest.json —
+// grades-enhancer.js (core) must load first so it can set up GE.state and
+// the shared helpers, and grades-bootstrap.js must load last so every other
+// module has attached itself to GE (window.__eeGrades) by the time it runs.
+const GRADES_SCRIPT_FILES = [
+  "grades-enhancer.js",
+  "grades-debug.js",
+  "grades-badges.js",
+  "grades-virtual.js",
+  "grades-summary.js",
+  "grades-attendance.js",
+  "grades-export.js",
+  "grades-bootstrap.js",
+];
+
 function loadGradesEnhancerInternals() {
-  const scriptPath = path.join(__dirname, "..", "scripts", "grades-enhancer.js");
-  const source = fs.readFileSync(scriptPath, "utf8");
+  const scriptsDir = path.join(__dirname, "..", "scripts");
 
   const context = {
     console,
@@ -22,8 +36,12 @@ function loadGradesEnhancerInternals() {
   context.globalThis = context;
   context.__EE_TEST__ = true;
 
-  const libSource = fs.readFileSync(path.join(__dirname, "..", "scripts", "lib", "ee-common.js"), "utf8");
-  vm.runInNewContext(libSource + "\n" + source, context, { filename: scriptPath });
+  const libSource = fs.readFileSync(path.join(scriptsDir, "lib", "ee-common.js"), "utf8");
+  const combinedSource = [libSource, ...GRADES_SCRIPT_FILES.map(
+    (file) => fs.readFileSync(path.join(scriptsDir, file), "utf8"),
+  )].join("\n");
+
+  vm.runInNewContext(combinedSource, context, { filename: path.join(scriptsDir, "grades-enhancer.js") });
   return context.__eeTestExports;
 }
 

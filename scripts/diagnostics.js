@@ -85,7 +85,7 @@
     const id = (chrome?.runtime?.id) || "";
     return (id && stack.includes(id)) ||
       EXTENSION_SCHEME_RE.test(stack) &&
-      /diagnostics\.js|content\.js|timetable-sync\.js|timetable-enhancer\.js|grades-enhancer\.js|attendance-enhancer\.js|activity-shield/.test(stack);
+      /diagnostics\.js|content\.js|timetable-sync\.js|timetable-enhancer\.js|grades-(enhancer|debug|badges|virtual|summary|attendance|export|bootstrap)\.js|attendance-enhancer\.js|activity-shield/.test(stack);
   }
 
   window.addEventListener("error", (event) => {

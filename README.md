@@ -165,8 +165,13 @@ The extension does not request access to all websites.
 - `scripts/background.js` - GitHub update checks, update reminders, and
   timetable `.ics` export.
 - `scripts/content.js` - themes, layout cleanup, and visual fixes.
-- `scripts/grades-enhancer.js` - grade badges, average bars, the overall
-  average row, and the Virtual Grade Calculator.
+- `scripts/grades-enhancer.js` - grades table enhancer core (shared state,
+  storage, render loop). Feature modules loaded alongside it: `grades-debug.js`,
+  `grades-badges.js` (average badges/bars, grade-title overrides),
+  `grades-virtual.js` (Virtual Grade Calculator), `grades-summary.js`
+  (overall average row), `grades-attendance.js` (current-halfyear absence
+  stats columns), `grades-export.js` (.json/.csv/.txt export), and
+  `grades-bootstrap.js` (starts everything once all modules are loaded).
 - `scripts/attendance-enhancer.js` - injects current halfyear absence
   percentages into Edupage's attendance summary.
 - `scripts/timetable-enhancer.js` - substitution/room-change highlights on the
