@@ -711,6 +711,18 @@ downloadReportButton.addEventListener("click", () => {
 	reportStatus.textContent = t("reportDownloaded") || "Report downloaded.";
 });
 
+const exportExcludedRangesInput = document.getElementById("ExportExcludedRangesInput");
+const EXPORT_EXCLUDED_RANGES_KEY = "eeIcsExcludedDateRanges";
+
+if (exportExcludedRangesInput) {
+	chrome.storage.local.get([EXPORT_EXCLUDED_RANGES_KEY], (result) => {
+		exportExcludedRangesInput.value = String(result[EXPORT_EXCLUDED_RANGES_KEY] || "");
+	});
+	exportExcludedRangesInput.addEventListener("change", () => {
+		chrome.storage.local.set({ [EXPORT_EXCLUDED_RANGES_KEY]: exportExcludedRangesInput.value });
+	});
+}
+
 const exportTimetableWeekButton = document.getElementById("ExportTimetableWeekButton");
 const exportTimetableHalfyearButton = document.getElementById("ExportTimetableHalfyearButton");
 const exportTimetableIncludeChangesCheckbox = document.getElementById("ExportTimetableIncludeChangesCheckbox");

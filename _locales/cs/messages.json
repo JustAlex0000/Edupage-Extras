@@ -148,6 +148,8 @@
   "groupTimetable": { "message": "Rozvrh" },
   "exportTimetable": { "message": "Exportovat rozvrh (.ics)" },
   "exportTimetableDesc": { "message": "Stáhněte si rozvrh jako .ics soubor pro Kalendář Google, Apple Kalendář, Outlook a podobné. Nakrátko otevře skrytou kartu EduPage, aby načetl rozvrh." },
+  "exportExcludedRanges": { "message": "Přeskočit rozsahy dat (prázdniny)" },
+  "exportExcludedRangesDesc": { "message": "Pololetní export už přeskakuje státní svátky a běžné slovenské/české školní prázdniny. Sem vložte další data nebo rozsahy k přeskočení (jeden na řádek), např. jarní prázdniny vašeho okresu: 2026-02-16 - 2026-02-20 nebo 16.2.2026 - 20.2.2026." },
   "exportTimetableIncludeChanges": { "message": "Zahrnout změny tohoto týdne" },
   "exportTimetableIncludeChangesDesc": { "message": "Zachovat v exportu suplování a změny učeben tohoto týdne." },
   "exportTimetableEdupageTip": { "message": "Tip: EduPage má i vlastní odběr kalendáře, bez potřeby rozšíření — Můj profil → Nastavení kalendáře → Stáhnout ICS/WebCal." },

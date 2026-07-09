@@ -4,6 +4,15 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.9.3 — 2026-07-09
+
+- Half-year .ics export now skips school vacation weeks, not just public
+  holidays: the stable Slovak/Czech breaks (autumn, Christmas, Easter,
+  summer) are skipped automatically, and a new settings field accepts pasted
+  date ranges (one per line, ISO or d.m.yyyy) to exclude anything else —
+  e.g. the regional spring break.
+  ([#23](https://github.com/Alexosavrua/Edupage-Extras/issues/23))
+
 ## 0.9.2 — 2026-07-09
 
 - Added two more keyboard shortcuts (assignable on the browser's extension

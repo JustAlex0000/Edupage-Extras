@@ -315,3 +315,37 @@ runTest("icsFoldLine folds by UTF-8 octet count, not character count", () => {
   const longAscii = `SUMMARY:${"A".repeat(200)}`;
   assertLinesFitOctetCap(longAscii);
 });
+
+runTest("half-year export skips school vacations and user-excluded ranges", () => {
+  const { parseExcludedDateRanges, shouldSkipGeneratedSchoolDay } = loadBackgroundInternals();
+
+  // parseExcludedDateRanges accepts ISO and d.m.yyyy, single days and ranges,
+  // in either order, and ignores junk lines.
+  const ranges = parseExcludedDateRanges([
+    "2026-02-16 - 2026-02-20",
+    "20.4.2026 – 16.4.2026",
+    "2026-05-11",
+    "spring break",
+    "",
+  ].join("\n"));
+  assert.equal(ranges.length, 3);
+  assert.equal(ranges[0].start.getDate(), 16);
+  assert.equal(ranges[0].end.getDate(), 20);
+  assert.equal(ranges[1].start.getDate(), 16); // reversed range normalized
+  assert.equal(ranges[1].end.getDate(), 20);
+  assert.equal(ranges[2].start.getTime(), ranges[2].end.getTime());
+
+  const inRange = new Date(2026, 1, 18); // Wed inside the pasted spring break
+  const outOfRange = new Date(2026, 1, 25);
+  assert.equal(shouldSkipGeneratedSchoolDay(inRange, ranges), true);
+  assert.equal(shouldSkipGeneratedSchoolDay(outOfRange, ranges), false);
+
+  // Built-in Slovak school breaks (test host TZ independence isn't needed —
+  // EE_TIME_ZONE is resolved at load; only assert when it matches).
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (tz === "Europe/Bratislava" || tz === "Europe/Prague") {
+    assert.equal(shouldSkipGeneratedSchoolDay(new Date(2025, 11, 29)), true); // Christmas break
+    assert.equal(shouldSkipGeneratedSchoolDay(new Date(2026, 3, 2)), true); // Easter Thursday
+    assert.equal(shouldSkipGeneratedSchoolDay(new Date(2026, 5, 10)), false); // ordinary June school day
+  }
+});

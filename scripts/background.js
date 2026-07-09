@@ -39,6 +39,7 @@ const TIMETABLE_LIVE_CACHE_TTL_MS = 10 * 60 * 1000;
 // halfyear start/end overrides (Settings -> Features).
 const HALFYEAR_START_KEY = "eeHalfyearStartDate";
 const HALFYEAR_END_KEY = "eeSecondHalfEndDate";
+const EXPORT_EXCLUDED_RANGES_KEY = "eeIcsExcludedDateRanges";
 
 function compareVersions(left, right) {
   const leftParts = String(left || "0").split(".").map((part) => Number.parseInt(part, 10) || 0);
@@ -467,10 +468,73 @@ function isCzechPublicHoliday(date) {
   return dateKey === formatDate(goodFriday) || dateKey === formatDate(easterMonday);
 }
 
-function shouldSkipGeneratedSchoolDay(date) {
+// School vacation weeks (prázdniny) that recur on a stable pattern each
+// school year. Ministry-published dates shift by a day or two around these
+// windows in some years, and the one-week regional spring break can't be
+// derived at all — the user-pasted excluded ranges (settings → timetable
+// export) cover those exactly. Summer is included for completeness even
+// though a half-year export rarely reaches into it.
+function isSlovakSchoolVacation(date) {
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  if (month === 7 || month === 8) return true; // letné
+  if (month === 10 && day >= 30) return true; // jesenné (Oct 30–31)
+  if ((month === 12 && day >= 22) || (month === 1 && day <= 7)) return true; // vianočné
+  // veľkonočné: Thursday before Good Friday through the Tuesday after
+  // Easter Monday
+  const easterSunday = computeEasterSunday(date.getFullYear());
+  const vacationStart = addDays(easterSunday, -3);
+  const vacationEnd = addDays(easterSunday, 2);
+  return date >= vacationStart && date <= vacationEnd;
+}
+
+function isCzechSchoolVacation(date) {
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  if (month === 7 || month === 8) return true; // letní
+  if (month === 10 && day >= 29 && day <= 30) return true; // podzimní
+  if ((month === 12 && day >= 23) || (month === 1 && day <= 2)) return true; // vánoční
+  // velikonoční: the Thursday before Good Friday (Friday and Monday are
+  // public holidays already)
+  const easterSunday = computeEasterSunday(date.getFullYear());
+  return formatDate(date) === formatDate(addDays(easterSunday, -3));
+}
+
+// User-pasted exclusion ranges, one per line: "YYYY-MM-DD", "DD.MM.YYYY",
+// or a range of two such dates separated by "-", "–", ".." or "to".
+// Anything unparseable is ignored.
+function parseExcludedDateRanges(text) {
+  const ranges = [];
+  for (const line of String(text || "").split(/\r?\n/)) {
+    const tokens = line.match(/\d{4}-\d{2}-\d{2}|\d{1,2}\.\s?\d{1,2}\.\s?\d{4}/g);
+    if (!tokens || tokens.length === 0) continue;
+    const dates = tokens.slice(0, 2).map((token) => {
+      const dmy = /^(\d{1,2})\.\s?(\d{1,2})\.\s?(\d{4})$/.exec(token);
+      if (dmy) {
+        return parseDateOnly(`${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`);
+      }
+      return parseDateOnly(token);
+    }).filter(Boolean);
+    if (dates.length === 0) continue;
+    const [start, end] = dates.length === 1 ? [dates[0], dates[0]] : dates;
+    ranges.push(start <= end ? { start, end } : { start: end, end: start });
+  }
+  return ranges;
+}
+
+function isDateInRanges(date, ranges) {
+  return Array.isArray(ranges) && ranges.some((range) => date >= range.start && date <= range.end);
+}
+
+function shouldSkipGeneratedSchoolDay(date, excludedRanges) {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return false;
-  if (EE_TIME_ZONE === "Europe/Bratislava") return isSlovakPublicHoliday(date);
-  if (EE_TIME_ZONE === "Europe/Prague") return isCzechPublicHoliday(date);
+  if (isDateInRanges(date, excludedRanges)) return true;
+  if (EE_TIME_ZONE === "Europe/Bratislava") {
+    return isSlovakPublicHoliday(date) || isSlovakSchoolVacation(date);
+  }
+  if (EE_TIME_ZONE === "Europe/Prague") {
+    return isCzechPublicHoliday(date) || isCzechSchoolVacation(date);
+  }
   return false;
 }
 
@@ -672,7 +736,7 @@ async function syncUpdateAlarm() {
 // Google Calendar sync settings (room/teacher in title reads better in a
 // calendar entry than not, so default both on).
 async function getTimetableExportConfig() {
-  const result = await storageGet([LAST_EDUPAGE_ORIGIN_KEY, HALFYEAR_START_KEY, HALFYEAR_END_KEY]);
+  const result = await storageGet([LAST_EDUPAGE_ORIGIN_KEY, HALFYEAR_START_KEY, HALFYEAR_END_KEY, EXPORT_EXCLUDED_RANGES_KEY]);
   return {
     lastEdupageOrigin: String(result?.[LAST_EDUPAGE_ORIGIN_KEY] || "").trim(),
     roomInTitle: true,
@@ -684,6 +748,7 @@ async function getTimetableExportConfig() {
     // default (see #43). computeCurrentHalfyearRange() validates these itself.
     secondHalfStartOverride: String(result?.[HALFYEAR_START_KEY] || "").trim(),
     secondHalfEndOverride: String(result?.[HALFYEAR_END_KEY] || "").trim(),
+    excludedRanges: parseExcludedDateRanges(result?.[EXPORT_EXCLUDED_RANGES_KEY]),
   };
 }
 
@@ -1164,7 +1229,7 @@ function buildHalfyearDesiredEvents(liveWeek, adjacentWeek) {
     for (const lesson of sourceWeek.lessons.filter(shouldUseLessonInHalfyearTemplate)) {
       const dayDate = addDays(cursor, lesson.dayIndex);
       if (dayDate < effectiveStart || dayDate > halfyearRange.end) continue;
-      if (shouldSkipGeneratedSchoolDay(dayDate)) continue;
+      if (shouldSkipGeneratedSchoolDay(dayDate, config.excludedRanges)) continue;
       const cloned = cloneLessonForDate(lesson, dayDate);
       if (!byDate.has(cloned.date)) {
         byDate.set(cloned.date, []);
@@ -1431,6 +1496,8 @@ if (globalThis.__EE_TEST__) {
     selectTimetableSampleWeeks,
     buildIcsCalendar,
     icsFoldLine,
+    shouldSkipGeneratedSchoolDay,
+    parseExcludedDateRanges,
   };
 }
 

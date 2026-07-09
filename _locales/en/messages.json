@@ -148,6 +148,8 @@
   "groupTimetable": { "message": "Timetable" },
   "exportTimetable": { "message": "Export Timetable (.ics)" },
   "exportTimetableDesc": { "message": "Download your timetable as an .ics file for Google Calendar, Apple Calendar, Outlook, etc. Briefly opens a hidden EduPage tab to read the timetable." },
+  "exportExcludedRanges": { "message": "Skip date ranges (school breaks)" },
+  "exportExcludedRangesDesc": { "message": "The half-year export already skips public holidays and the common Slovak/Czech school breaks. Paste extra dates or ranges to skip (one per line), e.g. your region's spring break: 2026-02-16 - 2026-02-20 or 16.2.2026 - 20.2.2026." },
   "exportTimetableIncludeChanges": { "message": "Include this week's changes" },
   "exportTimetableIncludeChangesDesc": { "message": "Keep this week's substitutions and room changes in the export." },
   "exportTimetableEdupageTip": { "message": "Tip: EduPage also has its own calendar subscription, no extension needed — My Profile → Calendar Settings → Download ICS/WebCal (Môj profil → Nastavenia kalendára → Stiahnuť ICS/WebCal)." },
