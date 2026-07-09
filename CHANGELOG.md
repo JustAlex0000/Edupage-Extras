@@ -4,6 +4,15 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.8.20 — 2026-07-09
+
+- Fixed virtual grades and mass overrides being stored unscoped by school —
+  the same numeric subject id from two different schools used in the same
+  browser profile could show one school's saved virtual grades on another
+  school's subject. Now scoped per-origin like the attendance stats cache
+  already was, with a one-time migration for existing saved data.
+  ([#49](https://github.com/Alexosavrua/Edupage-Extras/issues/49))
+
 ## 0.8.19 — 2026-07-09
 
 - Fixed .ics export line folding measuring UTF-16 characters instead of

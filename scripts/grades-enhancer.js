@@ -41,8 +41,15 @@
   let ignoreMutationsUntil = 0;
   let gradeTitleOverrides = {};
   let gradeTitleOverridesPromise = null;
+  // virtualGradesData/existingMassOverrides are the flat per-predmetid maps
+  // used everywhere in this file; virtualGradesByOrigin/existingMassOverridesByOrigin
+  // are the full { [origin]: {...} } shape actually persisted to storage (see
+  // #49 — predmetid is a small per-school numeric id, so an unscoped flat map
+  // collides across schools used from the same browser profile).
   let virtualGradesData = {};
   let existingMassOverrides = {};
+  let virtualGradesByOrigin = {};
+  let existingMassOverridesByOrigin = {};
   // In-memory per-page-load cache of the weight mass auto-detected by
   // briefly expanding a subject row. Avoids re-running the expand dance every
   // time the popover opens on the same subject.
@@ -1194,6 +1201,11 @@
     return Number.isFinite(value) && value > 0 ? value : null;
   }
 
+  function persistExistingMassOverrides() {
+    existingMassOverridesByOrigin[currentOrigin()] = existingMassOverrides;
+    return storageSet({ [EXISTING_MASS_OVERRIDES_KEY]: existingMassOverridesByOrigin });
+  }
+
   function saveExistingMassOverride(predmetid, mass) {
     const key = String(predmetid || "").trim();
     if (!key) return Promise.resolve();
@@ -1203,7 +1215,7 @@
     } else {
       existingMassOverrides[key] = normalized;
     }
-    return storageSet({ [EXISTING_MASS_OVERRIDES_KEY]: existingMassOverrides });
+    return persistExistingMassOverrides();
   }
 
   function dispatchSyntheticClick(element) {
@@ -1415,7 +1427,8 @@
   }
 
   function saveVirtualGrades() {
-    return storageSet({ [VIRTUAL_GRADES_KEY]: virtualGradesData });
+    virtualGradesByOrigin[currentOrigin()] = virtualGradesData;
+    return storageSet({ [VIRTUAL_GRADES_KEY]: virtualGradesByOrigin });
   }
 
   function closeVirtualPopover() {
@@ -1721,7 +1734,7 @@
       autoDetectedMassCache.clear();
       autoExpandedSubjects.clear();
       await saveVirtualGrades();
-      await storageSet({ [EXISTING_MASS_OVERRIDES_KEY]: {} });
+      await persistExistingMassOverrides();
       closeVirtualPopover();
       Array.from(table.querySelectorAll("tr.predmetRow")).forEach((row) => {
         const predmetid = String(row.dataset?.predmetid || "").trim();
@@ -3969,6 +3982,17 @@
     return window.location.origin;
   }
 
+  // One-time migration for #49: virtual grades / mass overrides used to be
+  // stored as a flat { [predmetid]: ... } map with no origin scoping. Detect
+  // the legacy shape by value type (legacy values are arrays/numbers; the
+  // new byOrigin map's values are always per-origin objects) and nest it
+  // under the current origin so existing saved data isn't lost.
+  function migrateFlatMapToByOrigin(stored, origin, isLegacyValue) {
+    if (!stored || typeof stored !== "object") return {};
+    const looksLegacy = Object.values(stored).some((value) => isLegacyValue(value));
+    return looksLegacy ? { [origin]: stored } : stored;
+  }
+
   function getGradesTables() {
     return Array.from(document.querySelectorAll("table.znamkyTable"));
   }
@@ -4938,11 +4962,18 @@
       gradesAttendanceDebugEnabled = result[GRADES_ATTENDANCE_DEBUG_KEY] === true;
       halfyearStartOverride = normalizeDateInput(result[HALFYEAR_START_KEY]);
       halfyearEndOverride = normalizeDateInput(result[HALFYEAR_END_KEY]);
-      virtualGradesData = result[VIRTUAL_GRADES_KEY] && typeof result[VIRTUAL_GRADES_KEY] === "object"
-        ? result[VIRTUAL_GRADES_KEY]
+      const origin = currentOrigin();
+      virtualGradesByOrigin = migrateFlatMapToByOrigin(result[VIRTUAL_GRADES_KEY], origin, Array.isArray);
+      virtualGradesData = virtualGradesByOrigin[origin] && typeof virtualGradesByOrigin[origin] === "object"
+        ? virtualGradesByOrigin[origin]
         : {};
-      existingMassOverrides = result[EXISTING_MASS_OVERRIDES_KEY] && typeof result[EXISTING_MASS_OVERRIDES_KEY] === "object"
-        ? result[EXISTING_MASS_OVERRIDES_KEY]
+      existingMassOverridesByOrigin = migrateFlatMapToByOrigin(
+        result[EXISTING_MASS_OVERRIDES_KEY],
+        origin,
+        (value) => typeof value === "number",
+      );
+      existingMassOverrides = existingMassOverridesByOrigin[origin] && typeof existingMassOverridesByOrigin[origin] === "object"
+        ? existingMassOverridesByOrigin[origin]
         : {};
       enhanceGradesTable();
     });

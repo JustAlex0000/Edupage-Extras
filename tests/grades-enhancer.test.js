@@ -8,7 +8,7 @@ function loadGradesEnhancerInternals() {
   const source = fs.readFileSync(scriptPath, "utf8");
   const instrumentedSource = source.replace(
     'if (document.readyState === "loading") {',
-    'globalThis.__eeTest = { parseAverage, gradeColor, gradePercentage, parseDateOnly, normalizeDateInput, parseSubjectMap, computeSubjectAbsences, summarizeAttendance, summarizeRenderableAttendance, finalizeSubjectStats, resolveAttendanceBreakdown, resolveOfficialHalfSummary, resolveUnambiguousStudentId, matchSubjectStats, parseGradeTitleSegments, buildGradeOriginalTitleHtml, buildGradeTitleOverrideKey, gradeTableRowCount, resolveCurrentHalfWindow, computeProjectedSubjectTotals, buildAttendancePlaceholderState, shouldRenderPredictedAttendance, computeSummaryColumnLayout, calcWeightedAvg, projectAverageWithVirtualGrades, parseGradeWeight, readExistingGradeMass, buildGradeWeightModel }; if (document.readyState === "loading") {',
+    'globalThis.__eeTest = { parseAverage, gradeColor, gradePercentage, parseDateOnly, normalizeDateInput, parseSubjectMap, computeSubjectAbsences, summarizeAttendance, summarizeRenderableAttendance, finalizeSubjectStats, resolveAttendanceBreakdown, resolveOfficialHalfSummary, resolveUnambiguousStudentId, matchSubjectStats, parseGradeTitleSegments, buildGradeOriginalTitleHtml, buildGradeTitleOverrideKey, gradeTableRowCount, resolveCurrentHalfWindow, computeProjectedSubjectTotals, buildAttendancePlaceholderState, shouldRenderPredictedAttendance, computeSummaryColumnLayout, calcWeightedAvg, projectAverageWithVirtualGrades, parseGradeWeight, readExistingGradeMass, buildGradeWeightModel, migrateFlatMapToByOrigin }; if (document.readyState === "loading") {',
   );
 
   const context = {
@@ -823,4 +823,50 @@ runTest("resolveUnambiguousStudentId picks the sole student and rejects multi-st
     "",
   );
   assert.equal(resolveUnambiguousStudentId(undefined), "");
+});
+
+// Regression for #49: virtual grades / mass overrides were stored as a flat
+// { [predmetid]: ... } map with no origin scoping, so the same numeric
+// predmetid from two different schools (same browser profile) collided.
+runTest("migrateFlatMapToByOrigin nests a legacy flat virtual-grades map under the current origin", () => {
+  const { migrateFlatMapToByOrigin } = loadGradesEnhancerInternals();
+
+  // Legacy shape: values are arrays of virtual grade entries.
+  const legacy = { "101": [{ grade: 1 }], "102": [{ grade: 2 }] };
+  const migrated = migrateFlatMapToByOrigin(legacy, "https://school-a.edupage.org", Array.isArray);
+
+  // JSON comparison, not assert.deepEqual: `migrated` is a plain object
+  // literal created inside the vm sandbox, a different realm than this
+  // test file's Object — deepEqual (strict) treats that as not equal even
+  // when structurally identical.
+  assert.equal(JSON.stringify(migrated), JSON.stringify({ "https://school-a.edupage.org": legacy }));
+});
+
+runTest("migrateFlatMapToByOrigin nests a legacy flat mass-overrides map under the current origin", () => {
+  const { migrateFlatMapToByOrigin } = loadGradesEnhancerInternals();
+
+  // Legacy shape: values are plain numbers (the mass).
+  const legacy = { "101": 13, "102": 20 };
+  const migrated = migrateFlatMapToByOrigin(legacy, "https://school-a.edupage.org", (v) => typeof v === "number");
+
+  assert.equal(JSON.stringify(migrated), JSON.stringify({ "https://school-a.edupage.org": legacy }));
+});
+
+runTest("migrateFlatMapToByOrigin leaves an already-byOrigin map untouched", () => {
+  const { migrateFlatMapToByOrigin } = loadGradesEnhancerInternals();
+
+  const byOrigin = {
+    "https://school-a.edupage.org": { "101": [{ grade: 1 }] },
+    "https://school-b.edupage.org": { "101": [{ grade: 5 }] },
+  };
+  const migrated = migrateFlatMapToByOrigin(byOrigin, "https://school-a.edupage.org", Array.isArray);
+
+  assert.deepEqual(migrated, byOrigin, "must not re-wrap or lose the other origin's data");
+});
+
+runTest("migrateFlatMapToByOrigin handles empty/missing input", () => {
+  const { migrateFlatMapToByOrigin } = loadGradesEnhancerInternals();
+
+  assert.equal(JSON.stringify(migrateFlatMapToByOrigin(undefined, "https://school-a.edupage.org", Array.isArray)), "{}");
+  assert.equal(JSON.stringify(migrateFlatMapToByOrigin({}, "https://school-a.edupage.org", Array.isArray)), "{}");
 });
