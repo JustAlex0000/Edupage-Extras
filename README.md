@@ -57,9 +57,10 @@ Note: this extension is built for Chromium-based browsers and has been ported to
 - **Virtual Grade Calculator** — add hypothetical grades to any subject and
   see the projected average update live, using EduPage's own grade weights
   (read directly from EduPage's data, not guessed from on-screen labels).
-- **JSON export** of the grades table (subject, average, and attendance fields
-  when enabled) via an Export JSON button above the table. The file is
-  human-readable, self-documenting, and easy to feed back into scripts.
+- **Grades export** to `.json`, `.csv`, or `.txt` via an export toolbar above
+  the table — one row per grade with subject, date, value, weight, title, and
+  the subject's average. CSV includes a UTF-8 BOM so Excel renders diacritics
+  correctly. Controlled by a "Grades Export" settings toggle.
 
 ### Attendance
 
@@ -77,6 +78,16 @@ log in, use credentials, fetch grades from a server, or calculate hidden grade d
 
 - **Curriculum export** — on a subject's Učivo (topic plan) page, export the
   full year's chapters, topics, and taught dates as `.txt` or `.csv`.
+- **Copy test questions** — adds copy buttons to e-test/e-learning questions
+  (per question and copy-all), controlled by a settings toggle.
+
+### Login
+
+- **Auto-login** (opt-in, off by default) — clicks through EduPage's
+  multi-step login (account picker included) and submits once your browser
+  autofills the saved password. No credentials are ever stored or read by the
+  extension, and it stops the moment you type anything yourself. A preferred
+  account can be chosen for multi-account pickers.
 
 ### Activity Shield
 
@@ -94,12 +105,22 @@ log in, use credentials, fetch grades from a server, or calculate hidden grade d
 - **Export to .ics** — download the current week or the whole half-year as a
   standard calendar file, importable into Google Calendar, Apple Calendar,
   Outlook, and most other calendar apps. Optionally include or exclude this
-  week's substitutions/room changes.
+  week's substitutions/room changes. Half-year exports skip Slovak/Czech
+  public holidays, school vacation weeks, and any custom date ranges you
+  exclude in Settings.
+
+### Keyboard shortcuts
+
+Four commands can be bound on the browser's extension-shortcuts page
+(`chrome://extensions/shortcuts`, or Add-ons Manager on Firefox): toggle
+themes, toggle Stay Active Mode, open Settings, and toggle the
+mobile-responsive layout.
 
 ### Languages
 
-- **Localized interface** for the popup, Settings, and Experimental pages, plus
-  the injected grades columns. English, Slovak, and Czech are bundled.
+- **Localized interface** for the popup and Settings (including the
+  Experimental tab), plus the injected on-page UI (grades columns, virtual
+  grades popover, export buttons). English, Slovak, and Czech are bundled.
 - The language follows the browser UI language automatically
   (`chrome.i18n`/`browser.i18n`), falling back to English.
 
@@ -131,13 +152,13 @@ See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
 Edupage Extras requests:
 
 - `storage` - saves extension settings locally in the browser.
-- `tabs` - finds open Edupage tabs so settings can be applied or tabs can be
-  reloaded from the settings UI.
 - `alarms` - checks for updates on a daily schedule.
 - `notifications` - shows an unpacked-version update reminder when a newer
   GitHub version is available.
 - `https://*.edupage.org/*` host access - injects the extension scripts only on
-  Edupage pages and reads timetable/attendance data already present in Edupage.
+  Edupage pages, reads timetable/attendance data already present in Edupage,
+  and lets the settings UI find and reload open Edupage tabs (no separate
+  `tabs` permission is requested).
 - `https://edublurtesting.ct.ws/*` - testing purposes
 - `https://raw.githubusercontent.com/Alexosavrua/Edupage-Extras/*` host access -
   reads the public project manifest for update checks.
@@ -164,6 +185,10 @@ The extension does not request access to all websites.
 - `manifest.json` - extension manifest, permissions, and content script setup.
 - `scripts/background.js` - GitHub update checks, update reminders, and
   timetable `.ics` export.
+- `scripts/lib/ee-common.js` - shared helpers and defaults used by the other
+  scripts (loads first).
+- `scripts/diagnostics.js` - early error capture for the "Report a Problem"
+  flow; only sends data when explicitly triggered from Settings.
 - `scripts/content.js` - themes, layout cleanup, and visual fixes.
 - `scripts/grades-enhancer.js` - grades table enhancer core (shared state,
   storage, render loop). Feature modules loaded alongside it: `grades-debug.js`,
@@ -180,11 +205,13 @@ The extension does not request access to all websites.
   `.ics` export.
 - `scripts/ucivo-enhancer.js` - curriculum/topic-plan export (`.txt`/`.csv`)
   on the Učivo page.
+- `scripts/etest-enhancer.js` - copy buttons on e-test/e-learning questions.
+- `scripts/autologin.js` - opt-in auto-login for EduPage's multi-step login.
 - `scripts/activity-shield-main.js` / `activity-shield-bridge.js` - Stay
   Active Mode (see Activity Shield above).
-- `menu/settings.html` - normal user-facing settings.
-- `menu/experimental.html` - experimental features that are kept
-  separate from normal settings.
+- `menu/menu.html` - the toolbar popup.
+- `menu/settings.html` - the options page; experimental features live in its
+  Experimental tab behind a confirmation dialog.
 - `menu/i18n.js` - shared localization helper for the extension's own pages.
 
 ## Development Notes
@@ -192,6 +219,9 @@ The extension does not request access to all websites.
 This is a plain browser extension with an `npm`-based toolchain for the
 Firefox side (linting, packaging, and publishing). There's no build step for
 loading it unpacked in Chrome/Edge — that still works directly from source.
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for how the pieces fit together and
+[CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow.
 
 Recommended checks before publishing:
 

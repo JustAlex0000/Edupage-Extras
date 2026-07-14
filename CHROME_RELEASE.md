@@ -26,8 +26,8 @@ Web Store validator rejects. Never upload the Firefox `.xpi`/`.zip` to Chrome.
    640×400) screenshot, and a 128×128 icon (already in `images/`).
 5. **Privacy tab** — required before you can submit:
    - Single purpose description (enhances EduPage school-portal pages).
-   - Justify each permission: `storage` (settings), `tabs` (applying settings
-     to open EduPage tabs), `alarms` + `notifications` (update checks),
+   - Justify each permission: `storage` (settings),
+     `alarms` + `notifications` (update checks),
      host access to `*.edupage.org` (the pages it enhances),
      `raw.githubusercontent.com` (fetching `manifest.json` for the update
      check), `edublurtesting.ct.ws` (Activity Shield test page — expect the
