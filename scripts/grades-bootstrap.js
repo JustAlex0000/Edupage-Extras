@@ -48,6 +48,11 @@
       readExistingGradeMass: GE.virtual.readExistingGradeMass,
       buildGradeWeightModel: GE.virtual.buildGradeWeightModel,
       migrateFlatMapToByOrigin: GE.migrateFlatMapToByOrigin,
+      parseSchoolYearStart: GE.parseSchoolYearStart,
+      parseGradesHalfKey: GE.parseGradesHalfKey,
+      buildGradesViewContext: GE.buildGradesViewContext,
+      readGradesViewContext: GE.readGradesViewContext,
+      updateAttendanceCache: GE.attendance.updateAttendanceCache,
     };
   }
 

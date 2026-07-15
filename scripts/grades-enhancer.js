@@ -49,6 +49,7 @@
     halfyearEndOverride: "",
     attendanceStatsCache: null,
     gradesAttendanceEnabled: true,
+    gradesView: { selectedYear: null, halfKey: "", signature: "current:current" },
   };
 
     function t(key, substitutions) {
@@ -196,6 +197,65 @@
     }
     function currentOrigin() {
       return window.location.origin;
+    }
+    function parseSchoolYearStart(candidates) {
+      for (const candidate of candidates || []) {
+        const text = String(candidate || "").trim();
+        const rangeMatch = text.match(/\b(20\d{2})\s*(?:\/|–|—|-)\s*(20)?(\d{2})\b/);
+        const endYear = rangeMatch
+          ? Number(rangeMatch[2] ? `${rangeMatch[2]}${rangeMatch[3]}` : `20${rangeMatch[3]}`)
+          : null;
+        if (rangeMatch && endYear === Number(rangeMatch[1]) + 1) {
+          return Number(rangeMatch[1]);
+        }
+
+        const yearMatch = text.match(/^20\d{2}$/);
+        if (yearMatch) return Number(yearMatch[0]);
+      }
+      return null;
+    }
+    function parseGradesHalfKey(candidates) {
+      for (const candidate of candidates || []) {
+        const text = String(candidate || "").trim();
+        const tokenMatch = text.match(/^(?:P|V|KL)?([12])$/i);
+        if (tokenMatch) return tokenMatch[1];
+
+        const labelMatch = text.match(/\b([12])\s*\.\s*(?:polrok|pololet[ií]|half)/i);
+        if (labelMatch) return labelMatch[1];
+      }
+      return "";
+    }
+    function buildGradesViewContext({ yearCandidates = [], periodCandidates = [] } = {}) {
+      const selectedYear = parseSchoolYearStart(yearCandidates);
+      const halfKey = parseGradesHalfKey(periodCandidates);
+      return {
+        selectedYear,
+        halfKey,
+        signature: `${selectedYear || "current"}:${halfKey || "current"}`,
+      };
+    }
+    function readGradesViewContext(
+      form = document.querySelector("form.zteFilterForm"),
+      root = document,
+    ) {
+      const readControl = (scope, selector) => {
+        const control = scope?.querySelector?.(selector);
+        if (!control) return [];
+        const selectedLabel = control.selectedOptions?.[0]?.textContent || "";
+        return [control.value, selectedLabel];
+      };
+
+      return buildGradesViewContext({
+        yearCandidates: [
+          ...readControl(root, "#edubarSchoolYear select"),
+          ...readControl(form, "[name=\"znamky_yearid_ns\"]"),
+          ...readControl(form, "[name=\"znamky_yearid\"]"),
+        ],
+        periodCandidates: [
+          ...readControl(form, "[name=\"rokobdobie\"]"),
+          ...readControl(form, "[name=\"nadobdobie\"]"),
+        ],
+      });
     }
 
     // One-time migration for #49: virtual grades / mass overrides used to be
@@ -803,6 +863,13 @@
       const table = getPrimaryGradesTable();
       if (!table || tables.length === 0) return;
 
+      const nextGradesView = readGradesViewContext();
+      if (nextGradesView.signature !== GE.state.gradesView.signature) {
+        GE.state.attendanceStatsCache = null;
+        GE.attendance.resetForGradesView();
+      }
+      GE.state.gradesView = nextGradesView;
+
       markInternalMutation();
       injectStyles();
       tables.forEach((gradesTable) => GE.badges.applyStoredGradeTitles(gradesTable));
@@ -1165,6 +1232,10 @@
   GE.storageSet = storageSet;
   GE.markInternalMutation = markInternalMutation;
   GE.currentOrigin = currentOrigin;
+  GE.parseSchoolYearStart = parseSchoolYearStart;
+  GE.parseGradesHalfKey = parseGradesHalfKey;
+  GE.buildGradesViewContext = buildGradesViewContext;
+  GE.readGradesViewContext = readGradesViewContext;
   GE.migrateFlatMapToByOrigin = migrateFlatMapToByOrigin;
   GE.getGradesTables = getGradesTables;
   GE.gradeTableRowCount = gradeTableRowCount;

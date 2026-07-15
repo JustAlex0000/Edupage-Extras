@@ -198,6 +198,109 @@ runTest("current half window honors a custom second-half projection end date", (
   assert.equal(halfWindow.halfEndDate, "2026-06-19");
 });
 
+runTest("grades view context derives a privacy-safe year and half signature", () => {
+  const { buildGradesViewContext } = loadGradesEnhancerInternals();
+
+  const firstHalf = buildGradesViewContext({
+    yearCandidates: ["2024/2025"],
+    periodCandidates: ["P1", "1. polrok"],
+  });
+  assert.equal(firstHalf.selectedYear, 2024);
+  assert.equal(firstHalf.halfKey, "1");
+  assert.equal(firstHalf.signature, "2024:1");
+
+  const opaqueYear = buildGradesViewContext({
+    yearCandidates: ["opaque-school-year-id"],
+    periodCandidates: ["2. pololetí"],
+  });
+  assert.equal(opaqueYear.selectedYear, null);
+  assert.equal(opaqueYear.halfKey, "2");
+  assert.equal(opaqueYear.signature, "current:2");
+});
+
+runTest("grades view context reads EduPage's selected filter controls", () => {
+  const { readGradesViewContext } = loadGradesEnhancerInternals();
+  const controls = {
+    znamky_yearid_ns: { value: "opaque-id", selectedOptions: [] },
+    znamky_yearid: { value: "another-opaque-id", selectedOptions: [] },
+    rokobdobie: { value: "P2", selectedOptions: [{ textContent: "2. polrok" }] },
+    nadobdobie: { value: "", selectedOptions: [] },
+  };
+  const form = {
+    querySelector(selector) {
+      return controls[selector.match(/name="([^"]+)"/)?.[1]] || null;
+    },
+  };
+  const root = {
+    querySelector(selector) {
+      return selector === "#edubarSchoolYear select"
+        ? { value: "opaque-id", selectedOptions: [{ textContent: "2023/24" }] }
+        : null;
+    },
+  };
+
+  const view = readGradesViewContext(form, root);
+  assert.equal(view.selectedYear, 2023);
+  assert.equal(view.halfKey, "2");
+  assert.equal(view.signature, "2023:2");
+});
+
+runTest("selected historical halfyear clamps attendance to the displayed period", () => {
+  const { resolveCurrentHalfWindow } = loadGradesEnhancerInternals();
+  const halfWindow = resolveCurrentHalfWindow({
+    currentDate: "2026-07-15",
+    yearTurnover: "2025-09-01",
+    selectedYear: 2024,
+    selectedHalfKey: "1",
+    halves: { "1": "1. Polrok", "2": "2. Polrok" },
+    secondHalfOverride: "",
+  });
+
+  assert.equal(halfWindow.halfKey, "1");
+  assert.equal(halfWindow.startDate, "2024-09-01");
+  assert.equal(halfWindow.endDate, "2025-01-31");
+  assert.equal(halfWindow.halfEndDate, "2025-01-31");
+});
+
+runTest("selected current first half overrides today's second-half inference", () => {
+  const { resolveCurrentHalfWindow } = loadGradesEnhancerInternals();
+  const halfWindow = resolveCurrentHalfWindow({
+    currentDate: "2026-05-09",
+    yearTurnover: "2025-09-01",
+    selectedYear: 2025,
+    selectedHalfKey: "1",
+    halves: { "1": "1. Polrok", "2": "2. Polrok" },
+    secondHalfOverride: "",
+  });
+
+  assert.equal(halfWindow.halfKey, "1");
+  assert.equal(halfWindow.endDate, "2026-01-31");
+});
+
+runTest("attendance cache isolates periods and replaces the legacy origin entry", () => {
+  const { updateAttendanceCache } = loadGradesEnhancerInternals();
+  const legacy = {
+    "https://school.example": { version: 14, halfKey: "2" },
+  };
+  const firstHalfStats = { viewSignature: "2024:1", halfKey: "1" };
+  const firstUpdate = updateAttendanceCache(
+    legacy,
+    "https://school.example",
+    firstHalfStats,
+  );
+  const secondHalfStats = { viewSignature: "2024:2", halfKey: "2" };
+  const secondUpdate = updateAttendanceCache(
+    firstUpdate,
+    "https://school.example",
+    secondHalfStats,
+  );
+
+  assert.equal(firstUpdate["https://school.example"]["2024:1"].halfKey, "1");
+  assert.equal(firstUpdate["https://school.example"].version, undefined);
+  assert.equal(secondUpdate["https://school.example"]["2024:1"].halfKey, "1");
+  assert.equal(secondUpdate["https://school.example"]["2024:2"].halfKey, "2");
+});
+
 runTest("subject absences can be assigned directly from attendance subject ids", () => {
   const { computeSubjectAbsences, parseSubjectMap } = loadGradesEnhancerInternals();
   const attendancePayload = {

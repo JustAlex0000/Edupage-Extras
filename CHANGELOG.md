@@ -4,6 +4,13 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.9.12 — 2026-07-15
+
+- Fixed grades attendance enhancements after changing the displayed school
+  year or half-year: calculations now use the selected period, caches are
+  isolated per view, and stale requests cannot overwrite the new selection.
+  ([#57](https://github.com/Alexosavrua/Edupage-Extras/issues/57))
+
 ## 0.9.11 — 2026-07-15
 
 - Fixed the custom theme's first-paint background fallback so it matches the

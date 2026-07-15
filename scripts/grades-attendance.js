@@ -13,12 +13,36 @@
   const GE = (window.__eeGrades = window.__eeGrades || {});
 
   const GRADES_ATTENDANCE_CACHE_KEY = "eeGradesAttendanceStatsCache";
-  const GRADES_ATTENDANCE_CACHE_VERSION = 14;
+  const GRADES_ATTENDANCE_CACHE_VERSION = 15;
   const CACHE_TTL_MS = 15 * 60 * 1000;
   const CLASSBOOK_RANGE_MAX_DAYS = 30;
   const ATTENDANCE_RENDER_SIGNATURE_ATTR = "data-ee-attendance-render-signature";
   let attendanceBaseStatsPromise = null;
   let attendanceStatsPromise = null;
+
+    function currentGradesViewSignature() {
+      return GE.state.gradesView?.signature || "current:current";
+    }
+    function resetForGradesView() {
+      attendanceBaseStatsPromise = null;
+      attendanceStatsPromise = null;
+      GE.state.attendanceStatsCache = null;
+    }
+    function updateAttendanceCache(byOrigin, origin, stats, fallbackSignature) {
+      const cache = byOrigin && typeof byOrigin === "object" ? byOrigin : {};
+      const storedOrigin = cache[origin];
+      const byView = storedOrigin && typeof storedOrigin === "object" && !("version" in storedOrigin)
+        ? storedOrigin
+        : {};
+      const viewSignature = stats.viewSignature || fallbackSignature || "current:current";
+      return {
+        ...cache,
+        [origin]: {
+          ...byView,
+          [viewSignature]: stats,
+        },
+      };
+    }
 
     function shouldCountAbsentType(typeMeta) {
       if (!typeMeta) return true;
@@ -346,15 +370,15 @@
       currentDate,
       yearTurnover,
       selectedYear,
+      selectedHalfKey,
       halves,
       secondHalfOverride,
       secondHalfEndOverride,
     }) {
       const today = GE.parseDateOnly(currentDate) || new Date();
-      const todayIso = GE.formatDateISO(today);
 
       let turnoverDate = GE.parseDateOnly(yearTurnover);
-      if (!turnoverDate && Number.isInteger(selectedYear)) {
+      if (Number.isInteger(selectedYear) && turnoverDate?.getFullYear() !== selectedYear) {
         turnoverDate = new Date(selectedYear, 8, 1);
       }
 
@@ -365,21 +389,27 @@
 
       const secondHalfStart = resolveSecondHalfStartDate(turnoverDate, secondHalfOverride);
       const secondHalfEnd = resolveSecondHalfEndDate(turnoverDate, secondHalfStart, secondHalfEndOverride);
-      const halfKey = today < secondHalfStart ? "1" : "2";
+      const halfKey = selectedHalfKey === "1" || selectedHalfKey === "2"
+        ? selectedHalfKey
+        : (today < secondHalfStart ? "1" : "2");
       const startDate = halfKey === "1" ? turnoverDate : secondHalfStart;
       const halfEndDate = halfKey === "1"
         ? new Date(secondHalfStart.getFullYear(), secondHalfStart.getMonth(), secondHalfStart.getDate() - 1)
         : secondHalfEnd;
+      const effectiveEndDate = today < startDate
+        ? startDate
+        : (today > halfEndDate ? halfEndDate : today);
+      const effectiveEndIso = GE.formatDateISO(effectiveEndDate);
       const now = new Date();
 
       return {
-        currentDate: todayIso,
+        currentDate: effectiveEndIso,
         startDate: GE.formatDateISO(startDate),
-        endDate: todayIso,
+        endDate: effectiveEndIso,
         halfEndDate: GE.formatDateISO(halfEndDate),
         halfKey,
         halfLabel: halves?.[halfKey] || `${halfKey}. Polrok`,
-        nowMinutes: todayIso === GE.formatDateISO(now) ? now.getHours() * 60 + now.getMinutes() : 24 * 60,
+        nowMinutes: effectiveEndIso === GE.formatDateISO(now) ? now.getHours() * 60 + now.getMinutes() : 24 * 60,
       };
     }
 
@@ -1790,14 +1820,15 @@
     }
     async function readCachedAttendanceStats() {
       const today = GE.formatDateISO(new Date());
+      const viewSignature = currentGradesViewSignature();
       if (GE.state.gradesAttendanceDebugEnabled) return null;
       const result = await GE.storageGet([GRADES_ATTENDANCE_CACHE_KEY]);
       const byOrigin = result[GRADES_ATTENDANCE_CACHE_KEY] || {};
-      const cached = byOrigin[GE.currentOrigin()];
+      const cached = byOrigin[GE.currentOrigin()]?.[viewSignature];
 
       if (!cached) return null;
       if (cached.version !== GRADES_ATTENDANCE_CACHE_VERSION) return null;
-      if (cached.currentDate !== today) return null;
+      if (cached.cacheDate !== today) return null;
       if (Date.now() - GE.numberValue(cached.fetchedAt) > CACHE_TTL_MS) return null;
 
       return cached;
@@ -1806,8 +1837,9 @@
       if (GE.state.gradesAttendanceDebugEnabled) return;
       const result = await GE.storageGet([GRADES_ATTENDANCE_CACHE_KEY]);
       const byOrigin = result[GRADES_ATTENDANCE_CACHE_KEY] || {};
-      byOrigin[GE.currentOrigin()] = stats;
-      await GE.storageSet({ [GRADES_ATTENDANCE_CACHE_KEY]: byOrigin });
+      const origin = GE.currentOrigin();
+      const updated = updateAttendanceCache(byOrigin, origin, stats, currentGradesViewSignature());
+      await GE.storageSet({ [GRADES_ATTENDANCE_CACHE_KEY]: updated });
     }
     async function fetchText(url, options = {}) {
       GE.debug.log("Fetch start", {
@@ -2029,26 +2061,30 @@
     }
     async function loadBaseSubjectAttendanceStats() {
       const today = GE.formatDateISO(new Date());
+      const viewSignature = currentGradesViewSignature();
 
       if (
         GE.state.attendanceStatsCache
-        && GE.state.attendanceStatsCache.currentDate === today
+        && GE.state.attendanceStatsCache.cacheDate === today
+        && GE.state.attendanceStatsCache.viewSignature === viewSignature
         && Date.now() - GE.numberValue(GE.state.attendanceStatsCache.fetchedAt) <= CACHE_TTL_MS
       ) {
         return GE.state.attendanceStatsCache;
       }
 
-      if (attendanceBaseStatsPromise) {
-        return attendanceBaseStatsPromise;
+      if (attendanceBaseStatsPromise?.viewSignature === viewSignature) {
+        return attendanceBaseStatsPromise.promise;
       }
 
-      attendanceBaseStatsPromise = (async () => {
+      const request = {
+        viewSignature,
+        promise: (async () => {
         const cached = await readCachedAttendanceStats();
         if (cached) {
           GE.state.attendanceStatsCache = cached;
           window.__eeGradesAttendanceDebug = cached.debug || null;
           GE.debug.syncAttendanceDebug(cached.debug || null);
-          attendanceStatsPromise = Promise.resolve(cached);
+          attendanceStatsPromise = { viewSignature, promise: Promise.resolve(cached) };
           return cached;
         }
 
@@ -2066,15 +2102,25 @@
           ttdaySubjects: ttdayInfo.subjectMap.size,
           embeddedDates: Object.keys(ttdayInfo.classbookData?.dates || {}).length,
         });
+        const gradesView = GE.state.gradesView || {};
+        const selectedYear = Number.isInteger(gradesView.selectedYear)
+          ? gradesView.selectedYear
+          : (attendanceInfo.selectedYear || ttdayInfo.selectedYear);
         const halfWindow = resolveCurrentHalfWindow({
           currentDate: today,
           yearTurnover: attendanceInfo.yearTurnover || ttdayInfo.yearTurnover,
-          selectedYear: attendanceInfo.selectedYear || ttdayInfo.selectedYear,
+          selectedYear,
+          selectedHalfKey: gradesView.halfKey,
           halves: attendanceInfo.halves,
           secondHalfOverride: GE.state.halfyearStartOverride,
           secondHalfEndOverride: GE.state.halfyearEndOverride,
         });
-        const officialHalfSummary = resolveOfficialHalfSummary(attendanceInfo, halfWindow);
+        const attendanceMatchesGradesYear = !Number.isInteger(gradesView.selectedYear)
+          || !Number.isInteger(attendanceInfo.selectedYear)
+          || gradesView.selectedYear === attendanceInfo.selectedYear;
+        const officialHalfSummary = attendanceMatchesGradesYear
+          ? resolveOfficialHalfSummary(attendanceInfo, halfWindow)
+          : null;
         GE.debug.log("Resolved half window", halfWindow);
 
         const classbookResponse = await fetchClassbookRange(ttdayInfo, halfWindow);
@@ -2219,6 +2265,8 @@
         const predictedAttendanceSummary = summarizePredictedAttendance(subjects, attendanceSummary);
         const baseStats = {
           version: GRADES_ATTENDANCE_CACHE_VERSION,
+          viewSignature,
+          cacheDate: today,
           fetchedAt: Date.now(),
           currentDate: halfWindow.currentDate,
           halfKey: halfWindow.halfKey,
@@ -2234,7 +2282,9 @@
         window.__eeGradesAttendanceDebug = baseDebug;
         GE.debug.syncAttendanceDebug(baseDebug);
 
-        attendanceStatsPromise = (async () => {
+        const finalRequest = {
+          viewSignature,
+          promise: (async () => {
           const predictedSubjects = subjects;
           const debug = {
             ...baseDebug,
@@ -2260,13 +2310,15 @@
             await writeCachedAttendanceStats(stats);
           }
           return stats;
-        })()
+          })()
           .finally(() => {
-            attendanceStatsPromise = null;
-          });
+            if (attendanceStatsPromise === finalRequest) attendanceStatsPromise = null;
+          }),
+        };
+        attendanceStatsPromise = finalRequest;
 
         return baseStats;
-      })()
+        })()
         .catch((error) => {
           if (String(error?.message).includes("Extension context invalidated")) return;
           GE.debug.warn("Could not load grades attendance stats.", error);
@@ -2274,37 +2326,43 @@
           throw error;
         })
         .finally(() => {
-          attendanceBaseStatsPromise = null;
-        });
+          if (attendanceBaseStatsPromise === request) attendanceBaseStatsPromise = null;
+        }),
+      };
+      attendanceBaseStatsPromise = request;
 
-      return attendanceBaseStatsPromise;
+      return request.promise;
     }
     async function loadSubjectAttendanceStats() {
       const today = GE.formatDateISO(new Date());
+      const viewSignature = currentGradesViewSignature();
 
       if (
         GE.state.attendanceStatsCache
-        && GE.state.attendanceStatsCache.currentDate === today
+        && GE.state.attendanceStatsCache.cacheDate === today
+        && GE.state.attendanceStatsCache.viewSignature === viewSignature
         && Date.now() - GE.numberValue(GE.state.attendanceStatsCache.fetchedAt) <= CACHE_TTL_MS
       ) {
         return GE.state.attendanceStatsCache;
       }
 
-      if (attendanceStatsPromise) {
-        return attendanceStatsPromise;
+      if (attendanceStatsPromise?.viewSignature === viewSignature) {
+        return attendanceStatsPromise.promise;
       }
 
       const baseStats = await loadBaseSubjectAttendanceStats();
       if (baseStats?.predictionState === "ready") {
         return baseStats;
       }
-      if (attendanceStatsPromise) {
-        return attendanceStatsPromise;
+      if (attendanceStatsPromise?.viewSignature === viewSignature) {
+        return attendanceStatsPromise.promise;
       }
       return baseStats;
     }
 
   GE.attendance = {
+    resetForGradesView,
+    updateAttendanceCache,
     ensureAttendanceColumns,
     clearSubjectAttendance,
     populateAttendancePlaceholders,
