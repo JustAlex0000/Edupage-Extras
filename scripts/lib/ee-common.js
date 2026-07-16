@@ -24,7 +24,7 @@
     bgMuted: "#2a2b3d",
     border: "#313244",
     textMain: "#cdd6f4",
-    textMuted: "#a6adc8",
+    textMuted: "#bac3df",
     accent: "#89b4fa",
     warning: "#fab387",
     danger: "#f38ba8",

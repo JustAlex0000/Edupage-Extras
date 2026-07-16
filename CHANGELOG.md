@@ -4,6 +4,11 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.9.14 — 2026-07-16
+
+- Improved dark-mode secondary-text contrast across all built-in dark themes,
+  including the default Custom palette. ([#59](https://github.com/JustAlex0000/Edupage-Extras/issues/59))
+
 ## 0.9.13 — 2026-07-16
 
 - Restored the Android Firefox "Report a Problem" flow: Settings now waits for

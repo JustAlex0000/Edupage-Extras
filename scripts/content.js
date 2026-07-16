@@ -168,7 +168,7 @@ function buildDarkCSS() {
       --ee-sidebar-hover: #0c1726;
       --ee-border: rgba(255, 255, 255, 0.08);
       --ee-text: #e9edf4;
-      --ee-text-muted: #8c98af;
+      --ee-text-muted: #b6c0d1;
       --ee-link: #6fa8e8;
       --ee-current-period: #3f5b52;
       --ee-warning: #ffb74d;
@@ -187,7 +187,7 @@ function buildDarkCSS() {
       --ee-sidebar-hover: #123640;
       --ee-border: rgba(255, 255, 255, 0.08);
       --ee-text: #d8f3f0;
-      --ee-text-muted: #7fa8ac;
+      --ee-text-muted: #a8d0d1;
       --ee-link: #4dd0e1;
       --ee-warning: #ffb74d;
       --ee-danger: #ef5350;
@@ -205,7 +205,7 @@ function buildDarkCSS() {
       --ee-sidebar-hover: #20301f;
       --ee-border: rgba(255, 255, 255, 0.08);
       --ee-text: #e5f2df;
-      --ee-text-muted: #93a78c;
+      --ee-text-muted: #b3c6aa;
       --ee-link: #81c784;
       --ee-warning: #ffb74d;
       --ee-danger: #ef5350;
@@ -223,7 +223,7 @@ function buildDarkCSS() {
       --ee-sidebar-hover: #133c2a;
       --ee-border: rgba(255, 255, 255, 0.08);
       --ee-text: #eafff3;
-      --ee-text-muted: #7fb89e;
+      --ee-text-muted: #a5d6bd;
       --ee-link: #4adfa3;
       --ee-warning: #ffb74d;
       --ee-danger: #ef5350;
@@ -241,7 +241,7 @@ function buildDarkCSS() {
       --ee-sidebar-hover: #2a2247;
       --ee-border: rgba(255, 255, 255, 0.08);
       --ee-text: #f0eaff;
-      --ee-text-muted: #a79bc7;
+      --ee-text-muted: #c3b9df;
       --ee-link: #b39ddb;
       --ee-warning: #ffb74d;
       --ee-danger: #ef5350;
@@ -280,7 +280,7 @@ function buildDarkCSS() {
       --ee-sidebar-hover: var(--ee-custom-bg-elevated, #1b2738);
       --ee-border: var(--ee-custom-border, rgba(255, 255, 255, 0.08));
       --ee-text: var(--ee-custom-text-main, #eef2f7);
-      --ee-text-muted: var(--ee-custom-text-muted, #8c96a6);
+      --ee-text-muted: var(--ee-custom-text-muted, #bac3df);
       --ee-link: var(--ee-custom-accent, #4fc3f7);
       --ee-warning: var(--ee-custom-warning, #ffb74d);
       --ee-danger: var(--ee-custom-danger, #ef5350);

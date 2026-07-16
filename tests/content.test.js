@@ -163,3 +163,28 @@ runTest("custom theme pre-paint fallback matches the shared default background",
     new RegExp(`var\\(--ee-custom-bg-base, ${context.EE.DEFAULT_CUSTOM_THEME.bgBase}\\)`),
   );
 });
+
+runTest("built-in dark themes keep secondary text readable", () => {
+  const css = fs.readFileSync(path.join(__dirname, "..", "scripts", "content.js"), "utf8");
+  const rules = [
+    ["ee-dark", "#0c1220", "#b6c0d1"],
+    ["ee-theme-ocean", "#071a1f", "#a8d0d1"],
+    ["ee-theme-forest", "#11170f", "#b3c6aa"],
+    ["ee-theme-emerald", "#071a12", "#a5d6bd"],
+    ["ee-theme-purple", "#171326", "#c3b9df"],
+  ];
+  const luminanceForHex = (hex) => {
+    const channels = hex.slice(1).match(/../g).map((part) => Number.parseInt(part, 16) / 255);
+    const linear = channels.map((channel) => channel <= 0.03928
+      ? channel / 12.92
+      : ((channel + 0.055) / 1.055) ** 2.4);
+    return (0.2126 * linear[0]) + (0.7152 * linear[1]) + (0.0722 * linear[2]);
+  };
+
+  for (const [theme, background, mutedText] of rules) {
+    assert.match(css, new RegExp(`html\\.${theme}[\\s\\S]*?--ee-text-muted: ${mutedText}`));
+    const contrast = (Math.max(luminanceForHex(background), luminanceForHex(mutedText)) + 0.05)
+      / (Math.min(luminanceForHex(background), luminanceForHex(mutedText)) + 0.05);
+    assert.ok(contrast >= 7, `${theme} muted text contrast should be at least 7:1, got ${contrast}`);
+  }
+});
