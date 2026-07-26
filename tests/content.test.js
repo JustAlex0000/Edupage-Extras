@@ -148,6 +148,32 @@ runTest("non-login routes still apply the selected theme", () => {
   assert.equal(resolveAppliedTheme({ darkModeEnabled: true, theme: "forest", pathname: "/dashboard" }), "forest");
 });
 
+runTest("an active eTest player suppresses the theme only when auto-off is enabled", () => {
+  const { resolveAppliedTheme } = loadContentInternals("/dashboard");
+
+  assert.equal(resolveAppliedTheme({
+    darkModeEnabled: true,
+    theme: "forest",
+    pathname: "/dashboard",
+    etestAutoThemeOffEnabled: true,
+    etestPlayerActive: true,
+  }), "light");
+  assert.equal(resolveAppliedTheme({
+    darkModeEnabled: true,
+    theme: "forest",
+    pathname: "/dashboard",
+    etestAutoThemeOffEnabled: true,
+    etestPlayerActive: false,
+  }), "forest");
+  assert.equal(resolveAppliedTheme({
+    darkModeEnabled: true,
+    theme: "forest",
+    pathname: "/dashboard",
+    etestAutoThemeOffEnabled: false,
+    etestPlayerActive: true,
+  }), "forest");
+});
+
 runTest("custom theme pre-paint fallback matches the shared default background", () => {
   const context = {};
   context.globalThis = context;

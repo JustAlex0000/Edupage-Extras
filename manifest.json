@@ -80,6 +80,7 @@
         "scripts/grades-bootstrap.js",
         "scripts/attendance-enhancer.js",
         "scripts/ucivo-enhancer.js",
+        "scripts/etest-plugin-bridge.js",
         "scripts/etest-enhancer.js",
         "scripts/autologin.js"
       ],
@@ -92,7 +93,7 @@
         "https://*.edupage.org/*",
         "https://edublurtesting.ct.ws/*"
       ],
-      "js": ["scripts/activity-shield-main.js"],
+      "js": ["scripts/activity-shield-main.js", "scripts/etest-plugin-bridge-main.js"],
       "run_at": "document_start",
       "all_frames": true,
       "match_about_blank": true,
