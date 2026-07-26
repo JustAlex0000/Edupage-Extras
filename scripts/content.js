@@ -21,7 +21,49 @@ const UPDATE_REMINDER_ENABLED_KEY = "eeUpdateReminderEnabled";
 // CHANGELOG.md, zip/xpi attached), so link straight to the Releases page.
 const REPO_RELEASES_URL = "https://github.com/JustAlex0000/Edupage-Extras/releases";
 const MOBILE_RESPONSIVE_KEY = "eeMobileResponsiveEnabled";
+const MOBILE_REDIRECT_KEY = "eeMobileRedirectEnabled";
+const MOBILE_REDIRECT_CACHE_KEY = "eeMobileRedirectEnabledCache";
+const APP_MAIN_PATH = "/app/main";
 const THEME_CACHE_KEY = "eeThemeCacheV1";
+
+function isMobileUserAgent() {
+  if (navigator.userAgentData && typeof navigator.userAgentData.mobile === "boolean") {
+    return navigator.userAgentData.mobile;
+  }
+  // Firefox for Android has no userAgentData — fall back to UA sniff.
+  return /Android|Mobile/i.test(navigator.userAgent || "");
+}
+
+// Runs synchronously at document_start before any HTML is parsed. If a redirect
+// fires here, location.replace() aborts the current navigation, so nothing else
+// in this file (theme cache, dark-mode paint) matters for that page load.
+(function maybeRedirectMobileToApp() {
+  try {
+    if (window.top !== window.self) return;
+    const path = location.pathname || "";
+    if (path.startsWith("/app/")) return;
+    if (!isMobileUserAgent()) return;
+
+    let cached = null;
+    try { cached = localStorage.getItem(MOBILE_REDIRECT_CACHE_KEY); } catch (_) { /* private mode */ }
+    if (cached === "1") {
+      location.replace(`${location.origin}${APP_MAIN_PATH}`);
+      return;
+    }
+    if (cached === "0") return;
+
+    // No sync cache yet (first ever page load on this origin). Fall back to the
+    // async storage read — the desktop page will start painting first, but on
+    // subsequent loads the localStorage cache makes the redirect instant.
+    chrome.storage.local.get([MOBILE_REDIRECT_KEY], (result) => {
+      const enabled = result?.[MOBILE_REDIRECT_KEY] === true;
+      try { localStorage.setItem(MOBILE_REDIRECT_CACHE_KEY, enabled ? "1" : "0"); } catch (_) {}
+      if (enabled && !location.pathname.startsWith("/app/")) {
+        location.replace(`${location.origin}${APP_MAIN_PATH}`);
+      }
+    });
+  } catch (_) { /* best-effort only */ }
+})();
 
 // chrome.storage.local.get() is always async, so on every full-page nav the
 // page would otherwise paint once with the light-mode default before the
@@ -1768,6 +1810,14 @@ if (window.top === window) {
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
+  if (changes[MOBILE_REDIRECT_KEY]) {
+    try {
+      localStorage.setItem(
+        MOBILE_REDIRECT_CACHE_KEY,
+        changes[MOBILE_REDIRECT_KEY].newValue === true ? "1" : "0",
+      );
+    } catch (_) { /* private mode */ }
+  }
   if (changes[MOBILE_RESPONSIVE_KEY]) {
     applyMobileResponsive(changes[MOBILE_RESPONSIVE_KEY].newValue === true);
   }

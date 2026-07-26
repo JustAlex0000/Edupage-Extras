@@ -4,6 +4,13 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.9.17 — 2026-07-27
+
+- Added an opt-in mobile redirect that sends phones straight to the school's
+  `/app/main` view on any Edupage page. Auto-enabled on Android via
+  `chrome.runtime.getPlatformInfo()`, off by default on desktop; toggle lives
+  in Settings → Theme.
+
 ## 0.9.16 — 2026-07-18
 
 - Moved eTest copying to Experimental and made it opt-in. Its related copy
