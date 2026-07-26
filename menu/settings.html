@@ -116,6 +116,18 @@
             <p data-i18n="themeDisclaimerText">During an online test or exam, a recolored EduPage looks different from the standard page — which can draw a teacher's attention or be mistaken for tampering. Switch to the default theme (or turn themes off) while you take the test.</p>
           </div>
 
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="etestAutoThemeOff">Auto-Disable Theme During Tests</h3>
+              <p data-i18n="etestAutoThemeOffDesc">Automatically switch to the default (light) look while an eTest is open, and restore your theme the moment you close it.</p>
+            </div>
+            <label class="switch switch-compact" for="EtestAutoThemeOffCheckbox">
+              <input type="checkbox" id="EtestAutoThemeOffCheckbox">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleEtestAutoThemeOff">Toggle auto-disable theme during tests</span>
+            </label>
+          </div>
+
           <div class="setting-row custom-theme-row" id="CustomThemePanel" hidden>
             <div>
               <h3 data-i18n="customThemeLabel">Custom Theme</h3>
@@ -795,6 +807,48 @@
                 <input type="checkbox" id="ActivityClipboard">
                 <span class="switch-track" aria-hidden="true"></span>
                 <span class="sr-only" data-i18n="toggleHideClipboard">Toggle hide copy paste selection and dragging</span>
+              </label>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <h3 data-i18n="blockEscKey">Block Escape Key</h3>
+                <p data-i18n="blockEscKeyDesc">Stop the Escape key from reaching Edupage scripts (e.g. exiting a test's fullscreen mode).</p>
+              </div>
+              <label class="switch switch-compact" for="ActivityBlockEsc">
+                <input type="checkbox" id="ActivityBlockEsc">
+                <span class="switch-track" aria-hidden="true"></span>
+                <span class="sr-only" data-i18n="toggleBlockEscKey">Toggle block escape key</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="section-heading">
+            <h3 id="testplayer-heading" data-i18n="sectTestPlayer">Test Player</h3>
+          </div>
+
+          <div class="setting-card">
+            <div class="setting-row">
+              <div>
+                <h3 data-i18n="jquerySweep">Disable Test Player Event Listeners</h3>
+                <p data-i18n="jquerySweepDesc">Periodically strip the eTest player's own jQuery activity-tracking listeners from the page and window.</p>
+              </div>
+              <label class="switch switch-compact" for="ActivityJquerySweep">
+                <input type="checkbox" id="ActivityJquerySweep">
+                <span class="switch-track" aria-hidden="true"></span>
+                <span class="sr-only" data-i18n="toggleJquerySweep">Toggle disable test player event listeners</span>
+              </label>
+            </div>
+
+            <div class="setting-row">
+              <div>
+                <h3 data-i18n="fullscreenSpoof">Block Fullscreen-Exit Detection</h3>
+                <p data-i18n="fullscreenSpoofDesc">Stop the eTest player from reacting when fullscreen is exited.</p>
+              </div>
+              <label class="switch switch-compact" for="ActivityFullscreenSpoof">
+                <input type="checkbox" id="ActivityFullscreenSpoof">
+                <span class="switch-track" aria-hidden="true"></span>
+                <span class="sr-only" data-i18n="toggleFullscreenSpoof">Toggle block fullscreen-exit detection</span>
               </label>
             </div>
           </div>

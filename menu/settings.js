@@ -47,6 +47,7 @@ const reloadEdupageTabsButton = document.getElementById("ReloadEdupageTabsButton
 const experimentalSaveStatus = document.getElementById("ExperimentalSaveStatus");
 const mobileResponsiveToggle = document.getElementById("MobileResponsiveCheckbox");
 const mobileRedirectToggle = document.getElementById("MobileRedirectCheckbox");
+const etestAutoThemeOffToggle = document.getElementById("EtestAutoThemeOffCheckbox");
 const autoLoginToggle = document.getElementById("AutoLoginCheckbox");
 const autoLoginPreferredAccountRow = document.getElementById("AutoLoginPreferredAccountRow");
 const autoLoginPreferredAccountInput = document.getElementById("AutoLoginPreferredAccountInput");
@@ -92,6 +93,7 @@ const REPO_URL = "https://github.com/JustAlex0000/Edupage-Extras";
 const ACTIVITY_SHIELD_COMMAND = "toggle-stay-active-mode";
 const MOBILE_RESPONSIVE_KEY = "eeMobileResponsiveEnabled";
 const MOBILE_REDIRECT_KEY = "eeMobileRedirectEnabled";
+const ETEST_AUTO_THEME_OFF_KEY = "eeEtestAutoThemeOffEnabled";
 const AUTOLOGIN_KEY = "eeAutoLoginEnabled";
 const AUTOLOGIN_PREFERRED_ACCOUNT_KEY = "eeAutoLoginPreferredAccount";
 const UCIVO_EXPORT_KEY = "eeUcivoExportEnabled";
@@ -116,6 +118,9 @@ const activityShieldSettings = [
 	["ActivityPointercapture", "eeActivityShieldPointercapture"],
 	["ActivityClipboard", "eeActivityShieldClipboard"],
 	["ActivityAnimationFrame", "eeActivityShieldAnimationFrame"],
+	["ActivityBlockEsc", "eeActivityShieldBlockEsc"],
+	["ActivityJquerySweep", "eeActivityShieldJquerySweep"],
+	["ActivityFullscreenSpoof", "eeActivityShieldFullscreenSpoof"],
 	["ActivityVisualIndicator", "eeActivityShieldVisualIndicator"],
 	["ActivityLog", "eeActivityShieldLog"],
 ];
@@ -132,6 +137,9 @@ const activityShieldDefaults = {
 	eeActivityShieldPointercapture: true,
 	eeActivityShieldClipboard: true,
 	eeActivityShieldAnimationFrame: true,
+	eeActivityShieldBlockEsc: true,
+	eeActivityShieldJquerySweep: true,
+	eeActivityShieldFullscreenSpoof: true,
 	eeActivityShieldVisualIndicator: false,
 	eeActivityShieldLog: false,
 };
@@ -290,6 +298,7 @@ function notifyEdupageTabs() {
 	const cleanUiEnabled = cleanUiToggle.checked;
 	const hideHelpTextEnabled = hideHelpTextToggle.checked;
 	const mobileResponsiveEnabled = mobileResponsiveToggle?.checked === true;
+	const etestAutoThemeOff = etestAutoThemeOffToggle?.checked === true;
 
 	chrome.tabs.query({ url: "https://*.edupage.org/*" }, (tabs) => {
 		tabs.forEach((tab) => {
@@ -304,6 +313,7 @@ function notifyEdupageTabs() {
 					rozvrhRoomChangeColor,
 					rozvrhSubstitutionColor,
 					mobileResponsiveEnabled,
+					etestAutoThemeOff,
 				}, () => {
 					void chrome.runtime.lastError;
 				});
@@ -991,6 +1001,16 @@ if (mobileRedirectToggle) {
 	});
 	mobileRedirectToggle.addEventListener("change", () => {
 		chrome.storage.local.set({ [MOBILE_REDIRECT_KEY]: mobileRedirectToggle.checked });
+	});
+}
+
+if (etestAutoThemeOffToggle) {
+	chrome.storage.local.get([ETEST_AUTO_THEME_OFF_KEY], (result) => {
+		etestAutoThemeOffToggle.checked = result[ETEST_AUTO_THEME_OFF_KEY] === true;
+	});
+	etestAutoThemeOffToggle.addEventListener("change", () => {
+		chrome.storage.local.set({ [ETEST_AUTO_THEME_OFF_KEY]: etestAutoThemeOffToggle.checked });
+		notifyEdupageTabs();
 	});
 }
 

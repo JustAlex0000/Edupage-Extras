@@ -22,6 +22,9 @@
     "eeActivityShieldPointercapture",
     "eeActivityShieldClipboard",
     "eeActivityShieldAnimationFrame",
+    "eeActivityShieldBlockEsc",
+    "eeActivityShieldJquerySweep",
+    "eeActivityShieldFullscreenSpoof",
     "eeActivityShieldVisualIndicator",
     "eeActivityShieldLog",
   ];
@@ -39,6 +42,9 @@
     eeActivityShieldPointercapture: true,
     eeActivityShieldClipboard: true,
     eeActivityShieldAnimationFrame: true,
+    eeActivityShieldBlockEsc: true,
+    eeActivityShieldJquerySweep: true,
+    eeActivityShieldFullscreenSpoof: true,
     eeActivityShieldVisualIndicator: false,
     eeActivityShieldLog: false,
   };
@@ -117,6 +123,9 @@
     setFlag("pointercapture", prefs.eeActivityShieldPointercapture);
     setFlag("clipboard", prefs.eeActivityShieldClipboard);
     setFlag("animationFrame", prefs.eeActivityShieldAnimationFrame);
+    setFlag("blockEsc", prefs.eeActivityShieldBlockEsc);
+    setFlag("jquerySweep", prefs.eeActivityShieldJquerySweep);
+    setFlag("fullscreenSpoof", prefs.eeActivityShieldFullscreenSpoof);
 
     updateIndicator(enabled, prefs.eeActivityShieldVisualIndicator === true);
   }

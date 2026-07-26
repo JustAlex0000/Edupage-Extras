@@ -23,6 +23,11 @@ const MOBILE_REDIRECT_KEY = "eeMobileRedirectEnabled";
 const MOBILE_REDIRECT_CACHE_KEY = "eeMobileRedirectEnabledCache";
 const APP_MAIN_PATH = "/app/main";
 const THEME_CACHE_KEY = "eeThemeCacheV1";
+const ETEST_AUTO_THEME_OFF_KEY = "eeEtestAutoThemeOffEnabled";
+// Any of these present means the eTest player overlay is open — header/content
+// cover the normal in-progress view, sideoverlay covers the results/review
+// screen reached after submitting, so all three need to be watched.
+const ETEST_PLAYER_ACTIVE_SELECTOR = ".etest-player-header, .etest-player-content, .etest-player-sideoverlay";
 
 function isMobileUserAgent() {
   if (navigator.userAgentData && typeof navigator.userAgentData.mobile === "boolean") {
@@ -157,6 +162,13 @@ let cleanUiEnabled = false;
 let hideHelpTextEnabled = false;
 let currentRozvrhRoomChangeColor = DEFAULT_ROZVRH_ROOM_CHANGE_COLOR;
 let currentRozvrhSubstitutionColor = DEFAULT_ROZVRH_SUBSTITUTION_COLOR;
+let etestAutoThemeOffEnabled = false;
+let etestPlayerActive = false;
+let etestObserver = null;
+let etestCheckTimer = null;
+let lastThemeSettings = null;
+const DEFAULT_CUSTOM_THEME = EE.DEFAULT_CUSTOM_THEME;
+
 function buildDarkCSS() {
   return `
     /* === Dark mode, rebuilt from real measured stock colors ==============
@@ -1590,8 +1602,13 @@ function resolveAppliedTheme({
   darkModeEnabled = false,
   theme = currentTheme,
   pathname = window.location.pathname,
+  etestAutoThemeOffEnabled: suppressForEtest = false,
+  etestPlayerActive: playerActive = false,
 } = {}) {
   if (!darkModeEnabled || shouldSuppressThemeForPath(pathname)) {
+    return "light";
+  }
+  if (suppressForEtest && playerActive) {
     return "light";
   }
   return normalizeTheme(theme);
@@ -1640,6 +1657,48 @@ function setThemeClasses(theme, cleanEnabled, helpHidden, schemeIsLight) {
   root.dataset.eeTheme = theme;
 }
 
+// Watches for the eTest player overlay opening/closing (see
+// ETEST_PLAYER_ACTIVE_SELECTOR) so the theme can be force-suppressed while a
+// test is in progress — a recolored page during a test can be mistaken for
+// tampering (see the in-menu theme disclaimer), so this automates the
+// "switch to default theme before testing" advice for users who opt in.
+function checkEtestPlayerActive() {
+  if (!etestAutoThemeOffEnabled || typeof document.querySelector !== "function") return;
+  const active = Boolean(document.querySelector(ETEST_PLAYER_ACTIVE_SELECTOR));
+  if (active === etestPlayerActive) return;
+  etestPlayerActive = active;
+  if (lastThemeSettings) applyTheme(lastThemeSettings);
+}
+
+function scheduleEtestCheck() {
+  if (etestCheckTimer) return;
+  etestCheckTimer = window.setTimeout(() => {
+    etestCheckTimer = null;
+    checkEtestPlayerActive();
+  }, 150);
+}
+
+function stopEtestObserver() {
+  if (etestObserver) {
+    etestObserver.disconnect();
+    etestObserver = null;
+  }
+  window.clearTimeout(etestCheckTimer);
+  etestCheckTimer = null;
+  etestPlayerActive = false;
+}
+
+function ensureEtestObserver() {
+  if (!etestAutoThemeOffEnabled) {
+    stopEtestObserver();
+    return;
+  }
+  if (etestObserver || !document.documentElement) return;
+  etestObserver = new MutationObserver(scheduleEtestCheck);
+  etestObserver.observe(document.documentElement, { childList: true, subtree: true });
+  checkEtestPlayerActive();
+}
+
 function applyTheme({
   darkModeEnabled = false,
   theme = currentTheme,
@@ -1648,12 +1707,20 @@ function applyTheme({
   helpHidden = hideHelpTextEnabled,
   rozvrhRoomChangeColor = currentRozvrhRoomChangeColor,
   rozvrhSubstitutionColor = currentRozvrhSubstitutionColor,
+  etestAutoThemeOff = etestAutoThemeOffEnabled,
 } = {}) {
+  lastThemeSettings = {
+    darkModeEnabled, theme, customTheme, cleanEnabled, helpHidden,
+    rozvrhRoomChangeColor, rozvrhSubstitutionColor, etestAutoThemeOff,
+  };
+  etestAutoThemeOffEnabled = etestAutoThemeOff;
   const normalizedTheme = normalizeTheme(theme);
   const selectedTheme = resolveAppliedTheme({
     darkModeEnabled,
     theme: normalizedTheme,
     pathname: window.location.pathname,
+    etestAutoThemeOffEnabled: etestAutoThemeOff,
+    etestPlayerActive,
   });
   currentTheme = normalizedTheme;
   currentCustomTheme = normalizeCustomTheme(customTheme);
@@ -1675,6 +1742,7 @@ function applyTheme({
     document.documentElement.classList.remove(CLASS_NAME);
     clearNormalizedClasses();
   }
+  ensureEtestObserver();
 }
 
 function initDarkMode() {
@@ -1690,7 +1758,7 @@ function initDarkMode() {
   }
 
   chrome.storage.local.get(
-    [STORAGE_KEY, THEME_KEY, CUSTOM_THEME_KEY, CLEAN_UI_KEY, HIDE_HELP_TEXT_KEY, ROZVRH_ROOM_CHANGE_COLOR_KEY, ROZVRH_SUBSTITUTION_COLOR_KEY, MOBILE_RESPONSIVE_KEY],
+    [STORAGE_KEY, THEME_KEY, CUSTOM_THEME_KEY, CLEAN_UI_KEY, HIDE_HELP_TEXT_KEY, ROZVRH_ROOM_CHANGE_COLOR_KEY, ROZVRH_SUBSTITUTION_COLOR_KEY, MOBILE_RESPONSIVE_KEY, ETEST_AUTO_THEME_OFF_KEY],
     (result) => {
       const mobileResponsiveEnabled = result[MOBILE_RESPONSIVE_KEY] === true;
       applyMobileResponsive(mobileResponsiveEnabled);
@@ -1701,7 +1769,8 @@ function initDarkMode() {
       const helpHidden = result[HIDE_HELP_TEXT_KEY] === true;
       const rozvrhRoomChangeColor = normalizeColor(result[ROZVRH_ROOM_CHANGE_COLOR_KEY], DEFAULT_ROZVRH_ROOM_CHANGE_COLOR);
       const rozvrhSubstitutionColor = normalizeColor(result[ROZVRH_SUBSTITUTION_COLOR_KEY], DEFAULT_ROZVRH_SUBSTITUTION_COLOR);
-      const settings = { darkModeEnabled: enabled, theme, customTheme, cleanEnabled, helpHidden, rozvrhRoomChangeColor, rozvrhSubstitutionColor, mobileResponsiveEnabled };
+      const etestAutoThemeOff = result[ETEST_AUTO_THEME_OFF_KEY] === true;
+      const settings = { darkModeEnabled: enabled, theme, customTheme, cleanEnabled, helpHidden, rozvrhRoomChangeColor, rozvrhSubstitutionColor, mobileResponsiveEnabled, etestAutoThemeOff };
       applyTheme(settings);
       writeThemeCache(settings);
     },
@@ -1824,10 +1893,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
     && !changes[ROZVRH_ROOM_CHANGE_COLOR_KEY]
     && !changes[ROZVRH_SUBSTITUTION_COLOR_KEY]
     && !changes[MOBILE_RESPONSIVE_KEY]
+    && !changes[ETEST_AUTO_THEME_OFF_KEY]
   ) return;
 
   chrome.storage.local.get(
-    [STORAGE_KEY, THEME_KEY, CUSTOM_THEME_KEY, CLEAN_UI_KEY, HIDE_HELP_TEXT_KEY, ROZVRH_ROOM_CHANGE_COLOR_KEY, ROZVRH_SUBSTITUTION_COLOR_KEY, MOBILE_RESPONSIVE_KEY],
+    [STORAGE_KEY, THEME_KEY, CUSTOM_THEME_KEY, CLEAN_UI_KEY, HIDE_HELP_TEXT_KEY, ROZVRH_ROOM_CHANGE_COLOR_KEY, ROZVRH_SUBSTITUTION_COLOR_KEY, MOBILE_RESPONSIVE_KEY, ETEST_AUTO_THEME_OFF_KEY],
     (result) => {
       const settings = {
         darkModeEnabled: result[STORAGE_KEY] === true,
@@ -1838,6 +1908,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
         rozvrhRoomChangeColor: normalizeColor(result[ROZVRH_ROOM_CHANGE_COLOR_KEY], DEFAULT_ROZVRH_ROOM_CHANGE_COLOR),
         rozvrhSubstitutionColor: normalizeColor(result[ROZVRH_SUBSTITUTION_COLOR_KEY], DEFAULT_ROZVRH_SUBSTITUTION_COLOR),
         mobileResponsiveEnabled: result[MOBILE_RESPONSIVE_KEY] === true,
+        etestAutoThemeOff: result[ETEST_AUTO_THEME_OFF_KEY] === true,
       };
       applyTheme(settings);
       writeThemeCache(settings);
@@ -1855,6 +1926,7 @@ chrome.runtime.onMessage.addListener((message) => {
       helpHidden: message.hideHelpTextEnabled === true,
       rozvrhRoomChangeColor: message.rozvrhRoomChangeColor || currentRozvrhRoomChangeColor,
       rozvrhSubstitutionColor: message.rozvrhSubstitutionColor || currentRozvrhSubstitutionColor,
+      etestAutoThemeOff: message.etestAutoThemeOff === true,
     });
     applyMobileResponsive(message.mobileResponsiveEnabled === true);
   }

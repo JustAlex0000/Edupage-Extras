@@ -25,6 +25,12 @@
 
   const enabled = () => port.dataset.enabled === "true";
   const active = (name) => enabled() && port.dataset[name] !== "false";
+  // blockEsc/jquerySweep/fullscreenSpoof are more invasive than the other
+  // toggles above (removing the eTest player's own listeners, spoofing
+  // fullscreen state), so — unlike `active()` — they require an explicit
+  // "true" rather than defaulting on while the bridge's storage read is
+  // still in flight (dataset attribute not yet set).
+  const strictActive = (name) => enabled() && port.dataset[name] === "true";
 
   const readNativeVisibilityState = () => {
     try {
@@ -271,6 +277,16 @@
     }, true);
   });
 
+  const onKeydownBlockEsc = (event) => {
+    if (!active("blockEsc")) return;
+    if (event.key === "Escape" || event.keyCode === 27) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  };
+  window.addEventListener("keydown", onKeydownBlockEsc, true);
+  document.addEventListener("keydown", onKeydownBlockEsc, true);
+
   try {
     if (typeof nativeRequestAnimationFrame === "function" && typeof nativeCancelAnimationFrame === "function") {
       let lastFrameTime = 0;
@@ -304,4 +320,36 @@
   } catch (error) {
     debug("Could not wrap animation frame APIs", error);
   }
+
+  // The eTest player attaches its own activity-tracking handlers under the
+  // ".etestplayeral"/".etestaplayer" jQuery namespaces — periodically
+  // stripping just those namespaced handlers (not jQuery's event system
+  // itself) leaves the rest of the page's jQuery-driven behavior untouched.
+  setInterval(() => {
+    if (!strictActive("jquerySweep")) return;
+    const jq = window.jQuery || window.$;
+    if (!jq || !jq.fn) return;
+    try {
+      jq(document).off(".etestplayeral").off(".etestaplayer");
+      jq(window).off(".etestplayeral").off(".etestaplayer");
+    } catch (error) {
+      debug("Could not sweep eTest player jQuery listeners", error);
+    }
+  }, 500);
+
+  // fullScreenChangeHandle (the eTest player's own handler) only logs and
+  // calls into enforcement that's already neutralized elsewhere here, so
+  // blocking the event entirely is safe — layout still needs a manual
+  // resize nudge since nothing else triggers one.
+  ["fullscreenchange", "webkitfullscreenchange", "mozfullscreenchange"].forEach((name) => {
+    document.addEventListener(name, (event) => {
+      if (!strictActive("fullscreenSpoof")) return;
+      event.stopImmediatePropagation();
+      try {
+        (window.jQuery || window.$)(window).trigger("resize");
+      } catch (error) {
+        debug("Could not trigger resize after fullscreen spoof", error);
+      }
+    }, true);
+  });
 })();
