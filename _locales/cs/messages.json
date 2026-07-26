@@ -238,7 +238,9 @@
   },
 
   "experimentalHeading": { "message": "Experimentální" },
-  "experimentalSubtitle": { "message": "Otestujte ochranu aktivity a viditelnosti na stránkách Edupage." },
+  "experimentalSubtitle": { "message": "Rozpracované nástroje pro kopírování otázek z testů EduPage." },
+  "groupShields": { "message": "Štíty" },
+  "shieldsSubtitle": { "message": "Otestujte ochranu aktivity a viditelnosti na stránkách Edupage." },
   "openTestingSite": { "message": "Otevřít testovací web" },
   "samHeading": { "message": "Režim Zůstat aktivní" },
   "samDesc": { "message": "Ovládá, jak Edupage vidí aktivitu karty, zaměření, pohyb myši a akce schránky. Změny se projeví okamžitě, ale nejčistší start získáte opětovným načtením otevřených karet Edupage." },

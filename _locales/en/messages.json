@@ -238,7 +238,9 @@
   },
 
   "experimentalHeading": { "message": "Experimental" },
-  "experimentalSubtitle": { "message": "Test activity and visibility protections on Edupage pages." },
+  "experimentalSubtitle": { "message": "In-development tools for copying EduPage test questions." },
+  "groupShields": { "message": "Shields" },
+  "shieldsSubtitle": { "message": "Test activity and visibility protections on Edupage pages." },
   "openTestingSite": { "message": "Open the testing website" },
   "samHeading": { "message": "Stay Active Mode" },
   "samDesc": { "message": "Controls how Edupage sees tab activity, focus, mouse movement, and clipboard actions. Changes apply live, but reloading open Edupage tabs gives the cleanest start." },
