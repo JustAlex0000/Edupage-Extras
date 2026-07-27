@@ -218,7 +218,6 @@
     return text;
   };
 
-  // Trigger a client-side download of a text file (content script context).
   EE.downloadTextFile = function downloadTextFile(filename, mime, content) {
     const blob = new Blob([content], { type: mime });
     const url = URL.createObjectURL(blob);

@@ -17,8 +17,6 @@ const DEFAULT_ROZVRH_ROOM_CHANGE_COLOR = "#1565c0";
 const DEFAULT_ROZVRH_SUBSTITUTION_COLOR = "#e65100";
 const LAST_SEEN_VERSION_KEY = "eeLastSeenVersion";
 const UPDATE_REMINDER_ENABLED_KEY = "eeUpdateReminderEnabled";
-// The release workflow publishes a GitHub Release per tag (notes pulled from
-// CHANGELOG.md, zip/xpi attached), so link straight to the Releases page.
 const REPO_RELEASES_URL = "https://github.com/JustAlex0000/Edupage-Extras/releases";
 const MOBILE_RESPONSIVE_KEY = "eeMobileResponsiveEnabled";
 const MOBILE_REDIRECT_KEY = "eeMobileRedirectEnabled";
@@ -116,9 +114,7 @@ const LIGHT_TONED_THEMES = ["pink"];
     ) {
       document.documentElement.style.backgroundColor = "#0c1220";
     }
-  } catch (e) {
-    // best-effort only
-  }
+  } catch {}
 })();
 const MOBILE_STYLE_ID = "ee-mobile-responsive-style";
 const CLASS_NAME = "ee-dark";
@@ -161,8 +157,6 @@ let cleanUiEnabled = false;
 let hideHelpTextEnabled = false;
 let currentRozvrhRoomChangeColor = DEFAULT_ROZVRH_ROOM_CHANGE_COLOR;
 let currentRozvrhSubstitutionColor = DEFAULT_ROZVRH_SUBSTITUTION_COLOR;
-const DEFAULT_CUSTOM_THEME = EE.DEFAULT_CUSTOM_THEME;
-
 function buildDarkCSS() {
   return `
     /* === Dark mode, rebuilt from real measured stock colors ==============
@@ -1851,7 +1845,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   );
 });
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message) => {
   if (message && message.type === "ee-set-theme") {
     applyTheme({
       darkModeEnabled: message.darkModeEnabled === true,

@@ -32,8 +32,10 @@ install directly from
 Also available on Firefox for Android through the same listing. Installs from
 AMO update automatically — no manual steps needed.
 
-Note: this extension is built for Chromium-based browsers and has been ported to Firefox so anyone can use it.
-      if you encounter any bugs please report it on my discord. (there is a report tool built in settings.)
+Edupage Extras is Chromium-first and also supports Firefox. If something does
+not work on your school's EduPage, use the built-in **Report a Problem** tool
+in Settings or report it on [Discord](https://discord.gg/eNZXHesA9j).
+
 ## Features
 
 ### Appearance
@@ -54,6 +56,7 @@ Note: this extension is built for Chromium-based browsers and has been ported to
 - **Grade badges** on the Edupage grades page.
 - **Color-coded average bars** for subject averages.
 - **Overall average row** based on the averages Edupage already renders.
+- **Optional subject sorting and filtering** above the grades table: search by subject, restore EduPage's original order, sort by name, grade count, or average, and hide subjects without grades.
 - **Virtual Grade Calculator** — add hypothetical grades to any subject and
   see the projected average update live, using EduPage's own grade weights
   (read directly from EduPage's data, not guessed from on-screen labels).
@@ -121,7 +124,7 @@ mobile-responsive layout.
 ### Languages
 
 - **Localized interface** for the popup and Settings (including the
-  Experimental tab), plus the injected on-page UI (grades columns, virtual
+  Experimental section), plus the injected on-page UI (grades columns, virtual
   grades popover, export buttons). English, Slovak, and Czech are bundled.
 - The language follows the browser UI language automatically
   (`chrome.i18n`/`browser.i18n`), falling back to English.
@@ -142,7 +145,7 @@ See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
 ## Usage
 
 - Click the extension icon to quickly toggle themes or open settings.
-- Open **Settings** for appearance and grade options.
+- Open **Settings** to search normal options on the continuous settings page.
 - Assign a shortcut in the extension shortcuts page if you want to toggle
   themes without opening Settings.
 - Choose **Custom** in the theme picker to build your own themes.
@@ -197,7 +200,8 @@ The extension does not request access to all websites.
   `grades-badges.js` (average badges/bars, grade-title overrides),
   `grades-virtual.js` (Virtual Grade Calculator), `grades-summary.js`
   (overall average row), `grades-attendance.js` (current-halfyear absence
-  stats columns), `grades-export.js` (.json/.csv/.txt export), and
+  stats columns), `grades-sort-filter.js` (subject sorting/filtering),
+  `grades-export.js` (.json/.csv/.txt export), and
   `grades-bootstrap.js` (starts everything once all modules are loaded).
 - `scripts/attendance-enhancer.js` - injects current halfyear absence
   percentages into Edupage's attendance summary.
@@ -212,8 +216,7 @@ The extension does not request access to all websites.
 - `scripts/activity-shield-main.js` / `activity-shield-bridge.js` - Stay
   Active Mode (see Activity Shield above).
 - `menu/menu.html` - the toolbar popup.
-- `menu/settings.html` - the options page; experimental features live in its
-  Experimental tab behind a confirmation dialog.
+- `menu/settings.html` - the options page: normal settings are searchable and scrollable. Experimental features are hidden behind a warning modal.
 - `menu/i18n.js` - shared localization helper for the extension's own pages.
 
 ## Development Notes

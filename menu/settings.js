@@ -51,6 +51,7 @@ const autoLoginToggle = document.getElementById("AutoLoginCheckbox");
 const autoLoginPreferredAccountRow = document.getElementById("AutoLoginPreferredAccountRow");
 const autoLoginPreferredAccountInput = document.getElementById("AutoLoginPreferredAccountInput");
 const ucivoExportToggle = document.getElementById("UcivoExportCheckbox");
+const gradesSortFilterToggle = document.getElementById("GradesSortFilterCheckbox");
 const gradesExportToggle = document.getElementById("GradesExportCheckbox");
 const timetableExportToggle = document.getElementById("TimetableExportCheckbox");
 const timetableExportContent = document.getElementById("TimetableExportContent");
@@ -94,6 +95,7 @@ const MOBILE_REDIRECT_KEY = "eeMobileRedirectEnabled";
 const AUTOLOGIN_KEY = "eeAutoLoginEnabled";
 const AUTOLOGIN_PREFERRED_ACCOUNT_KEY = "eeAutoLoginPreferredAccount";
 const UCIVO_EXPORT_KEY = "eeUcivoExportEnabled";
+const GRADES_SORT_FILTER_KEY = "eeGradesSortFilterEnabled";
 const GRADES_EXPORT_KEY = "eeGradesExportEnabled";
 const TIMETABLE_EXPORT_KEY = "eeTimetableExportEnabled";
 const ETEST_COPY_KEY = "eeEtestCopyEnabled";
@@ -135,7 +137,6 @@ const activityShieldDefaults = {
 };
 const activityShieldStorageKeys = Object.keys(activityShieldDefaults);
 const activityShieldControlledSettings = activityShieldSettings.filter(([elementId]) => elementId !== "ActivityShieldEnabled");
-const THEMES = EE.THEMES;
 const DEFAULT_CUSTOM_THEME = EE.DEFAULT_CUSTOM_THEME;
 const customInputs = {
 	bgBase: document.getElementById("CustomBgBase"),
@@ -354,8 +355,6 @@ function renderDefaultHalfyearHints() {
 let isStoreInstall = false;
 
 function renderUpdateStatus(status) {
-	// On store installs, keep the "updates automatically" note regardless of any
-	// stored GitHub check status.
 	if (isStoreInstall) {
 		updateStatusText.dataset.state = "";
 		updateStatusText.textContent = t("updatesAutoStore") ||
@@ -857,45 +856,21 @@ openShortcutSettingsButton.addEventListener("click", () => {
 	chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
 });
 
-// Experimental is a real tab like the others (wired into the generic nav
-// click handler above), but its content stays hidden until confirmed via a
-// real modal dialog for this browser session — no separate page/URL exists
-// to type around the gate, since it's all one document now.
+// Experimental stays outside the searchable, scrollable settings document.
+// Its acknowledgement is tied to the installed extension version, so an
+// update presents the warning again without adding another permission.
 const experimentalConfirmDialog = document.getElementById("ExperimentalConfirmDialog");
 const experimentalConfirmCancel = document.getElementById("ExperimentalConfirmCancel");
+const EXPERIMENTAL_ACKNOWLEDGEMENT_KEY = "eeExperimentalAcknowledgedVersion";
+const currentExtensionVersion = chrome.runtime.getManifest().version;
+let experimentalAcknowledged = false;
 
 function isExperimentalConfirmed() {
-	return sessionStorage.getItem("eeExperimentalConfirmed") === "1";
+	return experimentalAcknowledged;
 }
 
-function revealExperimentalContent() {
-	if (experimentalContent) experimentalContent.hidden = false;
-}
-
-experimentalSettingsButton.addEventListener("click", () => {
-	if (isExperimentalConfirmed()) {
-		revealExperimentalContent();
-	} else {
-		experimentalConfirmDialog.showModal();
-	}
-});
-
-experimentalConfirmCancel.addEventListener("click", () => {
-	experimentalConfirmDialog.close();
-	activateSettingsSection(settingsNavItems[0]?.dataset.target);
-});
-
-experimentalConfirmDialog.addEventListener("click", (event) => {
-	if (event.target === experimentalConfirmDialog) {
-		experimentalConfirmDialog.close();
-		activateSettingsSection(settingsNavItems[0]?.dataset.target);
-	}
-});
-
-experimentalConfirmContinue.addEventListener("click", () => {
-	sessionStorage.setItem("eeExperimentalConfirmed", "1");
-	experimentalConfirmDialog.close();
-	revealExperimentalContent();
+chrome.storage.local.get([EXPERIMENTAL_ACKNOWLEDGEMENT_KEY], (result) => {
+	experimentalAcknowledged = result[EXPERIMENTAL_ACKNOWLEDGEMENT_KEY] === currentExtensionVersion;
 });
 
 function renderActivityShieldShortcutStatus() {
@@ -1046,6 +1021,16 @@ if (ucivoExportToggle) {
 	ucivoExportToggle.addEventListener("change", () => {
 		chrome.storage.local.set({ [UCIVO_EXPORT_KEY]: ucivoExportToggle.checked });
 	});
+}
+
+if (gradesSortFilterToggle) {
+	chrome.storage.local.get([GRADES_SORT_FILTER_KEY], (result) => {
+		gradesSortFilterToggle.checked = result[GRADES_SORT_FILTER_KEY] !== false;
+	});
+	gradesSortFilterToggle.addEventListener("change", () => {
+		chrome.storage.local.set({ [GRADES_SORT_FILTER_KEY]: gradesSortFilterToggle.checked });
+	});
+}
 
 if (gradesExportToggle) {
 	chrome.storage.local.get([GRADES_EXPORT_KEY], (result) => {
@@ -1054,7 +1039,6 @@ if (gradesExportToggle) {
 	gradesExportToggle.addEventListener("change", () => {
 		chrome.storage.local.set({ [GRADES_EXPORT_KEY]: gradesExportToggle.checked });
 	});
-}
 }
 
 if (timetableExportToggle) {
@@ -1161,46 +1145,175 @@ if (chrome.management && typeof chrome.management.getSelf === "function") {
 	});
 }
 
-const SETTINGS_SECTION_KEY = "settingsActiveSection";
 const settingsNavItems = Array.from(document.querySelectorAll(".settings-nav-item"));
+const standardNavItems = settingsNavItems.filter((item) => item.dataset.target !== "experimental");
+const standardSettingsContent = document.getElementById("StandardSettingsContent");
+const standardSettingsSections = Array.from(document.querySelectorAll(".settings-standard-section"));
+const experimentalSection = document.getElementById("panel-experimental");
+const settingsSearch = document.getElementById("SettingsSearch");
+const settingsSearchInput = document.getElementById("SettingsSearchInput");
+const settingsSearchEmpty = document.getElementById("SettingsSearchEmpty");
+const reduceSettingsMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+let settingsScrollFrame = 0;
 
-function activateSettingsSection(target, { focusNav = false } = {}) {
-	settingsNavItems.forEach((item) => {
-		const isActive = item.dataset.target === target;
-		item.setAttribute("aria-selected", String(isActive));
-		item.tabIndex = isActive ? 0 : -1;
-		const panel = document.getElementById(`panel-${item.dataset.target}`);
-		if (panel) panel.hidden = !isActive;
-		if (isActive && focusNav) item.focus();
-	});
-	chrome.storage.local.set({ [SETTINGS_SECTION_KEY]: target });
+function normalizeSettingsSearch(value) {
+	return String(value || "")
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLocaleLowerCase()
+		.trim();
 }
 
-settingsNavItems.forEach((item) => {
-	item.addEventListener("click", () => activateSettingsSection(item.dataset.target));
+function setActiveSettingsNav(target) {
+	const currentItem = settingsNavItems.find((item) => item.getAttribute("aria-current") === "true");
+	if (currentItem?.dataset.target === target) return;
+	let activeItem = null;
+	settingsNavItems.forEach((item) => {
+		if (item.dataset.target === target) {
+			item.setAttribute("aria-current", "true");
+			activeItem = item;
+		}
+		else item.removeAttribute("aria-current");
+	});
+	if (activeItem && window.innerWidth <= 900) {
+		const nav = activeItem.closest(".settings-nav");
+		const left = activeItem.offsetLeft - ((nav?.clientWidth || 0) - activeItem.offsetWidth) / 2;
+		nav?.scrollTo({ left: Math.max(0, left), behavior: reduceSettingsMotion?.matches ? "auto" : "smooth" });
+	}
+}
+
+function clearSettingsSearch() {
+	if (!settingsSearchInput) return;
+	settingsSearchInput.value = "";
+	applySettingsSearch();
+}
+
+function applySettingsSearch() {
+	if (!settingsSearchInput) return;
+	const query = normalizeSettingsSearch(settingsSearchInput.value);
+	let visibleSections = 0;
+
+	standardSettingsSections.forEach((section) => {
+		const sectionName = normalizeSettingsSearch(section.querySelector("h2")?.textContent);
+		const sectionMatches = Boolean(query && sectionName.includes(query));
+		let visibleRows = 0;
+
+		section.querySelectorAll(".setting-row").forEach((row) => {
+			const unavailable = Boolean(row.closest("[hidden]"));
+			const matches = !query || sectionMatches || (!unavailable && normalizeSettingsSearch(row.textContent).includes(query));
+			row.classList.toggle("is-search-hidden", Boolean(query && !matches));
+			if (!unavailable && matches) visibleRows += 1;
+		});
+
+		section.querySelectorAll(".setting-card").forEach((card) => {
+			const availableRows = Array.from(card.querySelectorAll(".setting-row")).filter((row) => !row.closest("[hidden]"));
+			const hasMatch = availableRows.some((row) => !row.classList.contains("is-search-hidden"));
+			card.classList.toggle("is-search-hidden", Boolean(query && availableRows.length && !hasMatch));
+		});
+
+		const hasVisibleRows = !query || visibleRows > 0;
+		section.classList.toggle("is-search-hidden", !hasVisibleRows);
+		if (hasVisibleRows) visibleSections += 1;
+	});
+
+	if (settingsSearchEmpty) settingsSearchEmpty.hidden = !query || visibleSections > 0;
+	if (query) {
+		const firstVisibleSection = standardSettingsSections.find((section) => !section.classList.contains("is-search-hidden"));
+		if (firstVisibleSection) setActiveSettingsNav(firstVisibleSection.id.replace("panel-", ""));
+	} else {
+		scheduleActiveSettingsUpdate();
+	}
+}
+
+function showStandardSettings(target, { scroll = true } = {}) {
+	if (standardSettingsContent) standardSettingsContent.hidden = false;
+	if (experimentalSection) experimentalSection.hidden = true;
+	if (settingsSearch) settingsSearch.hidden = false;
+	clearSettingsSearch();
+	const panel = document.getElementById(`panel-${target}`);
+	if (!panel || !standardSettingsSections.includes(panel)) return;
+	setActiveSettingsNav(target);
+	if (scroll) {
+		window.requestAnimationFrame(() => {
+			panel.scrollIntoView({ behavior: reduceSettingsMotion?.matches ? "auto" : "smooth", block: "start" });
+		});
+	}
+}
+
+function showExperimentalSettings() {
+	if (standardSettingsContent) standardSettingsContent.hidden = true;
+	if (settingsSearchEmpty) settingsSearchEmpty.hidden = true;
+	if (settingsSearch) settingsSearch.hidden = true;
+	if (experimentalContent) experimentalContent.hidden = false;
+	if (experimentalSection) experimentalSection.hidden = false;
+	setActiveSettingsNav("experimental");
+	window.scrollTo({ top: 0, behavior: "auto" });
+}
+
+function updateActiveSettingsSection() {
+	settingsScrollFrame = 0;
+	if (standardSettingsContent?.hidden) return;
+	const offset = window.innerWidth <= 900 ? 148 : 84;
+	let activeSection = standardSettingsSections.find((section) => !section.classList.contains("is-search-hidden"));
+	standardSettingsSections.forEach((section) => {
+		if (!section.classList.contains("is-search-hidden") && section.getBoundingClientRect().top <= offset) {
+			activeSection = section;
+		}
+	});
+	if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2) {
+		activeSection = standardSettingsSections.filter((section) => !section.classList.contains("is-search-hidden")).at(-1) || activeSection;
+	}
+	if (activeSection) setActiveSettingsNav(activeSection.id.replace("panel-", ""));
+}
+
+function scheduleActiveSettingsUpdate() {
+	if (!settingsScrollFrame) settingsScrollFrame = window.requestAnimationFrame(updateActiveSettingsSection);
+}
+
+standardNavItems.forEach((item) => {
+	item.addEventListener("click", () => showStandardSettings(item.dataset.target));
 });
 
-if (settingsNavItems.length) {
-	document.querySelector(".settings-nav")?.addEventListener("keydown", (event) => {
-		if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
-		event.preventDefault();
-		const currentIndex = settingsNavItems.findIndex((item) => item.tabIndex === 0);
-		let nextIndex = currentIndex;
-		if (event.key === "ArrowDown") nextIndex = (currentIndex + 1) % settingsNavItems.length;
-		else if (event.key === "ArrowUp") nextIndex = (currentIndex - 1 + settingsNavItems.length) % settingsNavItems.length;
-		else if (event.key === "Home") nextIndex = 0;
-		else if (event.key === "End") nextIndex = settingsNavItems.length - 1;
-		activateSettingsSection(settingsNavItems[nextIndex].dataset.target, { focusNav: true });
-	});
+experimentalSettingsButton?.addEventListener("click", () => {
+	if (isExperimentalConfirmed()) showExperimentalSettings();
+	else experimentalConfirmDialog?.showModal();
+});
 
-	chrome.storage.local.get([SETTINGS_SECTION_KEY], (result) => {
-		const saved = result[SETTINGS_SECTION_KEY];
-		const validTargets = settingsNavItems.map((item) => item.dataset.target);
-		let target = validTargets.includes(saved) ? saved : validTargets[0];
-		// A fresh page load has no session-confirmed Experimental access yet,
-		// even if it was the last-viewed tab before — never silently land on
-		// the gated content without going through the click handler first.
-		if (target === "experimental" && !isExperimentalConfirmed()) target = validTargets[0];
-		activateSettingsSection(target);
-	});
+experimentalConfirmCancel?.addEventListener("click", () => experimentalConfirmDialog.close());
+
+experimentalConfirmDialog?.addEventListener("click", (event) => {
+	if (event.target === experimentalConfirmDialog) experimentalConfirmDialog.close();
+});
+
+experimentalConfirmContinue?.addEventListener("click", () => {
+	experimentalAcknowledged = true;
+	chrome.storage.local.set({ [EXPERIMENTAL_ACKNOWLEDGEMENT_KEY]: currentExtensionVersion });
+	experimentalConfirmDialog.close();
+	showExperimentalSettings();
+});
+
+settingsSearchInput?.addEventListener("input", applySettingsSearch);
+window.addEventListener("scroll", scheduleActiveSettingsUpdate, { passive: true });
+window.addEventListener("resize", scheduleActiveSettingsUpdate);
+
+document.querySelector(".settings-nav")?.addEventListener("keydown", (event) => {
+	if (!["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+	const currentIndex = settingsNavItems.indexOf(document.activeElement);
+	if (currentIndex < 0) return;
+	event.preventDefault();
+	let nextIndex = currentIndex;
+	if (["ArrowDown", "ArrowRight"].includes(event.key)) nextIndex = (currentIndex + 1) % settingsNavItems.length;
+	else if (["ArrowUp", "ArrowLeft"].includes(event.key)) nextIndex = (currentIndex - 1 + settingsNavItems.length) % settingsNavItems.length;
+	else if (event.key === "Home") nextIndex = 0;
+	else if (event.key === "End") nextIndex = settingsNavItems.length - 1;
+	settingsNavItems[nextIndex].focus();
+});
+
+const settingsVisibilityObserver = new MutationObserver(() => {
+	if (settingsSearchInput?.value) applySettingsSearch();
+});
+if (standardSettingsContent) {
+	settingsVisibilityObserver.observe(standardSettingsContent, { subtree: true, attributes: true, attributeFilter: ["hidden"] });
 }
+
+setActiveSettingsNav("appearance");

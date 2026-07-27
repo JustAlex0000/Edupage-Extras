@@ -3,10 +3,9 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 
-// Same relative order as the content_scripts js array in manifest.json —
-// grades-enhancer.js (core) must load first so it can set up GE.state and
-// the shared helpers, and grades-bootstrap.js must load last so every other
-// module has attached itself to GE (window.__eeGrades) by the time it runs.
+// Keep this in the same relative order as manifest.json. grades-bootstrap.js
+// must remain last because it starts the enhancer after every module has
+// attached its API to window.__eeGrades.
 const GRADES_SCRIPT_FILES = [
   "grades-enhancer.js",
   "grades-debug.js",
@@ -14,12 +13,27 @@ const GRADES_SCRIPT_FILES = [
   "grades-virtual.js",
   "grades-summary.js",
   "grades-attendance.js",
+  "grades-sort-filter.js",
   "grades-export.js",
   "grades-bootstrap.js",
 ];
 
+runTest("grades test modules match manifest load order", () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "manifest.json"), "utf8"));
+  const manifestFiles = manifest.content_scripts
+    .flatMap((entry) => entry.js || [])
+    .filter((file) => /^scripts\/grades-[^/]+\.js$/.test(file))
+    .map((file) => path.basename(file));
+
+  assert.deepEqual(manifestFiles, GRADES_SCRIPT_FILES);
+});
+
 const gradesEnhancerSource = fs.readFileSync(
   path.join(__dirname, "..", "scripts", "grades-enhancer.js"),
+  "utf8",
+);
+const gradesSortFilterSource = fs.readFileSync(
+  path.join(__dirname, "..", "scripts", "grades-sort-filter.js"),
   "utf8",
 );
 
@@ -28,6 +42,12 @@ function loadGradesEnhancerInternals() {
 
   const context = {
     console,
+    MouseEvent: class MouseEvent {
+      constructor(type, options) {
+        this.type = type;
+        this.options = options;
+      }
+    },
     navigator: { language: "en-US" },
     document: {
       readyState: "loading",
@@ -70,6 +90,19 @@ runTest("percentage averages keep their actual percentage fill and good-grade co
   assert.equal(gradeColor(average), "#558b2f");
 });
 
+runTest("virtual grade expansion stops after the first dispatched candidate", () => {
+  const { dispatchFirstGradeExpansionClick } = loadGradesEnhancerInternals();
+  const calls = [];
+  const candidates = [
+    { dispatchEvent: () => calls.push("explicit-toggle") },
+    { dispatchEvent: () => calls.push("fallback-cell") },
+    { dispatchEvent: () => calls.push("fallback-row") },
+  ];
+
+  assert.equal(dispatchFirstGradeExpansionClick(candidates), true);
+  assert.deepEqual(calls, ["explicit-toggle"]);
+});
+
 runTest("numeric averages still use the existing 1-5 grading scale", () => {
   const { parseAverage, gradeColor, gradePercentage } = loadGradesEnhancerInternals();
   const average = parseAverage("2.13");
@@ -77,6 +110,60 @@ runTest("numeric averages still use the existing 1-5 grading scale", () => {
   assert.equal(average, 2.13);
   assert.equal(gradePercentage(average), 72.88);
   assert.equal(gradeColor(average), "#558b2f");
+});
+
+runTest("grades subject search is case- and accent-insensitive", () => {
+  const { normalizeGradesSearchText } = loadGradesEnhancerInternals();
+
+  assert.equal(normalizeGradesSearchText("  Slovenský   Jazyk  "), "slovensky jazyk");
+  assert.equal(normalizeGradesSearchText("ČESKÝ JAZYK"), "cesky jazyk");
+});
+
+runTest("disabling grades sorting restores original order and clears filtering", () => {
+  assert.match(gradesEnhancerSource, /gradesSortFilterEnabled = result\[GRADES_SORT_FILTER_KEY\] !== false/);
+  assert.match(gradesEnhancerSource, /GE\.sortFilter\.disable\(table\)/);
+  assert.match(gradesSortFilterSource, /state\.sortMode = "original"/);
+  assert.match(gradesSortFilterSource, /applyFilters\(entries, "", false\)/);
+  assert.match(gradesSortFilterSource, /state\.controls\?\.controls\?\.remove\(\)/);
+});
+
+runTest("grades sorting supports name, grade count, average quality, and original order", () => {
+  const { sortSubjectEntries } = loadGradesEnhancerInternals();
+  const entries = [
+    { name: "Matematika", gradeCount: 2, average: 2.4, averageScale: "grade", originalIndex: 0 },
+    { name: "Anglický jazyk", gradeCount: 5, average: 1.3, averageScale: "grade", originalIndex: 1 },
+    { name: "Fyzika", gradeCount: 0, average: Number.NaN, averageScale: null, originalIndex: 2 },
+  ];
+
+  assert.deepEqual(
+    Array.from(sortSubjectEntries(entries, "subject-asc", "sk"), (entry) => entry.name),
+    ["Anglický jazyk", "Fyzika", "Matematika"],
+  );
+  assert.deepEqual(
+    Array.from(sortSubjectEntries(entries, "grades-desc", "sk"), (entry) => entry.name),
+    ["Anglický jazyk", "Matematika", "Fyzika"],
+  );
+  assert.deepEqual(
+    Array.from(sortSubjectEntries(entries, "average-best", "sk"), (entry) => entry.name),
+    ["Anglický jazyk", "Matematika", "Fyzika"],
+  );
+  assert.deepEqual(
+    Array.from(sortSubjectEntries(entries, "original", "sk"), (entry) => entry.name),
+    ["Matematika", "Anglický jazyk", "Fyzika"],
+  );
+});
+
+runTest("percentage averages sort higher values as better", () => {
+  const { sortSubjectEntries } = loadGradesEnhancerInternals();
+  const entries = [
+    { name: "A", gradeCount: 1, average: 71, averageScale: "percent", originalIndex: 0 },
+    { name: "B", gradeCount: 1, average: 94, averageScale: "percent", originalIndex: 1 },
+  ];
+
+  assert.deepEqual(
+    Array.from(sortSubjectEntries(entries, "average-best", "en"), (entry) => entry.name),
+    ["B", "A"],
+  );
 });
 
 runTest("date-only parsing rejects calendar overflow dates", () => {

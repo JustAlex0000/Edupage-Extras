@@ -18,9 +18,6 @@
   // briefly expanding a subject row. Avoids re-running the expand dance every
   // time the popover opens on the same subject.
   const autoDetectedMassCache = new Map();
-  // Tracks subjects we expanded ourselves so we can detect them as
-  // "auto-expanded" vs "user-expanded" if we ever want to collapse back.
-  const autoExpandedSubjects = new Set();
   let activeVirtualPopover = null;
 
     function calcWeightedAvg(grades) {
@@ -219,6 +216,9 @@
         return false;
       }
     }
+    function dispatchFirstSyntheticClick(candidates) {
+      return candidates.some((candidate) => dispatchSyntheticClick(candidate));
+    }
     function findExpandToggleCandidates(predmetRow) {
       const candidates = new Set();
       if (!predmetRow || typeof predmetRow.querySelectorAll !== "function") {
@@ -251,7 +251,6 @@
       return Array.from(candidates);
     }
     function detectExistingMass(predmetRow, predmetid, { timeoutMs = 700 } = {}) {
-      // Already cached from an earlier popover open on this page? Return it.
       if (predmetid && autoDetectedMassCache.has(predmetid)) {
         return Promise.resolve(autoDetectedMassCache.get(predmetid));
       }
@@ -296,12 +295,7 @@
           }
         }
 
-        const toggles = findExpandToggleCandidates(predmetRow);
-        for (const toggle of toggles) {
-          if (dispatchSyntheticClick(toggle)) {
-            if (predmetid) autoExpandedSubjects.add(predmetid);
-          }
-        }
+        dispatchFirstSyntheticClick(findExpandToggleCandidates(predmetRow));
 
         timer = setTimeout(() => finish(readExistingGradeMass(predmetRow)), timeoutMs);
       });
@@ -715,7 +709,6 @@
         GE.state.virtualGradesData = {};
         GE.state.existingMassOverrides = {};
         autoDetectedMassCache.clear();
-        autoExpandedSubjects.clear();
         await saveVirtualGrades();
         await persistExistingMassOverrides();
         closeVirtualPopover();
@@ -777,6 +770,7 @@
     closeVirtualPopover,
     handleDocumentClickForPopover,
     parseGradeWeight,
+    dispatchFirstSyntheticClick,
     findSubjectSubRows,
     calcWeightedAvg,
     projectAverageWithVirtualGrades,

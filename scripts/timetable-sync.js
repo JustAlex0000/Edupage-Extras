@@ -32,16 +32,21 @@
   function resolveDisplayedDate(dayText, monthText, anchorDate = new Date()) {
     const day = Number.parseInt(String(dayText || "").replace(/\D+/g, ""), 10);
     const month = Number.parseInt(String(monthText || "").replace(/\D+/g, ""), 10);
-    if (!Number.isFinite(day) || !Number.isFinite(month)) return null;
+    if (!Number.isInteger(day) || !Number.isInteger(month)) return null;
 
     const reference = anchorDate instanceof Date && !Number.isNaN(anchorDate.getTime())
       ? anchorDate
       : new Date();
-    const candidates = [
-      new Date(reference.getFullYear() - 1, month - 1, day),
-      new Date(reference.getFullYear(), month - 1, day),
-      new Date(reference.getFullYear() + 1, month - 1, day),
-    ];
+    const candidates = [-1, 0, 1]
+      .map((offset) => reference.getFullYear() + offset)
+      .map((year) => ({ year, date: new Date(year, month - 1, day) }))
+      .filter(({ year, date }) => (
+        date.getFullYear() === year
+        && date.getMonth() === month - 1
+        && date.getDate() === day
+      ))
+      .map(({ date }) => date);
+    if (candidates.length === 0) return null;
     candidates.sort((left, right) => Math.abs(left.getTime() - reference.getTime()) - Math.abs(right.getTime() - reference.getTime()));
     return candidates[0];
   }

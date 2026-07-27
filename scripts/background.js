@@ -73,12 +73,6 @@ function storageSet(values) {
   });
 }
 
-function storageRemove(keys) {
-  return new Promise((resolve) => {
-    chrome.storage.local.remove(keys, resolve);
-  });
-}
-
 function buildReportIssueUrl(title, body) {
   return `${REPO_URL}/issues/new?` +
     `title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
@@ -143,7 +137,6 @@ function recordBackgroundError(level, args) {
   }
 })();
 
-// Storage keys whose values must never appear in a diagnostics report.
 const DIAGNOSTICS_SECRET_PATTERN = /secret|token|client|oauth|password|credential/i;
 
 async function buildSettingsSummary() {
@@ -786,7 +779,6 @@ async function checkForUpdates({ notify = false } = {}) {
 }
 
 async function syncUpdateAlarm() {
-  // Store installs auto-update, so don't schedule the daily GitHub check there.
   if (await isDevelopmentInstall() && await updateRemindersEnabled()) {
     chrome.alarms.create(UPDATE_ALARM_NAME, {
       delayInMinutes: 5,
@@ -1014,12 +1006,6 @@ function shouldUseLessonInHalfyearTemplate(lesson) {
   }
 
   return true;
-}
-
-function countTemplateEligibleLessons(weekData) {
-  return Array.isArray(weekData?.lessons)
-    ? weekData.lessons.filter(shouldUseLessonInHalfyearTemplate).length
-    : 0;
 }
 
 function buildTemplateLessonSlotKey(lesson) {
@@ -1466,17 +1452,6 @@ async function sendTabMessageRetry(tabId, message, attempts = 20) {
   throw lastError || new Error("Could not reach the hidden EduPage timetable tab.");
 }
 
-async function extractWeekFromHiddenTab(tabId, steps = 0) {
-  const response = await sendTabMessageRetry(tabId, {
-    type: "ee-extract-timetable-week",
-    steps,
-  });
-  if (!response?.ok || !response?.data) {
-    throw new Error(response?.error || "EduPage timetable extraction failed.");
-  }
-  return response.data;
-}
-
 async function extractWeekSeriesFromHiddenTab(tabId, count = 1) {
   const response = await sendTabMessageRetry(tabId, {
     type: "ee-extract-timetable-week-series",
@@ -1487,11 +1462,6 @@ async function extractWeekSeriesFromHiddenTab(tabId, count = 1) {
   }
   return response.data.weeks;
 }
-
-// Note: the Suplovanie (substitution) snapshot is now fetched directly by
-// timetable-enhancer.js via the viewer.js POST (using the page's gsechash) — no
-// hidden tab or background round-trip. The old ee-substitution-snapshot handler
-// and its day-cache were removed once the direct fetch was verified live.
 
 async function collectLiveEdupageWeek(config) {
   if (!config.lastEdupageOrigin) {

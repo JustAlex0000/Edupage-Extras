@@ -103,7 +103,7 @@
   };
 
   let substitutionSectionsPromise = null;
-  let substitutionSectionsResolved = null; // the already-resolved sections — applied synchronously on re-renders
+  let substitutionSectionsResolved = null;
   let substitutionLastFetchedAt = 0;
   const SUBSTITUTION_REFRESH_COOLDOWN_MS = 30 * 60 * 1000;
   let rozvrhScheduleTimer = null;
@@ -147,7 +147,6 @@
     return "changed";
   }
 
-  // "... Zameniť učebňu: OLD ➔ NEW ..." — returns the new room code/name.
   function extractNewRoom(info) {
     const match = /Zameni[ťt]\s*u[čc]ebňu:?\s*[^➔→⇒]+[➔→⇒]\s*([^\s,;(]+)/i
       .exec(String(info || ""));
@@ -172,8 +171,6 @@
     return (item.querySelector(".predmet")?.textContent || "").trim();
   }
 
-  // Parse the Suplovanie section markup out of the document parsed from the
-  // viewer.js POST's HTML payload.
   function parseSubstitutionSections(root) {
     return Array.from(root.querySelectorAll("div.section.print-nobreak")).map((section) => ({
       heading: (section.querySelector("div.header")?.textContent || "").trim(),
@@ -405,17 +402,15 @@
       for (const child of el.children) {
         if (child === rozvrh || child.contains(rozvrh)) continue;
         const text = child.textContent || "";
-        if (text.length > 300) continue; // skip big content blocks
+        if (text.length > 300) continue;
         const lower = text.toLowerCase();
 
-        // "zajtra" (SK) / "zítra" / "zitra" (CS) → tomorrow
         if (lower.includes("zajtra") || lower.includes("zítra") || lower.includes("zitra")) {
           const tomorrow = new Date();
           tomorrow.setDate(tomorrow.getDate() + 1);
           return dateKey(tomorrow);
         }
 
-        // Explicit "D.M." or "DD.MM." date  (e.g. "18.06.")
         const m = /\b(\d{1,2})\.(\d{1,2})\./.exec(text);
         if (m) {
           const day = Number(m[1]);

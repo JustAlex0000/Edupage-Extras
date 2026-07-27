@@ -79,6 +79,13 @@ runTest("resolveDisplayedDate can anchor year selection to the visible timetable
   assert.equal(formatDate(anchored), "2028-01-02");
 });
 
+runTest("resolveDisplayedDate rejects calendar overflow from page text", () => {
+  const { resolveDisplayedDate } = loadTimetableInternals();
+
+  assert.equal(resolveDisplayedDate("31.", "2.", new Date(2026, 1, 1)), null);
+  assert.equal(resolveDisplayedDate("10.", "13.", new Date(2026, 1, 1)), null);
+});
+
 runTest("resolveDisplayedWeekDates keeps cross-year week headers in chronological order", () => {
   const { resolveDisplayedWeekDates } = loadTimetableInternals();
   const resolved = resolveDisplayedWeekDates([

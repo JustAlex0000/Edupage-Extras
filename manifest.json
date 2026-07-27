@@ -2,7 +2,7 @@
   "name": "__MSG_extName__",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
-  "version": "0.9.17",
+  "version": "0.9.18",
   "manifest_version": 3,
   "icons": {
     "16": "images/icon-16.png",
@@ -76,6 +76,7 @@
         "scripts/grades-virtual.js",
         "scripts/grades-summary.js",
         "scripts/grades-attendance.js",
+        "scripts/grades-sort-filter.js",
         "scripts/grades-export.js",
         "scripts/grades-bootstrap.js",
         "scripts/attendance-enhancer.js",

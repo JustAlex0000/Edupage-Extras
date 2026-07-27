@@ -5,7 +5,8 @@
  * every other module has attached its public functions to the shared GE
  * namespace (window.__eeGrades) — only then is it safe to actually run
  * enhanceGradesTable() and friends, since grades-enhancer.js's init() calls
- * straight into GE.badges/GE.virtual/GE.summary/GE.attendance/GE.gradesExport.
+ * straight into GE.badges/GE.virtual/GE.summary/GE.attendance/GE.sortFilter/
+ * GE.gradesExport.
  */
 
 (function () {
@@ -45,6 +46,7 @@
       calcWeightedAvg: GE.virtual.calcWeightedAvg,
       projectAverageWithVirtualGrades: GE.virtual.projectAverageWithVirtualGrades,
       parseGradeWeight: GE.virtual.parseGradeWeight,
+      dispatchFirstGradeExpansionClick: GE.virtual.dispatchFirstSyntheticClick,
       readExistingGradeMass: GE.virtual.readExistingGradeMass,
       buildGradeWeightModel: GE.virtual.buildGradeWeightModel,
       migrateFlatMapToByOrigin: GE.migrateFlatMapToByOrigin,
@@ -53,6 +55,8 @@
       buildGradesViewContext: GE.buildGradesViewContext,
       readGradesViewContext: GE.readGradesViewContext,
       updateAttendanceCache: GE.attendance.updateAttendanceCache,
+      normalizeGradesSearchText: GE.sortFilter.normalizeSearchText,
+      sortSubjectEntries: GE.sortFilter.sortSubjectEntries,
     };
   }
 

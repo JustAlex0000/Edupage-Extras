@@ -281,7 +281,6 @@
     const subjects = subjectRows.map((row) => {
       const nameCell = row.querySelector(".fixedCell");
       const bold = nameCell ? nameCell.querySelector("b") : null;
-      // Subject name only — the teacher sits in a nested <div> we deliberately skip.
       const subject = bold ? ownText(bold) : ownText(nameCell);
 
       const averageCell = row.querySelector(".znPriemerCell, .znPriemerOstatnychCell");
@@ -301,7 +300,6 @@
         })
         .filter(Boolean);
 
-      // Original (pre-enhancement) grade tooltips show the title + date format.
       const tooltips = Array.from(row.querySelectorAll("[data-ee-original-grade-title]"))
         .slice(0, 3)
         .map((node) => maskNumbers(node.getAttribute("data-ee-original-grade-title"), redact))

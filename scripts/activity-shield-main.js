@@ -172,16 +172,16 @@
     // unloads; the actual blocking is the plain beforeunload handler, which
     // works everywhere. Where the API is missing (Firefox), arm the blocker
     // purely off the hidden state so the toggle isn't a silent no-op.
-    const hasNavigationApi = typeof navigation !== "undefined";
+    const navigationApi = window.navigation;
     const redirect = (event) => {
-      if (hasNavigationApi && !redirect.href) return;
+      if (navigationApi && !redirect.href) return;
       debug("Blocked hidden-page redirect to", redirect.href || "(unknown destination)");
       event.preventDefault();
       event.returnValue = "no";
     };
 
-    if (hasNavigationApi) {
-      navigation.addEventListener("navigate", (event) => {
+    if (navigationApi) {
+      navigationApi.addEventListener("navigate", (event) => {
         if (event.navigationType === "reload") {
           redirect.href = event.destination.url;
         }

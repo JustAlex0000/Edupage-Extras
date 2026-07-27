@@ -5,7 +5,8 @@
  * plumbing, generic average/date helpers, injected CSS, and the render loop
  * (enhanceGradesTable) that wires together the feature modules loaded after
  * this file — grades-debug.js, grades-badges.js, grades-virtual.js,
- * grades-summary.js, grades-attendance.js, grades-export.js. Each of those
+ * grades-summary.js, grades-attendance.js, grades-sort-filter.js,
+ * grades-export.js. Each of those
  * is its own top-level IIFE, so they can't see this file's functions
  * directly; instead every module publishes its public functions onto a
  * shared `GE` namespace (window.__eeGrades). grades-bootstrap.js (loaded
@@ -27,10 +28,12 @@
   const GRADES_ATTENDANCE_DEBUG_KEY = "gradesAttendanceDebugEnabled";
   const HALFYEAR_START_KEY = "eeHalfyearStartDate";
   const HALFYEAR_END_KEY = "eeSecondHalfEndDate";
+  const GRADES_SORT_FILTER_KEY = "eeGradesSortFilterEnabled";
   const GRADES_EXPORT_KEY = "eeGradesExportEnabled";
   const VIRTUAL_GRADES_KEY = "eeVirtualGrades";
   const EXISTING_MASS_OVERRIDES_KEY = "eeVirtualGradeExistingMassOverrides";
   let gradeBadgesEnabled = false;
+  let gradesSortFilterEnabled = true;
   let gradesExportEnabled = false;
   let observerTimer = null;
   let ignoreMutationsUntil = 0;
@@ -286,6 +289,17 @@
         return currentScore > bestScore ? currentTable : bestTable;
       }, null);
     }
+    function ensureGradesToolbar(table) {
+      if (!table?.parentElement) return null;
+      const previous = table.previousElementSibling;
+      if (previous?.classList?.contains("ee-grades-toolbar")) return previous;
+
+      const toolbar = document.createElement("div");
+      toolbar.className = "ee-grades-toolbar";
+      toolbar.setAttribute("aria-label", t("gradesTableTools"));
+      table.parentElement.insertBefore(toolbar, table);
+      return toolbar;
+    }
     function injectStyles() {
       if (document.getElementById(STYLE_ID)) return;
 
@@ -428,15 +442,119 @@
 
         .ee-grades-toolbar {
           display: flex;
+          align-items: flex-end;
+          flex-wrap: wrap;
+          justify-content: space-between;
+          gap: 12px;
+          margin: 8px 0;
+          padding: 8px;
+          background: #f4f7fa;
+          border: 1px solid #cfd8e3;
+          border-radius: 6px;
+          box-sizing: border-box;
+          color: #263238;
+          font-size: 12px;
+        }
+
+        .ee-grades-sort-filter,
+        .ee-grades-export-actions {
+          display: flex;
+          align-items: flex-end;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .ee-grades-sort-filter {
+          flex: 1 1 620px;
+        }
+
+        .ee-grades-export-actions {
+          flex: 0 1 auto;
           justify-content: flex-end;
-          margin: 6px 0;
+          margin-left: auto;
+        }
+
+        .ee-grades-control {
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+          min-width: 152px;
+        }
+
+        .ee-grades-control-label {
+          color: #455a64;
+          font-size: 11px;
+          font-weight: bold;
+          line-height: 1.2;
+        }
+
+        .ee-grades-search,
+        .ee-grades-select {
+          min-height: 44px;
+          padding: 8px 10px;
+          border: 1px solid #90a4ae;
+          border-radius: 4px;
+          background: #fff;
+          box-sizing: border-box;
+          color: #263238;
+          font: inherit;
+        }
+
+        .ee-grades-search {
+          width: min(240px, 100%);
+        }
+
+        .ee-grades-search::placeholder {
+          color: #546e7a;
+          opacity: 1;
+        }
+
+        .ee-grades-select {
+          max-width: 240px;
+        }
+
+        .ee-grades-check {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          min-height: 44px;
+          padding: 0 4px;
+          cursor: pointer;
+          font-weight: bold;
+        }
+
+        .ee-grades-check input {
+          width: 18px;
+          height: 18px;
+          margin: 0;
+          accent-color: #1565c0;
+        }
+
+        .ee-grades-filter-status {
+          align-self: center;
+          color: #546e7a;
+          font-variant-numeric: tabular-nums;
+          white-space: nowrap;
+        }
+
+        .ee-grades-search:focus-visible,
+        .ee-grades-select:focus-visible,
+        .ee-grades-check input:focus-visible,
+        .ee-grades-export-btn:focus-visible {
+          outline: 2px solid #1565c0;
+          outline-offset: 2px;
+        }
+
+        tr.ee-subject-filtered {
+          display: none !important;
         }
 
         .ee-grades-export-btn {
           display: inline-flex;
           align-items: center;
           gap: 5px;
-          padding: 5px 12px;
+          min-height: 44px;
+          padding: 8px 12px;
           background: #e8f0fe;
           border: 1.5px solid #3e83b8;
           border-radius: 6px;
@@ -445,6 +563,10 @@
           font-weight: bold;
           cursor: pointer;
           transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+        }
+
+        .ee-grades-export-btn:active {
+          transform: scale(0.97);
         }
 
         .ee-grades-export-btn:hover {
@@ -462,6 +584,60 @@
         html.ee-dark .ee-grades-export-btn:hover {
           background: var(--ee-link);
           color: #fff;
+        }
+
+        html.ee-dark .ee-grades-toolbar {
+          background: var(--ee-card-bg);
+          border-color: var(--ee-border);
+          color: var(--ee-text);
+        }
+
+        html.ee-dark .ee-grades-control-label,
+        html.ee-dark .ee-grades-filter-status {
+          color: var(--ee-text-muted);
+        }
+
+        html.ee-dark .ee-grades-search,
+        html.ee-dark .ee-grades-select {
+          background: var(--ee-card-bg-bright);
+          border-color: var(--ee-border);
+          color: var(--ee-text);
+        }
+
+        html.ee-dark .ee-grades-search::placeholder {
+          color: var(--ee-text-muted);
+        }
+
+        @media (max-width: 700px) {
+          .ee-grades-toolbar {
+            align-items: stretch;
+            flex-direction: column;
+          }
+
+          .ee-grades-sort-filter,
+          .ee-grades-export-actions {
+            align-items: stretch;
+            flex-basis: auto;
+            margin-left: 0;
+          }
+
+          .ee-grades-export-actions {
+            justify-content: stretch;
+          }
+
+          .ee-grades-export-btn {
+            flex: 1 1 120px;
+          }
+
+          .ee-grades-control {
+            flex: 1 1 180px;
+          }
+
+          .ee-grades-search,
+          .ee-grades-select {
+            width: 100%;
+            max-width: none;
+          }
         }
 
         html.ee-dark .ee-avg-bar-track {
@@ -855,9 +1031,6 @@
       (document.head || document.documentElement).appendChild(style);
     }
 
-    // ============================================================
-    // Virtual Grade Calculator
-    // ============================================================
     function enhanceGradesTable() {
       const tables = getGradesTables();
       const table = getPrimaryGradesTable();
@@ -873,11 +1046,20 @@
       markInternalMutation();
       injectStyles();
       tables.forEach((gradesTable) => GE.badges.applyStoredGradeTitles(gradesTable));
+      document.querySelectorAll(".ee-grades-toolbar").forEach((toolbar) => {
+        if (!toolbar.nextElementSibling?.matches("table.znamkyTable")) toolbar.remove();
+      });
+      if (gradesSortFilterEnabled) {
+        GE.sortFilter.ensureControls(table);
+      } else {
+        GE.sortFilter.disable(table);
+      }
       if (gradesExportEnabled) {
         GE.gradesExport.ensureCsvExportButton(table);
       } else {
-        document.querySelectorAll(".ee-grades-toolbar").forEach((toolbar) => toolbar.remove());
+        document.querySelectorAll(".ee-grades-export-actions").forEach((actions) => actions.remove());
       }
+      document.querySelectorAll(".ee-grades-toolbar:empty").forEach((toolbar) => toolbar.remove());
 
       if (GE.state.gradesAttendanceEnabled) {
         tables.forEach((gradesTable) => GE.attendance.ensureAttendanceColumns(gradesTable));
@@ -1082,11 +1264,13 @@
         GRADES_ATTENDANCE_DEBUG_KEY,
         HALFYEAR_START_KEY,
         HALFYEAR_END_KEY,
+        GRADES_SORT_FILTER_KEY,
         GRADES_EXPORT_KEY,
         VIRTUAL_GRADES_KEY,
         EXISTING_MASS_OVERRIDES_KEY,
       ], (result) => {
         gradeBadgesEnabled = result[GRADE_BADGES_KEY] === true;
+        gradesSortFilterEnabled = result[GRADES_SORT_FILTER_KEY] !== false;
         gradesExportEnabled = result[GRADES_EXPORT_KEY] === true;
         GE.state.gradeTitleOverrides = result[GRADE_TITLE_OVERRIDES_KEY] && typeof result[GRADE_TITLE_OVERRIDES_KEY] === "object"
           ? result[GRADE_TITLE_OVERRIDES_KEY]
@@ -1123,6 +1307,11 @@
 
         if (changes[GRADES_EXPORT_KEY]) {
           gradesExportEnabled = changes[GRADES_EXPORT_KEY].newValue === true;
+          shouldEnhance = true;
+        }
+
+        if (changes[GRADES_SORT_FILTER_KEY]) {
+          gradesSortFilterEnabled = changes[GRADES_SORT_FILTER_KEY].newValue !== false;
           shouldEnhance = true;
         }
 
@@ -1240,6 +1429,7 @@
   GE.getGradesTables = getGradesTables;
   GE.gradeTableRowCount = gradeTableRowCount;
   GE.getPrimaryGradesTable = getPrimaryGradesTable;
+  GE.ensureGradesToolbar = ensureGradesToolbar;
   GE.injectStyles = injectStyles;
   GE.enhanceGradesTable = enhanceGradesTable;
   GE.scheduleEnhance = scheduleEnhance;

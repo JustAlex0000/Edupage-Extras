@@ -11,45 +11,57 @@
       <header class="page-header">
         <div>
           <h1 data-i18n="settingsHeading">Settings</h1>
-          <p data-i18n="settingsSubtitle">Choose how Edupage Extras works.</p>
+          <p data-i18n="settingsSubtitle">Find and adjust the changes Edupage Extras makes.</p>
         </div>
       </header>
 
       <div class="settings-body">
-        <nav class="settings-nav" role="tablist" aria-orientation="vertical" aria-label="Settings categories">
-          <button class="settings-nav-item" type="button" role="tab" id="nav-appearance" aria-controls="panel-appearance" aria-selected="true" data-target="appearance">
+        <aside class="settings-sidebar">
+          <div class="settings-search" id="SettingsSearch">
+            <svg class="settings-search-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg>
+            <label class="sr-only" for="SettingsSearchInput" data-i18n="settingsSearchLabel">Search settings</label>
+            <input type="search" id="SettingsSearchInput" autocomplete="off" data-i18n-attr="placeholder:settingsSearchPlaceholder" placeholder="Search settings">
+          </div>
+          <nav class="settings-nav" data-i18n-attr="aria-label:settingsCategoriesLabel" aria-label="Settings sections">
+          <button class="settings-nav-item" type="button" id="nav-appearance" aria-controls="panel-appearance" aria-current="true" data-target="appearance">
             <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>
             <span data-i18n="groupAppearance">Appearance</span>
           </button>
-          <button class="settings-nav-item" type="button" role="tab" id="nav-cleanup" aria-controls="panel-cleanup" aria-selected="false" tabindex="-1" data-target="cleanup">
+          <button class="settings-nav-item" type="button" id="nav-cleanup" aria-controls="panel-cleanup" data-target="cleanup">
             <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
             <span data-i18n="groupCleanup">Cleanup</span>
           </button>
-          <button class="settings-nav-item" type="button" role="tab" id="nav-features" aria-controls="panel-features" aria-selected="false" tabindex="-1" data-target="features">
+          <button class="settings-nav-item" type="button" id="nav-features" aria-controls="panel-features" data-target="features">
             <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.7a2 2 0 0 0 1.4 1.4L21 12l-5.7 1.9a2 2 0 0 0-1.4 1.4L12 21l-1.9-5.7a2 2 0 0 0-1.4-1.4L3 12l5.7-1.9a2 2 0 0 0 1.4-1.4L12 3z"/></svg>
             <span data-i18n="groupFeatures">Features</span>
           </button>
-          <button class="settings-nav-item" type="button" role="tab" id="nav-timetable" aria-controls="panel-timetable" aria-selected="false" tabindex="-1" data-target="timetable">
+          <button class="settings-nav-item" type="button" id="nav-grades" aria-controls="panel-grades" data-target="grades">
+            <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 3v18"/><path d="M11 8h5"/><path d="M11 12h5"/><path d="m11 16 1.5 1.5L16 14"/></svg>
+            <span data-i18n="groupGrades">Grades</span>
+          </button>
+          <button class="settings-nav-item" type="button" id="nav-timetable" aria-controls="panel-timetable" data-target="timetable">
             <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 9h18"/></svg>
             <span data-i18n="groupTimetable">Timetable</span>
           </button>
-          <button class="settings-nav-item" type="button" role="tab" id="nav-updates" aria-controls="panel-updates" aria-selected="false" tabindex="-1" data-target="updates">
+          <button class="settings-nav-item" type="button" id="nav-updates" aria-controls="panel-updates" data-target="updates">
             <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
             <span data-i18n="groupUpdates">Updates</span>
           </button>
-          <button class="settings-nav-item" type="button" role="tab" id="nav-debug" aria-controls="panel-debug" aria-selected="false" tabindex="-1" data-target="debug">
+          <button class="settings-nav-item" type="button" id="nav-debug" aria-controls="panel-debug" data-target="debug">
             <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>
             <span data-i18n="groupDebug">Debug</span>
           </button>
-          <button class="settings-nav-item settings-nav-item-experimental" type="button" role="tab" id="ExperimentalSettingsButton" aria-controls="panel-experimental" aria-selected="false" tabindex="-1" data-target="experimental">
+          <button class="settings-nav-item settings-nav-item-experimental" type="button" id="ExperimentalSettingsButton" aria-controls="panel-experimental" data-target="experimental">
             <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6"/><path d="M10 2v7.5L4.7 19a1.8 1.8 0 0 0 1.6 2.7h11.4a1.8 1.8 0 0 0 1.6-2.7L14 9.5V2"/><path d="M7 15h10"/></svg>
             <span data-i18n="experimentalButton">Experimental</span>
           </button>
-        </nav>
+          </nav>
+        </aside>
 
         <div class="settings-content">
+          <div id="StandardSettingsContent">
 
-      <section class="setting-group" id="panel-appearance" role="tabpanel" aria-labelledby="appearance-heading nav-appearance" tabindex="0">
+      <section class="setting-group settings-standard-section" id="panel-appearance" aria-labelledby="appearance-heading">
         <h2 id="appearance-heading" data-i18n="groupAppearance">Appearance</h2>
 
         <div class="setting-card">
@@ -59,7 +71,7 @@
                 <span data-i18n="themesLabel">Themes</span>
                 <span class="setting-tag setting-tag-wip" data-i18n="wipBadge">WIP</span>
               </h3>
-              <p data-i18n="themesDesc">Apply Edupage Extras colors across Edupage and the extension menus.</p>
+              <p data-i18n="themesDesc">Recolor EduPage and the extension menus with your selected theme.</p>
             </div>
             <label class="switch switch-compact" for="DarkModeCheckbox">
               <input type="checkbox" id="DarkModeCheckbox">
@@ -70,8 +82,8 @@
 
           <div class="setting-row">
             <div>
-              <h3 data-i18n="themeHotkey">Theme Hotkey</h3>
-              <p data-i18n="themeHotkeyDesc">Optional. Add a Chrome extension shortcut for toggling themes on or off.</p>
+              <h3 data-i18n="themeHotkey">Theme Keyboard Shortcut</h3>
+              <p data-i18n="themeHotkeyDesc">Open your browser's shortcut settings to assign a key combination for turning the theme on or off.</p>
             </div>
             <div class="shortcut-controls">
               <button class="secondary-button" id="OpenShortcutSettingsButton" type="button" data-i18n="openShortcutSettings">Open Shortcut Settings</button>
@@ -179,14 +191,14 @@
         </div>
       </section>
 
-      <section class="setting-group" id="panel-cleanup" role="tabpanel" aria-labelledby="cleanup-heading nav-cleanup" tabindex="0" hidden>
+      <section class="setting-group settings-standard-section" id="panel-cleanup" aria-labelledby="cleanup-heading">
         <h2 id="cleanup-heading" data-i18n="groupCleanup">Cleanup</h2>
 
         <div class="setting-card">
           <div class="setting-row">
             <div>
-              <h3 data-i18n="centeredLayout">Centered Layout</h3>
-              <p data-i18n="centeredLayoutDesc">Keep the top schedule and main content aligned in the middle.</p>
+              <h3 data-i18n="centeredLayout">Center Page Content</h3>
+              <p data-i18n="centeredLayoutDesc">Keep the schedule and main EduPage content centered on wide screens.</p>
             </div>
             <label class="switch switch-compact" for="CleanUiCheckbox">
               <input type="checkbox" id="CleanUiCheckbox">
@@ -197,8 +209,8 @@
 
           <div class="setting-row">
             <div>
-              <h3 data-i18n="hideHelpText">Hide Help Text</h3>
-              <p data-i18n="hideHelpTextDesc">Hide the top-right Edupage help greeting.</p>
+              <h3 data-i18n="hideHelpText">Hide the Help Greeting</h3>
+              <p data-i18n="hideHelpTextDesc">Remove EduPage's greeting and help message from the top-right corner.</p>
             </div>
             <label class="switch switch-compact" for="HideHelpTextCheckbox">
               <input type="checkbox" id="HideHelpTextCheckbox">
@@ -209,8 +221,8 @@
 
           <div class="setting-row">
             <div>
-              <h3 data-i18n="mobileResponsive">Mobile-Responsive Layout</h3>
-              <p data-i18n="mobileResponsiveDesc">Inject structural CSS (flex-wrap, scrollable tables, scaled sidebar/fonts) to make Edupage usable on small screens. Off by default — not fully verified on every page yet.</p>
+              <h3 data-i18n="mobileResponsive">Improve EduPage on Mobile</h3>
+              <p data-i18n="mobileResponsiveDesc">Adapt EduPage layouts, tables, navigation, and text for smaller screens. This is still being tested across different pages.</p>
             </div>
             <label class="switch switch-compact" for="MobileResponsiveCheckbox">
               <input type="checkbox" id="MobileResponsiveCheckbox">
@@ -233,14 +245,126 @@
         </div>
       </section>
 
-      <section class="setting-group" id="panel-features" role="tabpanel" aria-labelledby="features-heading nav-features" tabindex="0" hidden>
+      <section class="setting-group settings-standard-section" id="panel-features" aria-labelledby="features-heading">
         <h2 id="features-heading" data-i18n="groupFeatures">Features</h2>
 
         <div class="setting-card">
           <div class="setting-row">
             <div>
-              <h3 data-i18n="timetableHighlights">Timetable Change Highlights</h3>
-              <p data-i18n="timetableHighlightsDesc">Color-code substitutions (orange) and classroom changes (blue) on the main page schedule widget.</p>
+              <h3 data-i18n="attendancePercentages">Show Attendance Percentage</h3>
+              <p data-i18n-html="attendancePercentagesDesc">Add the current half-year absence percentage to EduPage's standalone <strong>Attendance</strong> summary.</p>
+            </div>
+            <label class="switch switch-compact" for="AttendancePercentagesCheckbox">
+              <input type="checkbox" id="AttendancePercentagesCheckbox">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleAttendancePercentages">Toggle attendance percentages</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3><span data-i18n="autoLogin">Automatic Login</span> <span class="setting-tag setting-tag-wip" data-i18n="wipBadge">WIP</span></h3>
+              <p data-i18n="autoLoginDesc">Continue through EduPage's saved-account login after your browser fills the password. It stops immediately if you type or choose an account yourself.</p>
+            </div>
+            <label class="switch switch-compact" for="AutoLoginCheckbox">
+              <input type="checkbox" id="AutoLoginCheckbox">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleAutoLogin">Toggle auto-login</span>
+            </label>
+          </div>
+
+          <div class="setting-row" id="AutoLoginPreferredAccountRow">
+            <div>
+              <h3 data-i18n="autoLoginPreferredAccount">Account to Choose</h3>
+              <p data-i18n="autoLoginPreferredAccountDesc">When several saved accounts appear, enter part of the account name that Automatic Login should select. Leave blank to choose manually.</p>
+            </div>
+            <div class="date-setting-controls">
+              <div class="date-control-row">
+                <label class="date-control" for="AutoLoginPreferredAccountInput">
+                  <span data-i18n="autoLoginPreferredAccountLabel">Account name</span>
+                  <input type="text" id="AutoLoginPreferredAccountInput" autocomplete="off">
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="ucivoExport">Download Curriculum Plans</h3>
+              <p data-i18n="ucivoExportDesc">Add TXT and CSV download buttons to each subject's Učivo page, including taught dates.</p>
+            </div>
+            <label class="switch switch-compact" for="UcivoExportCheckbox">
+              <input type="checkbox" id="UcivoExportCheckbox">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleUcivoExport">Toggle curriculum export</span>
+            </label>
+          </div>
+
+        </div>
+      </section>
+
+      <section class="setting-group settings-standard-section" id="panel-grades" aria-labelledby="grades-heading">
+        <h2 id="grades-heading" data-i18n="groupGrades">Grades</h2>
+
+        <div class="setting-card">
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="gradeBadges">Grade Averages and Summary</h3>
+              <p data-i18n="gradeBadgesDesc">Show subject-average badges, visual bars, and an overall average at the bottom of Grades.</p>
+            </div>
+            <label class="switch switch-compact" for="GradeBadgesCheckbox">
+              <input type="checkbox" id="GradeBadgesCheckbox">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleGradeBadges">Toggle grade badges</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="subjectAttendance">Attendance by Subject</h3>
+              <p data-i18n-html="subjectAttendanceDesc">Show each subject's absence percentage and lesson totals directly on the <strong>Grades</strong> page.</p>
+            </div>
+            <label class="switch switch-compact" for="GradesAttendanceCheckbox">
+              <input type="checkbox" id="GradesAttendanceCheckbox">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleSubjectAttendance">Toggle subject attendance</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="gradesSortFilter">Sort and Filter Subjects</h3>
+              <p data-i18n="gradesSortFilterDesc">Add subject search, sorting options, and a control for hiding subjects without grades above the Grades table.</p>
+            </div>
+            <label class="switch switch-compact" for="GradesSortFilterCheckbox">
+              <input type="checkbox" id="GradesSortFilterCheckbox">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleGradesSortFilter">Toggle grades sorting and filtering</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="gradesExport">Download Grades</h3>
+              <p data-i18n="gradesExportDesc">Add CSV, TXT, and JSON downloads above the Grades table with subjects, dates, values, weights, titles, and averages.</p>
+            </div>
+            <label class="switch switch-compact" for="GradesExportCheckbox">
+              <input type="checkbox" id="GradesExportCheckbox">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleGradesExport">Toggle grades export</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="setting-group settings-standard-section" id="panel-timetable" aria-labelledby="timetable-heading">
+        <h2 id="timetable-heading" data-i18n="groupTimetable">Timetable</h2>
+
+        <div class="setting-card">
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="timetableHighlights">Highlight Timetable Changes</h3>
+              <p data-i18n="timetableHighlightsDesc">Use separate colors for substitutions and room changes in the home-page timetable.</p>
             </div>
             <label class="switch switch-compact" for="TimetableHighlightsCheckbox">
               <input type="checkbox" id="TimetableHighlightsCheckbox">
@@ -251,7 +375,7 @@
 
           <div class="setting-row" id="TimetableHighlightColorsRow">
             <div>
-              <h3 data-i18n="timetableHighlightColorsLabel">Highlight Colors</h3>
+              <h3 data-i18n="timetableHighlightColorsLabel">Timetable Highlight Colors</h3>
             </div>
             <div class="custom-theme-grid timetable-highlight-colors">
               <label>
@@ -267,95 +391,8 @@
 
           <div class="setting-row">
             <div>
-              <h3 data-i18n="gradeBadges">Grade Badges</h3>
-              <p data-i18n="gradeBadgesDesc">Show average badges, bars, and the overall average row on the grades page.</p>
-            </div>
-            <label class="switch switch-compact" for="GradeBadgesCheckbox">
-              <input type="checkbox" id="GradeBadgesCheckbox">
-              <span class="switch-track" aria-hidden="true"></span>
-              <span class="sr-only" data-i18n="toggleGradeBadges">Toggle grade badges</span>
-            </label>
-          </div>
-
-          <div class="setting-row">
-            <div>
-              <h3 data-i18n="subjectAttendance">Grades Page Subject Attendance</h3>
-              <p data-i18n-html="subjectAttendanceDesc">Inject per-subject absence percentage and total lesson hours into each row on the <strong>Grades</strong> page, using official EduPage data.</p>
-            </div>
-            <label class="switch switch-compact" for="GradesAttendanceCheckbox">
-              <input type="checkbox" id="GradesAttendanceCheckbox">
-              <span class="switch-track" aria-hidden="true"></span>
-              <span class="sr-only" data-i18n="toggleSubjectAttendance">Toggle subject attendance</span>
-            </label>
-          </div>
-
-          <div class="setting-row">
-            <div>
-              <h3 data-i18n="attendancePercentages">Attendance Summary Percentages</h3>
-              <p data-i18n-html="attendancePercentagesDesc">Add the current-halfyear absence percentage into EduPage's own <strong>Attendance</strong> summary table (the standalone attendance page, not the Grades page).</p>
-            </div>
-            <label class="switch switch-compact" for="AttendancePercentagesCheckbox">
-              <input type="checkbox" id="AttendancePercentagesCheckbox">
-              <span class="switch-track" aria-hidden="true"></span>
-              <span class="sr-only" data-i18n="toggleAttendancePercentages">Toggle attendance percentages</span>
-            </label>
-          </div>
-
-          <div class="setting-row">
-            <div>
-              <h3><span data-i18n="autoLogin">Auto-Login</span> <span class="setting-tag setting-tag-wip" data-i18n="wipBadge">WIP</span></h3>
-              <p data-i18n="autoLoginDesc">Automatically clicks through the EduPage login (account picker included) and submits once your browser autofills the saved password. Stops the moment you type anything yourself.</p>
-            </div>
-            <label class="switch switch-compact" for="AutoLoginCheckbox">
-              <input type="checkbox" id="AutoLoginCheckbox">
-              <span class="switch-track" aria-hidden="true"></span>
-              <span class="sr-only" data-i18n="toggleAutoLogin">Toggle auto-login</span>
-            </label>
-          </div>
-
-          <div class="setting-row" id="AutoLoginPreferredAccountRow">
-            <div>
-              <h3 data-i18n="autoLoginPreferredAccount">Preferred Account</h3>
-              <p data-i18n="autoLoginPreferredAccountDesc">If the saved-account picker shows more than one account, auto-login normally stops and lets you choose. Enter part of an account name here (e.g. your own name) to have it picked automatically.</p>
-            </div>
-            <div class="date-setting-controls">
-              <div class="date-control-row">
-                <label class="date-control" for="AutoLoginPreferredAccountInput">
-                  <span data-i18n="autoLoginPreferredAccountLabel">Account name</span>
-                  <input type="text" id="AutoLoginPreferredAccountInput" autocomplete="off">
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <div class="setting-row">
-            <div>
-              <h3 data-i18n="ucivoExport">Curriculum Export</h3>
-              <p data-i18n="ucivoExportDesc">Add export buttons to a subject's Učivo page to download the topic plan (with taught dates) as .txt or .csv.</p>
-            </div>
-            <label class="switch switch-compact" for="UcivoExportCheckbox">
-              <input type="checkbox" id="UcivoExportCheckbox">
-              <span class="switch-track" aria-hidden="true"></span>
-              <span class="sr-only" data-i18n="toggleUcivoExport">Toggle curriculum export</span>
-            </label>
-          </div>
-
-          <div class="setting-row">
-            <div>
-              <h3 data-i18n="gradesExport">Grades Export</h3>
-              <p data-i18n="gradesExportDesc">Add export buttons above the grades table to download every grade (subject, date, value, weight, title, average) as .csv or .txt, plus the JSON summary.</p>
-            </div>
-            <label class="switch switch-compact" for="GradesExportCheckbox">
-              <input type="checkbox" id="GradesExportCheckbox">
-              <span class="switch-track" aria-hidden="true"></span>
-              <span class="sr-only" data-i18n="toggleGradesExport">Toggle grades export</span>
-            </label>
-          </div>
-
-          <div class="setting-row">
-            <div>
-              <h3 data-i18n="timetableExport">Timetable Export</h3>
-              <p data-i18n="timetableExportDesc">Show the tools for downloading your timetable as an .ics calendar file.</p>
+              <h3 data-i18n="timetableExport">Calendar Export</h3>
+              <p data-i18n="timetableExportDesc">Show options for downloading your timetable as an ICS calendar file.</p>
             </div>
             <label class="switch switch-compact" for="TimetableExportCheckbox">
               <input type="checkbox" id="TimetableExportCheckbox">
@@ -363,12 +400,7 @@
               <span class="sr-only" data-i18n="toggleTimetableExport">Toggle timetable export</span>
             </label>
           </div>
-
         </div>
-      </section>
-
-      <section class="setting-group" id="panel-timetable" role="tabpanel" aria-labelledby="timetable-heading nav-timetable" tabindex="0" hidden>
-        <h2 id="timetable-heading" data-i18n="groupTimetable">Timetable</h2>
 
         <div id="TimetableExportContent" hidden>
           <div class="setting-card">
@@ -419,14 +451,14 @@
         </div>
       </section>
 
-      <section class="setting-group" id="panel-updates" role="tabpanel" aria-labelledby="updates-heading nav-updates" tabindex="0" hidden>
+      <section class="setting-group settings-standard-section" id="panel-updates" aria-labelledby="updates-heading">
         <h2 id="updates-heading" data-i18n="groupUpdates">Updates</h2>
 
         <div class="setting-card">
           <div class="setting-row">
             <div>
-              <h3 data-i18n="updateReminders">Update Reminders</h3>
-              <p data-i18n="updateRemindersDesc">Check the public GitHub project for a newer unpacked version.</p>
+              <h3 data-i18n="updateReminders">Unpacked Update Reminders</h3>
+              <p data-i18n="updateRemindersDesc">Check GitHub for newer versions when this extension was installed manually.</p>
             </div>
             <label class="switch switch-compact" for="UpdateReminderCheckbox">
               <input type="checkbox" id="UpdateReminderCheckbox">
@@ -437,7 +469,7 @@
 
           <div class="setting-row setting-row-stack">
             <div>
-              <h3 data-i18n="versionCheck">Version Check</h3>
+              <h3 data-i18n="versionCheck">Check for Updates</h3>
               <p id="UpdateStatusText" data-i18n="noUpdateCheck">No update check has run yet.</p>
             </div>
             <div class="actions-row">
@@ -448,22 +480,22 @@
         </div>
       </section>
 
-      <section class="setting-group" id="panel-debug" role="tabpanel" aria-labelledby="debug-heading nav-debug" tabindex="0" hidden>
+      <section class="setting-group settings-standard-section" id="panel-debug" aria-labelledby="debug-heading">
         <h2 id="debug-heading" data-i18n="groupDebug">Debug</h2>
 
         <div class="setting-card">
           <div class="setting-row">
             <div>
-              <h3 data-i18n="previewUpdateToast">Preview Update Toast</h3>
-              <p data-i18n="previewUpdateToastDesc">Show the "what's new" toast on an open Edupage tab right now, without waiting for an actual version change.</p>
+              <h3 data-i18n="previewUpdateToast">Preview the Update Notice</h3>
+              <p data-i18n="previewUpdateToastDesc">Show the update notice on an open EduPage tab without installing another version.</p>
             </div>
             <button class="secondary-button" id="PreviewUpdateToastButton" type="button" data-i18n="previewUpdateToastButton">Preview</button>
           </div>
 
           <div class="setting-row">
             <div>
-              <h3 data-i18n="gradesDebug">Grades Attendance Debug</h3>
-              <p data-i18n="gradesDebugDesc">Print detailed fetch, parsing, matching, and rendering diagnostics for the grades attendance feature into the browser console.</p>
+              <h3 data-i18n="gradesDebug">Log Grades Attendance Details</h3>
+              <p data-i18n="gradesDebugDesc">Write technical attendance loading and matching details to the browser console for troubleshooting.</p>
             </div>
             <label class="switch switch-compact" for="GradesAttendanceDebugCheckbox">
               <input type="checkbox" id="GradesAttendanceDebugCheckbox">
@@ -531,7 +563,11 @@
         </div>
       </section>
 
-      <section class="setting-group" id="panel-experimental" role="tabpanel" aria-labelledby="experimental-heading ExperimentalSettingsButton" tabindex="0" hidden>
+          </div>
+
+          <p class="settings-search-empty" id="SettingsSearchEmpty" role="status" data-i18n="settingsSearchEmpty" hidden>No settings match your search.</p>
+
+      <section class="setting-group settings-experimental-section" id="panel-experimental" aria-labelledby="experimental-heading" hidden>
         <div id="ExperimentalContent" hidden>
           <h2 id="experimental-heading" data-i18n="experimentalHeading">Experimental</h2>
           <p class="setting-group-subtitle" data-i18n="experimentalSubtitle">Test activity and visibility protections on Edupage pages.</p>
@@ -841,7 +877,7 @@
         <p data-i18n="experimentalConfirmBody">This section holds features still in development. They may be unstable, change without notice, or not work as expected. Proceed only if you're comfortable with that.</p>
         <div class="actions-row confirm-dialog-actions">
           <button class="secondary-button" id="ExperimentalConfirmCancel" type="button" data-i18n="experimentalConfirmCancel">Cancel</button>
-          <button class="secondary-button confirm-dialog-confirm" id="ExperimentalConfirmContinue" type="button" data-i18n="experimentalConfirmContinue">Continue</button>
+          <button class="secondary-button confirm-dialog-confirm" id="ExperimentalConfirmContinue" type="button" data-i18n="experimentalConfirmContinue">I understand the risks</button>
         </div>
       </dialog>
     </main>

@@ -264,8 +264,6 @@
       summaryRow.appendChild(labelCell);
       summaryRow.appendChild(avgCell);
       if (vysvedcenie.present) {
-        // Mirror the Priemer average, but for the final report grades — sits under
-        // the Vysvedčenie column (which we keep right after Priemer).
         const vysvedCell = document.createElement("td");
         vysvedCell.className = "ee-overall-value-cell ee-overall-vysvedcenie-cell";
         if (Number.isFinite(vysvedcenie.average)) {

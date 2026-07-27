@@ -177,13 +177,44 @@ body::before {
     width: 100%;
 }
 
+.settings-sidebar {
+    display: flex;
+    flex: 0 0 220px;
+    flex-direction: column;
+    gap: 10px;
+    position: sticky;
+    top: 28px;
+}
+
+.settings-search {
+    position: relative;
+}
+
+.settings-search-icon {
+    color: var(--text-muted);
+    height: 17px;
+    left: 13px;
+    pointer-events: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 17px;
+}
+
+#SettingsSearchInput {
+    min-height: 44px;
+    min-width: 0;
+    padding: 9px 12px 9px 39px;
+}
+
+#SettingsSearchInput::-webkit-search-cancel-button {
+    cursor: pointer;
+}
+
 .settings-nav {
     display: flex;
     flex-direction: column;
     gap: 3px;
-    flex: 0 0 204px;
-    position: sticky;
-    top: 28px;
 }
 
 .settings-nav-item {
@@ -199,6 +230,7 @@ body::before {
     font: inherit;
     font-weight: 600;
     font-size: 13.5px;
+    min-height: 44px;
     padding: 9px 13px;
     text-align: left;
     transition: background-color 150ms var(--ease-out), color 150ms var(--ease-out);
@@ -216,12 +248,12 @@ body::before {
     color: var(--text-main);
 }
 
-.settings-nav-item[aria-selected="true"] {
+.settings-nav-item[aria-current="true"] {
     background: var(--accent-soft);
     color: var(--accent-color);
 }
 
-.settings-nav-item[aria-selected="true"]::before {
+.settings-nav-item[aria-current="true"]::before {
     content: "";
     position: absolute;
     left: 0;
@@ -254,6 +286,18 @@ body::before {
 .settings-content {
     flex: 1;
     min-width: 0;
+}
+
+.settings-search-empty {
+    border: 1px dashed var(--border-subtle);
+    border-radius: var(--radius-card);
+    color: var(--text-muted);
+    padding: 24px;
+    text-align: center;
+}
+
+.is-search-hidden {
+    display: none !important;
 }
 
 /* ---- Type ------------------------------------------------------------- */
@@ -346,10 +390,11 @@ code {
 /* ---- Panels & cards ---------------------------------------------------- */
 
 .setting-group {
-    margin-bottom: 26px;
+    margin-bottom: 40px;
+    scroll-margin-top: 28px;
 }
 
-.setting-group:not([hidden]) {
+.settings-experimental-section:not([hidden]) {
     animation: panelIn 220ms var(--ease-out) both;
 }
 
@@ -796,7 +841,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 input[type="text"],
 input[type="password"],
-input[type="number"] {
+input[type="number"],
+input[type="search"] {
     width: 100%;
     min-width: 150px;
     border: 1px solid var(--border-subtle);
@@ -810,6 +856,7 @@ input[type="number"] {
 input[type="text"]:focus-visible,
 input[type="password"]:focus-visible,
 input[type="number"]:focus-visible,
+input[type="search"]:focus-visible,
 input[type="date"]:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
@@ -925,6 +972,10 @@ input[type="checkbox"]:disabled {
     margin-top: 18px;
 }
 
+.confirm-dialog-actions .secondary-button {
+    min-height: 44px;
+}
+
 .confirm-dialog-confirm {
     background: var(--danger-soft);
     border-color: color-mix(in srgb, var(--danger-color) 40%, transparent);
@@ -991,21 +1042,30 @@ input[type="checkbox"]:disabled {
         gap: 14px;
     }
 
-    /* The section nav becomes a sticky, horizontally scrollable tab bar. */
-    .settings-nav {
+    .settings-sidebar {
         flex: none;
-        flex-direction: row;
-        gap: 4px;
+        gap: 8px;
         align-self: stretch;
         position: sticky;
         top: 0;
         z-index: 20;
         margin: 0 -16px;
-        padding: 10px 16px;
-        overflow-x: auto;
-        background: color-mix(in srgb, var(--page-bg) 90%, transparent);
+        padding: 10px 16px 8px;
+        background: color-mix(in srgb, var(--page-bg) 94%, transparent);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
+    }
+
+    #SettingsSearchInput {
+        width: 100%;
+    }
+
+    /* The jump navigation stays reachable without consuming vertical space. */
+    .settings-nav {
+        flex-direction: row;
+        gap: 4px;
+        overflow-x: auto;
+        overscroll-behavior-inline: contain;
         scrollbar-width: none;
     }
 
@@ -1018,7 +1078,11 @@ input[type="checkbox"]:disabled {
         padding: 8px 12px;
     }
 
-    .settings-nav-item[aria-selected="true"]::before {
+    .secondary-button {
+        min-height: 44px;
+    }
+
+    .settings-nav-item[aria-current="true"]::before {
         top: auto;
         left: 12px;
         right: 12px;
@@ -1038,6 +1102,10 @@ input[type="checkbox"]:disabled {
         right: auto;
         width: 1px;
         height: auto;
+    }
+
+    .setting-group {
+        scroll-margin-top: 132px;
     }
 }
 

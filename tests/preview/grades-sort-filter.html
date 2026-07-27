@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<!-- Dev-only interaction harness for the issue #56 grades toolbar. -->
+<html lang="sk">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Grades sort/filter preview</title>
+    <script>
+      if (new URLSearchParams(location.search).get("dark") === "1") {
+        document.documentElement.classList.add("ee-dark");
+      }
+    </script>
+    <style>
+      body { margin: 0; padding: 24px; background: #edf1f5; font: 14px/1.4 Arial, sans-serif; }
+      main { max-width: 980px; margin: 0 auto; }
+      table.znamkyTable { width: 100%; border-collapse: collapse; background: #fff; }
+      table.znamkyTable th, table.znamkyTable td { padding: 8px 10px; border: 1px solid #cfd8e3; text-align: left; }
+      table.znamkyTable tr.header th { background: #2c70a3; color: #fff; }
+      table.znamkyTable tr.udalostRow td { background: #f8fafc; color: #546e7a; }
+      @media (max-width: 600px) { body { padding: 8px; } main { min-width: 0; } }
+      html.ee-dark {
+        --ee-card-bg: #1e2933;
+        --ee-card-bg-bright: #263541;
+        --ee-border: #536675;
+        --ee-text: #f2f5f7;
+        --ee-text-muted: #c4cdd4;
+        --ee-link: #7fc3f0;
+      }
+      html.ee-dark body { background: #111a22; color: var(--ee-text); }
+      html.ee-dark table.znamkyTable { background: var(--ee-card-bg); color: var(--ee-text); }
+      html.ee-dark table.znamkyTable th,
+      html.ee-dark table.znamkyTable td { border-color: var(--ee-border); }
+      html.ee-dark table.znamkyTable tr.udalostRow td { background: #18232c; color: var(--ee-text-muted); }
+    </style>
+    <script>
+      const messages = {
+        gradesTableTools: "Nástroje tabuľky známok",
+        gradesFilterSubject: "Filtrovať predmety",
+        gradesFilterPlaceholder: "Zadajte názov predmetu",
+        gradesSortLabel: "Zoradiť predmety",
+        gradesFilterHideEmpty: "Skryť predmety bez známok",
+        gradesFilterCount: "$1 z $2 predmetov",
+        gradesSortOriginal: "Pôvodné poradie",
+        gradesSortSubjectAsc: "Názov: A–Z",
+        gradesSortSubjectDesc: "Názov: Z–A",
+        gradesSortCountDesc: "Počet známok: najviac",
+        gradesSortCountAsc: "Počet známok: najmenej",
+        gradesSortAverageBest: "Priemer: najlepší",
+        gradesSortAverageWorst: "Priemer: najhorší",
+        gradesExportJson: "Exportovať JSON",
+        gradesExportCsv: "Exportovať (.csv)",
+        gradesExportTxt: "Exportovať (.txt)",
+      };
+      window.chrome = {
+        i18n: {
+          getMessage(key, substitutions = []) {
+            const values = Array.isArray(substitutions) ? substitutions : [substitutions];
+            return (messages[key] || key).replace(/\$(\d+)/g, (_, index) => values[Number(index) - 1] || "");
+          },
+        },
+      };
+    </script>
+    <script src="/scripts/lib/ee-common.js"></script>
+    <script src="/scripts/grades-enhancer.js"></script>
+    <script src="/scripts/grades-sort-filter.js"></script>
+    <script src="/scripts/grades-export.js"></script>
+  </head>
+  <body>
+    <main>
+      <table class="znamkyTable znamkyPrehladTable znamkyTriedaTable">
+        <tbody>
+          <tr class="header"><th>Predmet</th><th>Známky</th><th>Priemer</th></tr>
+          <tr class="predmetRow" data-predmetid="math">
+            <th class="fixedCell">Matematika</th>
+            <td><span class="znZnamka">2</span> <span class="znZnamka">3</span></td>
+            <td class="znPriemerCell">2,50</td>
+          </tr>
+          <tr class="udalostRow" data-predmetid="math"><td>Písomné práce</td><td>2, 3</td><td></td></tr>
+          <tr class="predmetRow" data-predmetid="english">
+            <th class="fixedCell">Anglický jazyk</th>
+            <td><span class="znZnamka">1</span> <span class="znZnamka">1</span> <span class="znZnamka">2</span></td>
+            <td class="znPriemerCell">1,33</td>
+          </tr>
+          <tr class="udalostRow" data-predmetid="english"><td>Ústne odpovede</td><td>1, 1, 2</td><td></td></tr>
+          <tr class="predmetRow" data-predmetid="physics">
+            <th class="fixedCell">Fyzika</th><td></td><td class="znPriemerCell">-</td>
+          </tr>
+          <tr class="predmetRow" data-predmetid="slovak">
+            <th class="fixedCell">Slovenský jazyk</th>
+            <td><span class="znZnamka">1</span></td><td class="znPriemerCell">1,00</td>
+          </tr>
+        </tbody>
+      </table>
+    </main>
+    <script>
+      const table = document.querySelector("table.znamkyTable");
+      window.__eeGrades.injectStyles();
+      window.__eeGrades.sortFilter.ensureControls(table);
+      window.__eeGrades.gradesExport.ensureCsvExportButton(table);
+    </script>
+  </body>
+</html>

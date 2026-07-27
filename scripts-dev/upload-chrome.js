@@ -9,7 +9,6 @@ const path = require("node:path");
 const { version } = require("../package.json");
 const zipPath = path.join(__dirname, "..", "web-ext-artifacts", `edupage_extras-${version}-chrome.zip`);
 
-// npm run puts node_modules/.bin on PATH, so the CLI resolves from there.
 execFileSync("chrome-webstore-upload", ["upload", "--source", zipPath, "--auto-publish"], {
   stdio: "inherit",
 });

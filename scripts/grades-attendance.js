@@ -77,10 +77,6 @@
 
       return shouldCountAbsentType(absenceTypeMap?.get(typeId));
     }
-    function separateMergedWords(value) {
-      return String(value || "")
-        .replace(/([a-záäčďéíĺľňóôŕšťúýž])([A-ZÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ])/g, "$1 $2");
-    }
     function separateMergedWordsUnicode(value) {
       return String(value || "")
         .replace(/([\p{Ll}])([\p{Lu}])/gu, "$1 $2");
@@ -300,12 +296,6 @@
         shortName,
         aliases: buildNameAliases(displayName, shortName, /^\d+$/.test(rawId) ? "" : rawId),
       };
-    }
-    function isResolvableSubjectToken(subjectToken, subjectMap) {
-      const rawId = String(subjectToken || "").trim();
-      if (!rawId) return false;
-      if (subjectMap?.has(rawId)) return true;
-      return /^\d+$/.test(rawId);
     }
     function subjectEntryKey(meta) {
       if (!meta) return "";
@@ -1276,37 +1266,6 @@
 
       table.removeAttribute(ATTENDANCE_RENDER_SIGNATURE_ATTR);
     }
-    function readRowSubjectText(row) {
-      const subjectCell = findSubjectCell(row);
-      if (!subjectCell) return "";
-
-      const directText = Array.from(subjectCell.childNodes || [])
-        .filter((node) => node?.nodeType === Node.TEXT_NODE)
-        .map((node) => String(node.textContent || "").replace(/\s+/g, " ").trim())
-        .map((text) => text.replace(/^[+*•\s-]+/, "").trim())
-        .find((text) => hasUsefulLetters(text) && normalizeText(text).length >= 3);
-      if (directText) {
-        return directText;
-      }
-
-      const clone = subjectCell.cloneNode(true);
-      clone.querySelectorAll(".ee-subject-attendance").forEach((element) => element.remove());
-      const rawText = typeof clone.innerText === "string" ? clone.innerText : clone.textContent;
-      const lines = String(rawText || "")
-        .split(/\r?\n/)
-        .map((line) => line.replace(/\s+/g, " ").trim())
-        .filter(Boolean);
-
-      const firstLine = (lines[0] || "").replace(/^[+*•\s-]+/, "").trim();
-      if (hasUsefulLetters(firstLine) && normalizeText(firstLine).length >= 3) {
-        return firstLine;
-      }
-
-      const meaningfulLine = lines
-        .map((line) => line.replace(/^[+*•\s-]+/, "").trim())
-        .find((line) => hasUsefulLetters(line) && normalizeText(line).length >= 3);
-      return meaningfulLine || firstLine || lines[0] || "";
-    }
     function readPrimaryRowSubjectText(row) {
       const subjectCell = findSubjectCell(row);
       if (!subjectCell) return "";
@@ -1370,27 +1329,6 @@
         percent: total > 0 ? (absent / total) * 100 : Number.NaN,
         predictedPercent: predictedTotal > 0 ? (absent / predictedTotal) * 100 : Number.NaN,
       };
-    }
-    function projectionEntryMatchesSubject(entry, projection) {
-      const subjectAliases = new Set(entry.aliases || []);
-      const projectionAliases = buildNameAliases(projection?.title || "");
-      return projectionAliases.some((alias) => alias && subjectAliases.has(alias));
-    }
-    function applyProjectedTimetableTotals(subjects, projectedSubjects) {
-      return (subjects || []).map((entry) => {
-        const matchingProjections = (projectedSubjects || []).filter((projection) => projectionEntryMatchesSubject(entry, projection));
-        const projectedRemaining = matchingProjections.reduce(
-          (sum, projection) => sum + GE.numberValue(projection?.remainingUnits),
-          0,
-        );
-        const predictedTotal = entry.total + Math.max(0, projectedRemaining);
-
-        return {
-          ...entry,
-          predictedTotal,
-          predictedPercent: predictedTotal > 0 ? (entry.absent / predictedTotal) * 100 : Number.NaN,
-        };
-      });
     }
     function findMatchingSubjectEntries(rowText, subjectStats, rowSubjectId = "") {
       const rowAliases = buildRowAliases(rowText);
@@ -2037,10 +1975,10 @@
           }),
         );
 
-        results.forEach((result) => {
+        for (const result of results) {
           if (result.error) {
             diagnostics.push(result);
-            return;
+            continue;
           }
 
           const parsedDateCount = Object.keys(result.parsedInfo?.classbookData?.dates || {}).length;
@@ -2054,7 +1992,7 @@
           if (parsedDateCount > 0) {
             mergedData = mergeClassbookData(mergedData, result.parsedInfo.classbookData);
           }
-        });
+        }
       }
 
       return mergedData;

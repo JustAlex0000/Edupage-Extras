@@ -14,6 +14,13 @@ framework — everything under `scripts/` and `menu/` ships exactly as written.
 | `_locales/{en,sk,cs}/` | UI strings (`chrome.i18n`) |
 | `tests/` | Node built-in test runner suites (no browser needed) |
 | `scripts-dev/` | Release tooling (version sync, Chrome zip build, package verification) |
+
+The Settings page presents its normal sections as one continuous searchable
+document. Its sidebar buttons scroll to sections and follow the current scroll
+position; on narrow screens the same controls become a sticky search field and
+horizontal jump bar. Experimental remains a separate, non-searchable view. Its
+warning acknowledgement is stored locally as the exact extension version so a
+new version requires acknowledgement again.
 | `.github/workflows/` | CI (`ci.yml`) and store publishing (`firefox-release.yml`) |
 
 ## Content scripts
@@ -28,6 +35,17 @@ Declared in `manifest.json` with `run_at: document_start` and
 - **Scripts run in every frame**, including iframes and `about:blank`
   frames. Features that should act once per page must guard with
   `window.top === window`.
+
+The grades scripts share `window.__eeGrades` and load in dependency order:
+`grades-enhancer.js` provides orchestration/helpers, the focused feature
+modules attach their APIs, and `grades-bootstrap.js` starts the enhancer last.
+`grades-sort-filter.js` only operates on the primary table containing subject
+rows. It moves each subject row together with its following category rows and
+never modifies EduPage's separate floating header clone. The feature is
+default-on but independently configurable; disabling it restores original
+subject order, clears extension filtering, and leaves optional export actions
+intact. Sorting/filtering state is page-local and is reset when EduPage replaces
+or reloads the table.
 
 Load order matters and is defined by the manifest `js` array:
 `diagnostics.js` loads **first** to install early error capture (it exposes

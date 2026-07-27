@@ -94,8 +94,6 @@
   function tryAdvance() {
     if (submitted || !autoLoginEnabled || userTyped) return;
 
-    // Password step (also covers legacy single-form layouts that still have a
-    // username field next to the password).
     const passwordInput = document.querySelector('input[type="password"]');
     if (isVisible(passwordInput)) {
       const form = passwordInput.closest("form");
@@ -112,7 +110,6 @@
       return;
     }
 
-    // Username-only step ("Použiť iný účet" flow asks for the name first).
     const usernameField = document.getElementById("usernamefield");
     if (!usernameSubmitted && isVisible(usernameField)) {
       if (!isFieldFilled(usernameField)) return;
@@ -144,7 +141,6 @@
       }
     }
 
-    // Landing page: open the EduPage login modal.
     const ssoButton = document.querySelector(".skgdSsoLoginBtn");
     if (
       !ssoOpened &&

@@ -4,6 +4,19 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.9.18 — 2026-07-27
+
+- Reworked normal Settings into one searchable, scrollable document with
+  section tracking, dedicated Grades and Timetable sections, responsive sticky
+  navigation, and version-scoped acknowledgement for Experimental features.
+- Added optional Grades subject search, sorting by name, grade count, or
+  average, and filtering of subjects without grades. The responsive toolbar
+  shares space with independently optional JSON, CSV, and TXT exports.
+- Improved Grades virtual-weight expansion and timetable date validation,
+  refreshed English, Slovak, and Czech settings copy, and added repository
+  integrity checks for versions, manifest references, locales, and Settings
+  translations.
+
 ## 0.9.17 — 2026-07-27
 
 - Added an opt-in mobile redirect that sends phones straight to the school's

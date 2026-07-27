@@ -17,7 +17,6 @@ const ROZVRH_ROOM_CHANGE_COLOR_KEY = "eeRozvrhRoomChangeColor";
 const ROZVRH_SUBSTITUTION_COLOR_KEY = "eeRozvrhSubstitutionColor";
 const UPDATE_STATUS_KEY = "eeUpdateStatus";
 const REPO_URL = "https://github.com/JustAlex0000/Edupage-Extras";
-const THEMES = EE.THEMES;
 const DEFAULT_CUSTOM_THEME = EE.DEFAULT_CUSTOM_THEME;
 
 let customTheme = { ...DEFAULT_CUSTOM_THEME };
@@ -25,10 +24,6 @@ let isStoreInstall = false;
 
 function normalizeTheme(theme) {
 	return EE.normalizeTheme(theme);
-}
-
-function normalizeColor(value, fallback) {
-	return EE.normalizeColor(value, fallback);
 }
 
 function normalizeCustomTheme(theme) {

@@ -16,6 +16,7 @@ function runTest(name, fn) {
 const settingsPath = path.join(__dirname, "..", "menu", "settings.html");
 const html = fs.readFileSync(settingsPath, "utf8");
 const settingsScript = fs.readFileSync(path.join(__dirname, "..", "menu", "settings.js"), "utf8");
+const settingsCss = fs.readFileSync(path.join(__dirname, "..", "menu", "settings.css"), "utf8");
 const switchLabels = Array.from(
   html.matchAll(/<label class="([^"]*\bswitch\b[^"]*)"[^>]*>([\s\S]*?)<\/label>/g),
 );
@@ -74,4 +75,85 @@ runTest("optional export tools are opt-in", () => {
   assert.match(settingsScript, /ucivoExportToggle\.checked = result\[UCIVO_EXPORT_KEY\] === true/);
   assert.match(settingsScript, /gradesExportToggle\.checked = result\[GRADES_EXPORT_KEY\] === true/);
   assert.match(settingsScript, /timetableExportToggle\.checked = result\[TIMETABLE_EXPORT_KEY\] === true/);
+});
+
+runTest("grades sorting and filtering is independently configurable and defaults on", () => {
+  assert.match(html, /id="GradesSortFilterCheckbox"/);
+  assert.match(settingsScript, /gradesSortFilterToggle\.checked = result\[GRADES_SORT_FILTER_KEY\] !== false/);
+  assert.match(settingsScript, /\[GRADES_SORT_FILTER_KEY\]: gradesSortFilterToggle\.checked/);
+});
+
+runTest("timetable controls live in the Timetable tab", () => {
+  const featuresPanel = html.indexOf('id="panel-features"');
+  const timetablePanel = html.indexOf('id="panel-timetable"');
+  const updatesPanel = html.indexOf('id="panel-updates"');
+
+  assert.ok(featuresPanel >= 0 && timetablePanel > featuresPanel && updatesPanel > timetablePanel);
+  [
+    'for="TimetableHighlightsCheckbox"',
+    'id="TimetableHighlightColorsRow"',
+    'for="TimetableExportCheckbox"',
+    'id="TimetableExportContent"',
+  ].forEach((target) => {
+    const index = html.indexOf(target);
+    assert.ok(index > timetablePanel && index < updatesPanel, `expected ${target} in the Timetable tab`);
+  });
+});
+
+runTest("Grades tab owns the grades-page settings", () => {
+  const featuresPanel = html.indexOf('id="panel-features"');
+  const gradesPanel = html.indexOf('id="panel-grades"');
+  const timetablePanel = html.indexOf('id="panel-timetable"');
+
+  assert.ok(featuresPanel >= 0 && gradesPanel > featuresPanel && timetablePanel > gradesPanel);
+  assert.match(html, /id="nav-grades"[^>]*aria-controls="panel-grades"/);
+
+  [
+    'for="GradeBadgesCheckbox"',
+    'for="GradesAttendanceCheckbox"',
+    'for="GradesSortFilterCheckbox"',
+    'for="GradesExportCheckbox"',
+  ].forEach((target) => {
+    const index = html.indexOf(target);
+    assert.ok(index > gradesPanel && index < timetablePanel, `expected ${target} in Grades`);
+  });
+
+  const attendanceSummary = html.indexOf('for="AttendancePercentagesCheckbox"');
+  assert.ok(attendanceSummary > featuresPanel && attendanceSummary < gradesPanel, "expected the standalone Attendance setting to remain in Features");
+});
+
+runTest("normal settings form one continuous searchable document", () => {
+  assert.match(html, /id="SettingsSearchInput"[^>]*type="search"|type="search"[^>]*id="SettingsSearchInput"/);
+  assert.match(html, /id="StandardSettingsContent"/);
+  assert.doesNotMatch(html, /role="tab(list)?"/);
+
+  ["appearance", "cleanup", "features", "grades", "timetable", "updates", "debug"].forEach((section) => {
+    const openingTag = html.match(new RegExp(`<section[^>]*id="panel-${section}"[^>]*>`))?.[0];
+    assert.ok(openingTag, `expected ${section} section`);
+    assert.match(openingTag, /settings-standard-section/);
+    assert.doesNotMatch(openingTag, /\shidden(?:\s|>)/);
+  });
+
+  assert.match(settingsScript, /normalizeSettingsSearch/);
+  assert.match(settingsScript, /scrollIntoView/);
+  assert.match(settingsScript, /requestAnimationFrame\(updateActiveSettingsSection\)/);
+  assert.match(settingsScript, /row\.closest\("\[hidden\]"\)/, "search must respect dependent hidden controls");
+});
+
+runTest("Experimental stays isolated and acknowledgement expires on extension updates", () => {
+  assert.match(html, /id="panel-experimental"[^>]*hidden/);
+  assert.match(html, /data-i18n="experimentalConfirmContinue">I understand the risks</);
+  assert.match(settingsScript, /eeExperimentalAcknowledgedVersion/);
+  assert.match(settingsScript, /chrome\.runtime\.getManifest\(\)\.version/);
+  assert.match(settingsScript, /result\[EXPERIMENTAL_ACKNOWLEDGEMENT_KEY\] === currentExtensionVersion/);
+  assert.doesNotMatch(settingsScript, /sessionStorage/);
+  assert.match(settingsScript, /standardSettingsContent\.hidden = true/);
+  assert.match(settingsScript, /settingsSearch\.hidden = true/);
+});
+
+runTest("mobile settings keep search and jump navigation sticky", () => {
+  assert.match(settingsCss, /@media \(max-width: 900px\)[\s\S]*?\.settings-sidebar\s*\{[\s\S]*?position:\s*sticky/);
+  assert.match(settingsCss, /@media \(max-width: 900px\)[\s\S]*?\.settings-nav\s*\{[\s\S]*?flex-direction:\s*row/);
+  assert.match(settingsCss, /\.setting-group\s*\{\s*scroll-margin-top:\s*132px/);
+  assert.match(settingsCss, /#SettingsSearchInput\s*\{[\s\S]*?min-height:\s*44px/);
 });
