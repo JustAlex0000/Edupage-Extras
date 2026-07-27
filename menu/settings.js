@@ -46,6 +46,7 @@ const resetActivityShieldButton = document.getElementById("ResetActivityShieldBu
 const reloadEdupageTabsButton = document.getElementById("ReloadEdupageTabsButton");
 const experimentalSaveStatus = document.getElementById("ExperimentalSaveStatus");
 const mobileResponsiveToggle = document.getElementById("MobileResponsiveCheckbox");
+const mobileRedirectToggle = document.getElementById("MobileRedirectCheckbox");
 const autoLoginToggle = document.getElementById("AutoLoginCheckbox");
 const autoLoginPreferredAccountRow = document.getElementById("AutoLoginPreferredAccountRow");
 const autoLoginPreferredAccountInput = document.getElementById("AutoLoginPreferredAccountInput");
@@ -89,6 +90,7 @@ const THEME_TOGGLE_COMMAND = "toggle-theme-mode";
 const REPO_URL = "https://github.com/JustAlex0000/Edupage-Extras";
 const ACTIVITY_SHIELD_COMMAND = "toggle-stay-active-mode";
 const MOBILE_RESPONSIVE_KEY = "eeMobileResponsiveEnabled";
+const MOBILE_REDIRECT_KEY = "eeMobileRedirectEnabled";
 const AUTOLOGIN_KEY = "eeAutoLoginEnabled";
 const AUTOLOGIN_PREFERRED_ACCOUNT_KEY = "eeAutoLoginPreferredAccount";
 const UCIVO_EXPORT_KEY = "eeUcivoExportEnabled";
@@ -1005,6 +1007,15 @@ if (mobileResponsiveToggle) {
 	mobileResponsiveToggle.addEventListener("change", () => {
 		chrome.storage.local.set({ [MOBILE_RESPONSIVE_KEY]: mobileResponsiveToggle.checked });
 		notifyEdupageTabs();
+	});
+}
+
+if (mobileRedirectToggle) {
+	chrome.storage.local.get([MOBILE_REDIRECT_KEY], (result) => {
+		mobileRedirectToggle.checked = result[MOBILE_REDIRECT_KEY] === true;
+	});
+	mobileRedirectToggle.addEventListener("change", () => {
+		chrome.storage.local.set({ [MOBILE_REDIRECT_KEY]: mobileRedirectToggle.checked });
 	});
 }
 

@@ -27,6 +27,7 @@ const TOGGLE_THEME_COMMAND = "toggle-theme-mode";
 const OPEN_SETTINGS_COMMAND = "open-settings";
 const TOGGLE_MOBILE_RESPONSIVE_COMMAND = "toggle-mobile-responsive";
 const MOBILE_RESPONSIVE_KEY = "eeMobileResponsiveEnabled";
+const MOBILE_REDIRECT_KEY = "eeMobileRedirectEnabled";
 const REPO_URL = "https://github.com/JustAlex0000/Edupage-Extras";
 const UPDATE_MANIFEST_URLS = [
   "https://raw.githubusercontent.com/JustAlex0000/Edupage-Extras/main/manifest.json",
@@ -1570,12 +1571,30 @@ if (globalThis.__EE_TEST__) {
   };
 }
 
+// On the first install, default the mobile /app/main redirect to on when the
+// browser is running on Android — desktop users get it off. Never overwrite an
+// existing value, so a later manual toggle isn't clobbered on extension update.
+async function seedMobileRedirectDefault() {
+  try {
+    const existing = await storageGet([MOBILE_REDIRECT_KEY]);
+    if (existing?.[MOBILE_REDIRECT_KEY] !== undefined) return;
+    const info = await new Promise((resolve) => {
+      try { chrome.runtime.getPlatformInfo((i) => resolve(i)); }
+      catch (_) { resolve(null); }
+    });
+    if (info?.os === "android") {
+      await storageSet({ [MOBILE_REDIRECT_KEY]: true });
+    }
+  } catch (_) { /* best-effort */ }
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   syncUpdateAlarm().then((enabled) => {
     if (enabled) {
       checkForUpdates({ notify: true });
     }
   });
+  seedMobileRedirectDefault();
 });
 
 chrome.runtime.onStartup.addListener(() => {
