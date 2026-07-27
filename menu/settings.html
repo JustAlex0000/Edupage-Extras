@@ -111,6 +111,18 @@
             </label>
           </div>
 
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="etestAutoThemeOff">Auto-Disable Theme During Tests</h3>
+              <p data-i18n="etestAutoThemeOffDesc">When Stay Active Mode is enabled, automatically switch to the default (light) look while an eTest is open, and restore your theme when it closes.</p>
+            </div>
+            <label class="switch switch-compact" for="EtestAutoThemeOffCheckbox">
+              <input type="checkbox" id="EtestAutoThemeOffCheckbox">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleEtestAutoThemeOff">Toggle auto-disable theme during tests</span>
+            </label>
+          </div>
+
           <div class="setting-note setting-note-warning" role="note" aria-label="Theme disclaimer">
             <strong data-i18n="themeDisclaimerTitle">Theme Disclaimer</strong>
             <p data-i18n="themeDisclaimerText">During an online test or exam, a recolored EduPage looks different from the standard page — which can draw a teacher's attention or be mistaken for tampering. Switch to the default theme (or turn themes off) while you take the test.</p>
@@ -234,7 +246,7 @@
           <div class="setting-row">
             <div>
               <h3 data-i18n="mobileRedirect">Redirect to /app/main on Mobile</h3>
-              <p data-i18n="mobileRedirectDesc">When Edupage is opened on a phone, jump straight to your school's /app/main mobile view. Auto-enabled on Android; leave off on desktop.</p>
+              <p data-i18n="mobileRedirectDesc">When enabled, opening Edupage on a phone jumps straight to your school's /app/main mobile view. Leave this off on desktop.</p>
             </div>
             <label class="switch switch-compact" for="MobileRedirectCheckbox">
               <input type="checkbox" id="MobileRedirectCheckbox">
@@ -816,18 +828,6 @@
           </div>
 
           <div class="setting-card">
-            <div class="setting-row">
-              <div>
-                <h3 data-i18n="etestAutoThemeOff">Auto-Disable Theme During Tests</h3>
-                <p data-i18n="etestAutoThemeOffDesc">Automatically switch to the default (light) look while an eTest is open, and restore your theme the moment you close it.</p>
-              </div>
-              <label class="switch switch-compact" for="EtestAutoThemeOffCheckbox">
-                <input type="checkbox" id="EtestAutoThemeOffCheckbox">
-                <span class="switch-track" aria-hidden="true"></span>
-                <span class="sr-only" data-i18n="toggleEtestAutoThemeOff">Toggle auto-disable theme during tests</span>
-              </label>
-            </div>
-
             <div class="setting-row">
               <div>
                 <h3 data-i18n="jquerySweep">Disable Test Player Event Listeners</h3>

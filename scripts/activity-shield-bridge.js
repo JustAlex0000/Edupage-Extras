@@ -42,9 +42,9 @@
     eeActivityShieldPointercapture: true,
     eeActivityShieldClipboard: true,
     eeActivityShieldAnimationFrame: true,
-    eeActivityShieldBlockEsc: false,
-    eeActivityShieldJquerySweep: false,
-    eeActivityShieldFullscreenSpoof: false,
+    eeActivityShieldBlockEsc: true,
+    eeActivityShieldJquerySweep: true,
+    eeActivityShieldFullscreenSpoof: true,
     eeActivityShieldVisualIndicator: false,
     eeActivityShieldLog: false,
   };

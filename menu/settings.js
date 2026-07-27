@@ -137,9 +137,9 @@ const activityShieldDefaults = {
 	eeActivityShieldPointercapture: true,
 	eeActivityShieldClipboard: true,
 	eeActivityShieldAnimationFrame: true,
-	eeActivityShieldBlockEsc: false,
-	eeActivityShieldJquerySweep: false,
-	eeActivityShieldFullscreenSpoof: false,
+	eeActivityShieldBlockEsc: true,
+	eeActivityShieldJquerySweep: true,
+	eeActivityShieldFullscreenSpoof: true,
 	eeActivityShieldVisualIndicator: false,
 	eeActivityShieldLog: false,
 };
@@ -298,7 +298,8 @@ function notifyEdupageTabs() {
 	const cleanUiEnabled = cleanUiToggle.checked;
 	const hideHelpTextEnabled = hideHelpTextToggle.checked;
 	const mobileResponsiveEnabled = mobileResponsiveToggle?.checked === true;
-	const etestAutoThemeOff = etestAutoThemeOffToggle?.checked === true;
+	const activityShieldEnabled = document.getElementById("ActivityShieldEnabled")?.checked === true;
+	const etestAutoThemeOff = activityShieldEnabled && etestAutoThemeOffToggle?.checked === true;
 
 	chrome.tabs.query({ url: "https://*.edupage.org/*" }, (tabs) => {
 		tabs.forEach((tab) => {
@@ -929,7 +930,10 @@ activityShieldSettings.forEach(([elementId, key]) => {
 	if (!element) return;
 	element.addEventListener("change", () => {
 		chrome.storage.local.set({ [key]: element.checked }, () => {
-			if (elementId === "ActivityShieldEnabled") updateActivityShieldDependentControls();
+			if (elementId === "ActivityShieldEnabled") {
+				updateActivityShieldDependentControls();
+				notifyEdupageTabs();
+			}
 			setExperimentalStatus(t("savedStatus"));
 		});
 	});
@@ -1005,8 +1009,8 @@ if (mobileRedirectToggle) {
 }
 
 if (etestAutoThemeOffToggle) {
-	chrome.storage.local.get([ETEST_AUTO_THEME_OFF_KEY], (result) => {
-		etestAutoThemeOffToggle.checked = result[ETEST_AUTO_THEME_OFF_KEY] === true;
+	chrome.storage.local.get({ [ETEST_AUTO_THEME_OFF_KEY]: true }, (result) => {
+		etestAutoThemeOffToggle.checked = result[ETEST_AUTO_THEME_OFF_KEY] !== false;
 	});
 	etestAutoThemeOffToggle.addEventListener("change", () => {
 		chrome.storage.local.set({ [ETEST_AUTO_THEME_OFF_KEY]: etestAutoThemeOffToggle.checked });

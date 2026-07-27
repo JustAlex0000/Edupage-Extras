@@ -4,6 +4,19 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.9.19 — 2026-07-27
+
+- Added master-gated eTest protections for blocking Escape, removing the test
+  player's activity listeners, and suppressing fullscreen-exit detection.
+  Their individual controls default on while Stay Active Mode itself remains
+  off, and all shielding controls stay in Experimental. ([#63](https://github.com/JustAlex0000/Edupage-Extras/pull/63))
+- Added default-on automatic theme suppression during eTests under Appearance
+  → Themes. It restores the selected theme after the test closes and only
+  activates while Stay Active Mode is enabled.
+- Made the mobile `/app/main` redirect an explicit opt-in on every platform and
+  removed its stale page-local cache so disabling it reliably stops future
+  redirects.
+
 ## 0.9.18 — 2026-07-27
 
 - Reworked normal Settings into one searchable, scrollable document with

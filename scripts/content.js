@@ -20,10 +20,10 @@ const UPDATE_REMINDER_ENABLED_KEY = "eeUpdateReminderEnabled";
 const REPO_RELEASES_URL = "https://github.com/JustAlex0000/Edupage-Extras/releases";
 const MOBILE_RESPONSIVE_KEY = "eeMobileResponsiveEnabled";
 const MOBILE_REDIRECT_KEY = "eeMobileRedirectEnabled";
-const MOBILE_REDIRECT_CACHE_KEY = "eeMobileRedirectEnabledCache";
 const APP_MAIN_PATH = "/app/main";
 const THEME_CACHE_KEY = "eeThemeCacheV1";
 const ETEST_AUTO_THEME_OFF_KEY = "eeEtestAutoThemeOffEnabled";
+const ACTIVITY_SHIELD_ENABLED_KEY = "eeActivityShieldEnabled";
 // Any of these present means the eTest player overlay is open — header/content
 // cover the normal in-progress view, sideoverlay covers the results/review
 // screen reached after submitting, so all three need to be watched.
@@ -37,31 +37,22 @@ function isMobileUserAgent() {
   return /Android|Mobile/i.test(navigator.userAgent || "");
 }
 
-// Runs synchronously at document_start before any HTML is parsed. If a redirect
-// fires here, location.replace() aborts the current navigation, so nothing else
-// in this file (theme cache, dark-mode paint) matters for that page load.
+function shouldRedirectMobileToApp(pathname, mobile, enabled) {
+  return mobile === true
+    && enabled === true
+    && !String(pathname || "").startsWith("/app/");
+}
+
+// Runs at document_start. Extension storage remains authoritative so toggling
+// this off cannot leave a stale page-local cache redirecting future visits.
 (function maybeRedirectMobileToApp() {
   try {
     if (window.top !== window.self) return;
-    const path = location.pathname || "";
-    if (path.startsWith("/app/")) return;
     if (!isMobileUserAgent()) return;
 
-    let cached = null;
-    try { cached = localStorage.getItem(MOBILE_REDIRECT_CACHE_KEY); } catch (_) { /* private mode */ }
-    if (cached === "1") {
-      location.replace(`${location.origin}${APP_MAIN_PATH}`);
-      return;
-    }
-    if (cached === "0") return;
-
-    // No sync cache yet (first ever page load on this origin). Fall back to the
-    // async storage read — the desktop page will start painting first, but on
-    // subsequent loads the localStorage cache makes the redirect instant.
     chrome.storage.local.get([MOBILE_REDIRECT_KEY], (result) => {
       const enabled = result?.[MOBILE_REDIRECT_KEY] === true;
-      try { localStorage.setItem(MOBILE_REDIRECT_CACHE_KEY, enabled ? "1" : "0"); } catch (_) {}
-      if (enabled && !location.pathname.startsWith("/app/")) {
+      if (shouldRedirectMobileToApp(location.pathname, true, enabled)) {
         location.replace(`${location.origin}${APP_MAIN_PATH}`);
       }
     });
@@ -1614,6 +1605,11 @@ function resolveAppliedTheme({
   return normalizeTheme(theme);
 }
 
+function isEtestAutoThemeOffActive(result = {}) {
+  return result[ETEST_AUTO_THEME_OFF_KEY] !== false
+    && result[ACTIVITY_SHIELD_ENABLED_KEY] === true;
+}
+
 function normalizeColor(value, fallback) {
   return EE.normalizeColor(value, fallback);
 }
@@ -1758,7 +1754,7 @@ function initDarkMode() {
   }
 
   chrome.storage.local.get(
-    [STORAGE_KEY, THEME_KEY, CUSTOM_THEME_KEY, CLEAN_UI_KEY, HIDE_HELP_TEXT_KEY, ROZVRH_ROOM_CHANGE_COLOR_KEY, ROZVRH_SUBSTITUTION_COLOR_KEY, MOBILE_RESPONSIVE_KEY, ETEST_AUTO_THEME_OFF_KEY],
+    [STORAGE_KEY, THEME_KEY, CUSTOM_THEME_KEY, CLEAN_UI_KEY, HIDE_HELP_TEXT_KEY, ROZVRH_ROOM_CHANGE_COLOR_KEY, ROZVRH_SUBSTITUTION_COLOR_KEY, MOBILE_RESPONSIVE_KEY, ETEST_AUTO_THEME_OFF_KEY, ACTIVITY_SHIELD_ENABLED_KEY],
     (result) => {
       const mobileResponsiveEnabled = result[MOBILE_RESPONSIVE_KEY] === true;
       applyMobileResponsive(mobileResponsiveEnabled);
@@ -1769,7 +1765,7 @@ function initDarkMode() {
       const helpHidden = result[HIDE_HELP_TEXT_KEY] === true;
       const rozvrhRoomChangeColor = normalizeColor(result[ROZVRH_ROOM_CHANGE_COLOR_KEY], DEFAULT_ROZVRH_ROOM_CHANGE_COLOR);
       const rozvrhSubstitutionColor = normalizeColor(result[ROZVRH_SUBSTITUTION_COLOR_KEY], DEFAULT_ROZVRH_SUBSTITUTION_COLOR);
-      const etestAutoThemeOff = result[ETEST_AUTO_THEME_OFF_KEY] === true;
+      const etestAutoThemeOff = isEtestAutoThemeOffActive(result);
       const settings = { darkModeEnabled: enabled, theme, customTheme, cleanEnabled, helpHidden, rozvrhRoomChangeColor, rozvrhSubstitutionColor, mobileResponsiveEnabled, etestAutoThemeOff };
       applyTheme(settings);
       writeThemeCache(settings);
@@ -1782,7 +1778,13 @@ function initDarkMode() {
 // a missing name then fails loudly instead of a string-replace anchor
 // silently no-opping after a refactor. Never set in the real extension.
 if (globalThis.__EE_TEST__) {
-  globalThis.__eeTestExports = { normalizeTheme, shouldSuppressThemeForPath, resolveAppliedTheme };
+  globalThis.__eeTestExports = {
+    normalizeTheme,
+    shouldSuppressThemeForPath,
+    resolveAppliedTheme,
+    isEtestAutoThemeOffActive,
+    shouldRedirectMobileToApp,
+  };
 }
 
 initDarkMode();
@@ -1873,14 +1875,6 @@ if (window.top === window) {
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
-  if (changes[MOBILE_REDIRECT_KEY]) {
-    try {
-      localStorage.setItem(
-        MOBILE_REDIRECT_CACHE_KEY,
-        changes[MOBILE_REDIRECT_KEY].newValue === true ? "1" : "0",
-      );
-    } catch (_) { /* private mode */ }
-  }
   if (changes[MOBILE_RESPONSIVE_KEY]) {
     applyMobileResponsive(changes[MOBILE_RESPONSIVE_KEY].newValue === true);
   }
@@ -1894,10 +1888,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
     && !changes[ROZVRH_SUBSTITUTION_COLOR_KEY]
     && !changes[MOBILE_RESPONSIVE_KEY]
     && !changes[ETEST_AUTO_THEME_OFF_KEY]
+    && !changes[ACTIVITY_SHIELD_ENABLED_KEY]
   ) return;
 
   chrome.storage.local.get(
-    [STORAGE_KEY, THEME_KEY, CUSTOM_THEME_KEY, CLEAN_UI_KEY, HIDE_HELP_TEXT_KEY, ROZVRH_ROOM_CHANGE_COLOR_KEY, ROZVRH_SUBSTITUTION_COLOR_KEY, MOBILE_RESPONSIVE_KEY, ETEST_AUTO_THEME_OFF_KEY],
+    [STORAGE_KEY, THEME_KEY, CUSTOM_THEME_KEY, CLEAN_UI_KEY, HIDE_HELP_TEXT_KEY, ROZVRH_ROOM_CHANGE_COLOR_KEY, ROZVRH_SUBSTITUTION_COLOR_KEY, MOBILE_RESPONSIVE_KEY, ETEST_AUTO_THEME_OFF_KEY, ACTIVITY_SHIELD_ENABLED_KEY],
     (result) => {
       const settings = {
         darkModeEnabled: result[STORAGE_KEY] === true,
@@ -1908,7 +1903,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
         rozvrhRoomChangeColor: normalizeColor(result[ROZVRH_ROOM_CHANGE_COLOR_KEY], DEFAULT_ROZVRH_ROOM_CHANGE_COLOR),
         rozvrhSubstitutionColor: normalizeColor(result[ROZVRH_SUBSTITUTION_COLOR_KEY], DEFAULT_ROZVRH_SUBSTITUTION_COLOR),
         mobileResponsiveEnabled: result[MOBILE_RESPONSIVE_KEY] === true,
-        etestAutoThemeOff: result[ETEST_AUTO_THEME_OFF_KEY] === true,
+        etestAutoThemeOff: isEtestAutoThemeOffActive(result),
       };
       applyTheme(settings);
       writeThemeCache(settings);

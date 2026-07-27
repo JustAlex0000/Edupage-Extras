@@ -148,6 +148,15 @@ runTest("non-login routes still apply the selected theme", () => {
   assert.equal(resolveAppliedTheme({ darkModeEnabled: true, theme: "forest", pathname: "/dashboard" }), "forest");
 });
 
+runTest("mobile redirect follows the current opt-in and never redirects app routes", () => {
+  const { shouldRedirectMobileToApp } = loadContentInternals("/dashboard");
+
+  assert.equal(shouldRedirectMobileToApp("/dashboard", true, true), true);
+  assert.equal(shouldRedirectMobileToApp("/dashboard", true, false), false);
+  assert.equal(shouldRedirectMobileToApp("/dashboard", false, true), false);
+  assert.equal(shouldRedirectMobileToApp("/app/main", true, true), false);
+});
+
 runTest("an active eTest player suppresses the theme only when auto-off is enabled", () => {
   const { resolveAppliedTheme } = loadContentInternals("/dashboard");
 
@@ -172,6 +181,21 @@ runTest("an active eTest player suppresses the theme only when auto-off is enabl
     etestAutoThemeOffEnabled: false,
     etestPlayerActive: true,
   }), "forest");
+});
+
+runTest("automatic eTest theme suppression defaults on but requires Stay Active Mode", () => {
+  const { isEtestAutoThemeOffActive } = loadContentInternals("/dashboard");
+
+  assert.equal(isEtestAutoThemeOffActive({
+    eeActivityShieldEnabled: true,
+  }), true);
+  assert.equal(isEtestAutoThemeOffActive({
+    eeActivityShieldEnabled: false,
+  }), false);
+  assert.equal(isEtestAutoThemeOffActive({
+    eeActivityShieldEnabled: true,
+    eeEtestAutoThemeOffEnabled: false,
+  }), false);
 });
 
 runTest("custom theme pre-paint fallback matches the shared default background", () => {
