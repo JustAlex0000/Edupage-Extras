@@ -89,6 +89,14 @@
       "match_about_blank": true
     },
     {
+      "matches": ["https://*.edupage.org/*"],
+      "js": ["scripts/ua-ios-fix.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true,
+      "world": "MAIN"
+    },
+    {
       "matches": [
         "https://*.edupage.org/*",
         "https://edublurtesting.ct.ws/*"
