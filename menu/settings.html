@@ -17,11 +17,7 @@
 
       <div class="settings-body">
         <nav class="settings-nav" role="tablist" aria-orientation="vertical" aria-label="Settings categories">
-          <button class="settings-nav-item" type="button" role="tab" id="nav-shields" aria-controls="panel-shields" aria-selected="true" data-target="shields">
-            <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            <span data-i18n="groupShields">Shields</span>
-          </button>
-          <button class="settings-nav-item" type="button" role="tab" id="nav-appearance" aria-controls="panel-appearance" aria-selected="false" tabindex="-1" data-target="appearance">
+          <button class="settings-nav-item" type="button" role="tab" id="nav-appearance" aria-controls="panel-appearance" aria-selected="true" data-target="appearance">
             <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>
             <span data-i18n="groupAppearance">Appearance</span>
           </button>
@@ -53,7 +49,7 @@
 
         <div class="settings-content">
 
-      <section class="setting-group" id="panel-appearance" role="tabpanel" aria-labelledby="appearance-heading nav-appearance" tabindex="0" hidden>
+      <section class="setting-group" id="panel-appearance" role="tabpanel" aria-labelledby="appearance-heading nav-appearance" tabindex="0">
         <h2 id="appearance-heading" data-i18n="groupAppearance">Appearance</h2>
 
         <div class="setting-card">
@@ -538,7 +534,8 @@
       <section class="setting-group" id="panel-experimental" role="tabpanel" aria-labelledby="experimental-heading ExperimentalSettingsButton" tabindex="0" hidden>
         <div id="ExperimentalContent" hidden>
           <h2 id="experimental-heading" data-i18n="experimentalHeading">Experimental</h2>
-          <p class="setting-group-subtitle" data-i18n="experimentalSubtitle">In-development tools for copying EduPage test questions.</p>
+          <p class="setting-group-subtitle" data-i18n="experimentalSubtitle">Test activity and visibility protections on Edupage pages.</p>
+          <p class="setting-group-subtitle"><a class="inline-link" href="https://edublurtesting.ct.ws/" target="_blank" rel="noopener noreferrer" data-i18n="openTestingSite">Open the testing website</a></p>
           <div class="setting-card">
             <div class="setting-row">
               <div>
@@ -615,14 +612,6 @@
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      <section class="setting-group" id="panel-shields" role="tabpanel" aria-labelledby="shields-heading nav-shields" tabindex="0">
-        <h2 id="shields-heading" data-i18n="groupShields">Shields</h2>
-        <p class="setting-group-subtitle" data-i18n="shieldsSubtitle">Test activity and visibility protections on Edupage pages.</p>
-        <p class="setting-group-subtitle"><a class="inline-link" href="https://edublurtesting.ct.ws/" target="_blank" rel="noopener noreferrer" data-i18n="openTestingSite">Open the testing website</a></p>
-        <div class="shields-content">
 
           <div class="section-heading">
             <h3 id="activity-heading" data-i18n="samHeading">Stay Active Mode</h3>
