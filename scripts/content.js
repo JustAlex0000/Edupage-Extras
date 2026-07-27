@@ -29,12 +29,23 @@ const ACTIVITY_SHIELD_ENABLED_KEY = "eeActivityShieldEnabled";
 // screen reached after submitting, so all three need to be watched.
 const ETEST_PLAYER_ACTIVE_SELECTOR = ".etest-player-header, .etest-player-content, .etest-player-sideoverlay";
 
-function isMobileUserAgent() {
-  if (navigator.userAgentData && typeof navigator.userAgentData.mobile === "boolean") {
-    return navigator.userAgentData.mobile;
+// iPhone/iPad/iPod in the UA must win before consulting userAgentData: iOS
+// Safari never exposes navigator.userAgentData, and a spoofed UA string
+// (DevTools, a UA switcher, desktop "request mobile site") leaves
+// userAgentData.mobile === false, which would otherwise suppress the redirect
+// on iOS even though the UA clearly says iPhone.
+function isMobileUA(userAgent, userAgentData) {
+  const ua = userAgent || "";
+  if (/iP(hone|ad|od)/i.test(ua)) return true;
+  if (userAgentData && typeof userAgentData.mobile === "boolean") {
+    return userAgentData.mobile;
   }
   // Firefox for Android has no userAgentData — fall back to UA sniff.
-  return /Android|Mobile/i.test(navigator.userAgent || "");
+  return /Android|Mobile/i.test(ua);
+}
+
+function isMobileUserAgent() {
+  return isMobileUA(navigator.userAgent, navigator.userAgentData);
 }
 
 function shouldRedirectMobileToApp(pathname, mobile, enabled) {
@@ -1783,6 +1794,7 @@ if (globalThis.__EE_TEST__) {
     shouldSuppressThemeForPath,
     resolveAppliedTheme,
     isEtestAutoThemeOffActive,
+    isMobileUA,
     shouldRedirectMobileToApp,
   };
 }

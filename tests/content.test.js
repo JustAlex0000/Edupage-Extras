@@ -157,6 +157,29 @@ runTest("mobile redirect follows the current opt-in and never redirects app rout
   assert.equal(shouldRedirectMobileToApp("/app/main", true, true), false);
 });
 
+runTest("mobile detection treats iOS as mobile even when userAgentData disagrees", () => {
+  const { isMobileUA } = loadContentInternals("/dashboard");
+
+  const iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1";
+  const ipad = "Mozilla/5.0 (iPad; CPU OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1";
+  const androidChrome = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36";
+  const firefoxAndroid = "Mozilla/5.0 (Android 14; Mobile; rv:142.0) Gecko/142.0 Firefox/142.0";
+  const desktopChrome = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
+
+  // iOS Safari exposes no userAgentData — UA sniff alone catches it.
+  assert.equal(isMobileUA(iphone, undefined), true);
+  // Chromium keeps userAgentData.mobile === false under a spoofed iOS UA
+  // string (DevTools / UA switcher); the iPhone/iPad token must still win.
+  assert.equal(isMobileUA(iphone, { mobile: false }), true);
+  assert.equal(isMobileUA(ipad, { mobile: false }), true);
+  // Real userAgentData is authoritative when the UA is not iOS.
+  assert.equal(isMobileUA(androidChrome, { mobile: true }), true);
+  assert.equal(isMobileUA(desktopChrome, { mobile: false }), false);
+  // No userAgentData (Firefox) falls back to the UA sniff.
+  assert.equal(isMobileUA(firefoxAndroid, undefined), true);
+  assert.equal(isMobileUA(desktopChrome, undefined), false);
+});
+
 runTest("an active eTest player suppresses the theme only when auto-off is enabled", () => {
   const { resolveAppliedTheme } = loadContentInternals("/dashboard");
 
