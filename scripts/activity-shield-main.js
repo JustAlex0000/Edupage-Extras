@@ -278,7 +278,7 @@
   });
 
   const onKeydownBlockEsc = (event) => {
-    if (!active("blockEsc")) return;
+    if (!strictActive("blockEsc")) return;
     if (event.key === "Escape" || event.keyCode === 27) {
       event.preventDefault();
       event.stopImmediatePropagation();

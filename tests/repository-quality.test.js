@@ -70,3 +70,35 @@ test("settings markup only uses defined English locale keys", () => {
     assert.ok(english[key], `settings.html references missing locale key: ${key}`);
   }
 });
+
+test("new eTest shields stay explicit opt-ins inside Experimental settings", () => {
+  const html = fs.readFileSync(path.join(ROOT, "menu/settings.html"), "utf8");
+  const settings = fs.readFileSync(path.join(ROOT, "menu/settings.js"), "utf8");
+  const bridge = fs.readFileSync(path.join(ROOT, "scripts/activity-shield-bridge.js"), "utf8");
+  const main = fs.readFileSync(path.join(ROOT, "scripts/activity-shield-main.js"), "utf8");
+  const experimentalStart = html.indexOf('id="panel-experimental"');
+  const experimentalEnd = html.indexOf("</section>", experimentalStart);
+  const experimentalMarkup = html.slice(experimentalStart, experimentalEnd);
+
+  assert.ok(experimentalStart >= 0, "expected Experimental settings panel");
+  for (const controlId of [
+    "EtestAutoThemeOffCheckbox",
+    "ActivityBlockEsc",
+    "ActivityJquerySweep",
+    "ActivityFullscreenSpoof",
+  ]) {
+    assert.ok(experimentalMarkup.includes(`id="${controlId}"`), `${controlId} must stay in Experimental`);
+    assert.equal(html.indexOf(`id="${controlId}"`), html.lastIndexOf(`id="${controlId}"`), `${controlId} must be unique`);
+  }
+
+  for (const key of [
+    "eeActivityShieldBlockEsc",
+    "eeActivityShieldJquerySweep",
+    "eeActivityShieldFullscreenSpoof",
+  ]) {
+    const disabledDefault = new RegExp(`${key}: false`);
+    assert.match(settings, disabledDefault, `${key} must default off in settings`);
+    assert.match(bridge, disabledDefault, `${key} must default off in the page bridge`);
+  }
+  assert.match(main, /if \(!strictActive\("blockEsc"\)\) return;/, "Escape blocking must require an explicit true value");
+});

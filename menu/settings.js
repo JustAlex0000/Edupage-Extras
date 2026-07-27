@@ -137,9 +137,9 @@ const activityShieldDefaults = {
 	eeActivityShieldPointercapture: true,
 	eeActivityShieldClipboard: true,
 	eeActivityShieldAnimationFrame: true,
-	eeActivityShieldBlockEsc: true,
-	eeActivityShieldJquerySweep: true,
-	eeActivityShieldFullscreenSpoof: true,
+	eeActivityShieldBlockEsc: false,
+	eeActivityShieldJquerySweep: false,
+	eeActivityShieldFullscreenSpoof: false,
 	eeActivityShieldVisualIndicator: false,
 	eeActivityShieldLog: false,
 };
