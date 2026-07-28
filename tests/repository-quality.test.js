@@ -119,6 +119,16 @@ test("eTest protections use enabled defaults while remaining master-gated", () =
   assert.match(main, /if \(!strictActive\("blockEsc"\)\) return;/, "Escape blocking must require an explicit true value");
   assert.match(main, /if \(!strictActive\("jquerySweep"\)\) return;/, "listener removal must require an explicit true value");
   assert.match(main, /if \(!strictActive\("fullscreenSpoof"\)\) return;/, "fullscreen blocking must require an explicit true value");
+  assert.match(
+    main,
+    /type\.includes\("\.etestplayeral"\) \|\| type\.includes\("\.etestaplayer"\)/,
+    "phone-specific eTest jQuery handlers must be gated by namespace",
+  );
+  assert.match(
+    main,
+    /if \(strictActive\("jquerySweep"\)\) return undefined;/,
+    "the jQuery listener gate must remain controlled by the existing master-gated preference",
+  );
 });
 
 test("mobile redirect remains an explicit storage-backed opt-in", () => {
@@ -127,4 +137,14 @@ test("mobile redirect remains an explicit storage-backed opt-in", () => {
 
   assert.doesNotMatch(content, /eeMobileRedirectEnabledCache/, "mobile redirect must not trust a stale page-local cache");
   assert.doesNotMatch(background, /seedMobileRedirectDefault/, "Android installs must not silently enable mobile redirect");
+});
+
+test("iOS app compatibility avoids native-only browser paths", () => {
+  const compat = fs.readFileSync(path.join(ROOT, "scripts/ua-ios-fix.js"), "utf8");
+
+  assert.match(compat, /shadow\(window, "webkit", undefined\)/, "iOS browsers must skip EduPage's native-only request shim");
+  assert.match(compat, /window\.iNoBounce\?\.disable\?\.\(\)/, "the obsolete iOS touch blocker must be disabled");
+  assert.match(compat, /bridge\.runFlexMethod = function/, "unsupported native URL-scheme calls must be guarded");
+  assert.doesNotMatch(compat, /shadow\(Navigator\.prototype, "platform"/, "the real iPhone platform must remain visible");
+  assert.doesNotMatch(compat, /shadow\(Navigator\.prototype, "vendor"/, "the real WebKit vendor must remain visible");
 });

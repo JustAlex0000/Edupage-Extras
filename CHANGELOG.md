@@ -4,6 +4,19 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.9.20 — 2026-07-28
+
+- Fixed the opt-in mobile redirect on iPhone and iPad when
+  `navigator.userAgentData` incorrectly reports a desktop browser.
+- Fixed `/app/main` remaining on its loading screen in Orion and other ordinary
+  iOS browsers by preventing EduPage from selecting its native-only request
+  transport when the native bridge is absent. The compatibility bootstrap
+  preserves EduPage's iOS layout handling, disables its obsolete touch blocker,
+  and guards unsupported native URL-scheme calls.
+- Improved Stay Active Mode on phones by gating the eTest player's namespaced
+  activity handlers when registered, covering EduPage's custom mobile
+  background and foreground signals without the previous listener-sweep delay.
+
 ## 0.9.19 — 2026-07-27
 
 - Added master-gated eTest protections for blocking Escape, removing the test

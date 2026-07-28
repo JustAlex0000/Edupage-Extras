@@ -321,17 +321,66 @@
     debug("Could not wrap animation frame APIs", error);
   }
 
-  // The eTest player attaches its own activity-tracking handlers under the
-  // ".etestplayeral"/".etestaplayer" jQuery namespaces — periodically
-  // stripping just those namespaced handlers (not jQuery's event system
-  // itself) leaves the rest of the page's jQuery-driven behavior untouched.
+  // Gate eTest's namespaced handlers at registration time. The mobile app
+  // emits custom enterBackgroundHandler/enterForegroundHandler jQuery events
+  // in addition to native visibility/focus events; capture-phase DOM
+  // listeners cannot intercept those custom events. Wrapping the exact
+  // eTest namespaces keeps the handlers installed and makes them work again
+  // immediately when Stay Active is disabled.
+  let jqueryGateInstalled = false;
+  const installJqueryListenerGate = () => {
+    const jq = window.jQuery || window.$;
+    if (!jq?.event?.add || jq.event.add.__eeActivityShieldGate) return false;
+
+    const nativeAdd = jq.event.add;
+    const gatedHandlers = new WeakMap();
+    const gatedAdd = function (elem, types, handler, data, selector) {
+      const isEtestHandler = (elem === window || elem === document)
+        && typeof types === "string"
+        && types.split(/\s+/).some((type) => (
+          type.includes(".etestplayeral") || type.includes(".etestaplayer")
+        ));
+
+      if (isEtestHandler && typeof handler === "function") {
+        let gatedHandler = gatedHandlers.get(handler);
+        if (!gatedHandler) {
+          gatedHandler = function (...args) {
+            if (strictActive("jquerySweep")) return undefined;
+            return handler.apply(this, args);
+          };
+          gatedHandler.guid = handler.guid || (handler.guid = jq.guid++);
+          gatedHandlers.set(handler, gatedHandler);
+        }
+        handler = gatedHandler;
+      }
+
+      return nativeAdd.call(this, elem, types, handler, data, selector);
+    };
+    gatedAdd.__eeActivityShieldGate = true;
+    gatedAdd.__eeNativeAdd = nativeAdd;
+    jq.event.add = gatedAdd;
+    jqueryGateInstalled = true;
+    return true;
+  };
+
+  const jqueryGateTimer = setInterval(() => {
+    if (installJqueryListenerGate()) clearInterval(jqueryGateTimer);
+  }, 25);
+  installJqueryListenerGate();
+
+  // Remove once any eTest handlers that raced registration before the gate.
+  // If a jQuery build does not expose event.add, retain the periodic sweep as
+  // the compatibility fallback.
+  let preGateHandlersRemoved = false;
   setInterval(() => {
     if (!strictActive("jquerySweep")) return;
+    if (jqueryGateInstalled && preGateHandlersRemoved) return;
     const jq = window.jQuery || window.$;
     if (!jq || !jq.fn) return;
     try {
       jq(document).off(".etestplayeral").off(".etestaplayer");
       jq(window).off(".etestplayeral").off(".etestaplayer");
+      if (jqueryGateInstalled) preGateHandlersRemoved = true;
     } catch (error) {
       debug("Could not sweep eTest player jQuery listeners", error);
     }
