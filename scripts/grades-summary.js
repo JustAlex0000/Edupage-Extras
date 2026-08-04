@@ -9,6 +9,8 @@
 (function () {
   "use strict";
 
+  if (window.top !== window) return;
+
   const GE = (window.__eeGrades = window.__eeGrades || {});
 
     function buildSummaryRenderSignature(
@@ -131,9 +133,9 @@
         const note = document.createElement("span");
         note.className = "ee-overall-meta ee-overall-note";
         note.textContent = unmatchedSummary.absent > 0
-          ? `+ ${unmatchedSummary.absent}/${unmatchedSummary.total} unmatched lessons`
-          : `+ ${unmatchedSummary.total} unmatched lessons`;
-        note.title = "Official attendance includes lessons that are not mapped to the current grades rows yet.";
+          ? GE.t("gradesUnmatchedLessonsAbsent", [String(unmatchedSummary.absent), String(unmatchedSummary.total)])
+          : GE.t("gradesUnmatchedLessons", [String(unmatchedSummary.total)]);
+        note.title = GE.t("gradesUnmatchedLessonsTitle");
         labelCell.appendChild(note);
       }
 

@@ -15,6 +15,8 @@ const downloadReportButton = document.getElementById("DownloadReportButton");
 const openIssueButton = document.getElementById("OpenIssueButton");
 const reportOutput = document.getElementById("ReportOutput");
 const reportStatus = document.getElementById("ReportStatus");
+const clearCachedSchoolDataButton = document.getElementById("ClearCachedSchoolDataButton");
+const clearCachedSchoolDataStatus = document.getElementById("ClearCachedSchoolDataStatus");
 const attendancePercentagesToggle = document.getElementById("AttendancePercentagesCheckbox");
 const halfyearStartInput = document.getElementById("HalfyearStartDateInput");
 const resetHalfyearStartButton = document.getElementById("ResetHalfyearStartDateButton");
@@ -86,6 +88,7 @@ const ATTENDANCE_PERCENTAGES_KEY = "attendancePercentagesEnabled";
 const HALFYEAR_START_KEY = "eeHalfyearStartDate";
 const HALFYEAR_END_KEY = "eeSecondHalfEndDate";
 const GRADES_ATTENDANCE_CACHE_KEY = "eeGradesAttendanceStatsCache";
+const TIMETABLE_SYNC_CACHE_KEY = "eeTimetableSyncCache";
 const UPDATE_STATUS_KEY = "eeUpdateStatus";
 const UPDATE_REMINDER_ENABLED_KEY = "eeUpdateReminderEnabled";
 const THEME_TOGGLE_COMMAND = "toggle-theme-mode";
@@ -667,6 +670,25 @@ halfyearEndInput.addEventListener("change", () => {
 resetHalfyearEndButton.addEventListener("click", () => {
 	halfyearEndInput.value = "";
 	chrome.storage.local.remove([HALFYEAR_END_KEY, GRADES_ATTENDANCE_CACHE_KEY]);
+});
+
+clearCachedSchoolDataButton?.addEventListener("click", () => {
+	clearCachedSchoolDataButton.disabled = true;
+	clearCachedSchoolDataStatus.textContent = "";
+	clearCachedSchoolDataStatus.classList.remove("is-error");
+	chrome.storage.local.remove([
+		GRADES_ATTENDANCE_CACHE_KEY,
+		TIMETABLE_SYNC_CACHE_KEY,
+	], () => {
+		const error = chrome.runtime.lastError;
+		clearCachedSchoolDataButton.disabled = false;
+		if (error) {
+			clearCachedSchoolDataStatus.textContent = t("cachedSchoolDataClearFailed");
+			clearCachedSchoolDataStatus.classList.add("is-error");
+			return;
+		}
+		clearCachedSchoolDataStatus.textContent = t("cachedSchoolDataCleared");
+	});
 });
 
 updateReminderToggle.addEventListener("change", () => {

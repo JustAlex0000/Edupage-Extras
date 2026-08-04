@@ -178,6 +178,9 @@ The extension does not request access to all websites.
   manifest update check.
 - No Edupage credentials are collected.
 - Settings are stored locally with `chrome.storage.local`.
+- Structured attendance and timetable data used by enhancements is cached
+  locally for at most 15 minutes. Expired entries are pruned, and the cache can
+  be cleared at any time from Settings → Debug without changing preferences.
 - Grade enhancements are generated from data already present in the currently
   loaded Edupage page.
 - Attendance percentages are generated from Edupage's existing attendance page
@@ -242,7 +245,7 @@ To build and sanity-check a Firefox package locally:
 
 ```sh
 npm run build:firefox   # produces a .zip in web-ext-artifacts/
-npm run verify:package  # fails if the package contains anything it shouldn't
+npm run verify:package  # enforces the exact extension shipping allowlist
 npm run run:firefox     # launches Firefox with the extension loaded
 ```
 

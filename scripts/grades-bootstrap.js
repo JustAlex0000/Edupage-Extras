@@ -16,6 +16,10 @@
 
   const GE = (window.__eeGrades = window.__eeGrades || {});
 
+  function isGradesPage() {
+    return /^\/znamky(?:\/|$)/i.test(window.location?.pathname || "");
+  }
+
   // Deliberate test hook — see tests/grades-enhancer.test.js.
   if (globalThis.__EE_TEST__) {
     globalThis.__eeTestExports = {
@@ -49,16 +53,22 @@
       dispatchFirstGradeExpansionClick: GE.virtual.dispatchFirstSyntheticClick,
       readExistingGradeMass: GE.virtual.readExistingGradeMass,
       buildGradeWeightModel: GE.virtual.buildGradeWeightModel,
+      computeVirtualPopoverPosition: GE.virtual.computeVirtualPopoverPosition,
       migrateFlatMapToByOrigin: GE.migrateFlatMapToByOrigin,
+      isLegacyFlatMap: GE.isLegacyFlatMap,
       parseSchoolYearStart: GE.parseSchoolYearStart,
       parseGradesHalfKey: GE.parseGradesHalfKey,
       buildGradesViewContext: GE.buildGradesViewContext,
       readGradesViewContext: GE.readGradesViewContext,
       updateAttendanceCache: GE.attendance.updateAttendanceCache,
+      pruneAttendanceCache: GE.attendance.pruneAttendanceCache,
       normalizeGradesSearchText: GE.sortFilter.normalizeSearchText,
       sortSubjectEntries: GE.sortFilter.sortSubjectEntries,
+      isGradesPage,
     };
   }
+
+  if (!isGradesPage()) return;
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", GE.init, { once: true });

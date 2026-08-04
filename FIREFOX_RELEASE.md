@@ -25,13 +25,13 @@ category). After that, every later version can go through the API/CI.
 1. Go to <https://addons.mozilla.org/developers/> and sign in (or create a free
    account).
 2. Click **Submit a New Add-on**.
-3. Build a signed package locally and upload that file when asked:
+3. Build and verify a package locally and upload that file when asked:
    ```sh
    npm install
    npm run build:firefox
+   npm run verify:package
    ```
-   This creates a `.xpi` (technically a `.zip`) in `web-ext-artifacts/`. Upload
-   that.
+   This creates a `.zip` in `web-ext-artifacts/`. Upload that.
 4. Choose **"On this site"** (listed) distribution so it gets a public AMO
    page and auto-updates for users.
 5. Fill out the listing details and submit for review. Mozilla's automated +
@@ -55,8 +55,8 @@ already pinned in `manifest.json` as
 
 1. On GitHub, open this repo → **Settings → Secrets and variables → Actions**.
 2. Click **New repository secret** and add:
-   - Name: `AMO_JWT_ISSUER` → value: the JWT issuer from Step 2.
-   - Name: `AMO_JWT_SECRET` → value: the JWT secret from Step 2.
+   - Name: `AMO_API_KEY` → value: the JWT issuer from Step 2.
+   - Name: `AMO_API_SECRET` → value: the JWT secret from Step 2.
 
 These are encrypted by GitHub and only exposed to the workflow at run time —
 they never appear in logs or to anyone browsing the repo.

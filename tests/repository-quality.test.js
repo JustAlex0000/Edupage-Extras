@@ -4,6 +4,7 @@ const path = require("node:path");
 const test = require("node:test");
 
 const ROOT = path.join(__dirname, "..");
+const { isShippableEntry } = require("../scripts-dev/package-policy");
 
 function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(ROOT, relativePath), "utf8"));
@@ -71,6 +72,38 @@ test("settings markup only uses defined English locale keys", () => {
   }
 });
 
+test("store package allowlist rejects repository and ignored local files", () => {
+  for (const entry of [
+    "manifest.json",
+    "LICENSE",
+    "_locales/en/messages.json",
+    "images/icon-128.png",
+    "menu/settings.html",
+    "scripts/lib/ee-common.js",
+  ]) {
+    assert.equal(isShippableEntry(entry), true, `expected shippable entry: ${entry}`);
+  }
+  for (const entry of [
+    "AGENTS.md",
+    "PROJECT_CONTEXT.md",
+    "local-experiments/playwright/test-settings.png",
+    "docs/private/capture.html",
+    "tests/background.test.js",
+    "scripts/_template-enhancer.js",
+  ]) {
+    assert.equal(isShippableEntry(entry), false, `expected rejected entry: ${entry}`);
+  }
+});
+
+test("settings exposes a cache clear action for reconstructible school data", () => {
+  const html = fs.readFileSync(path.join(ROOT, "menu/settings.html"), "utf8");
+  const settings = fs.readFileSync(path.join(ROOT, "menu/settings.js"), "utf8");
+
+  assert.match(html, /id="ClearCachedSchoolDataButton"[^>]*type="button"/);
+  assert.match(html, /id="ClearCachedSchoolDataStatus"[^>]*role="status"[^>]*aria-live="polite"/);
+  assert.match(settings, /GRADES_ATTENDANCE_CACHE_KEY,\s*TIMETABLE_SYNC_CACHE_KEY,/);
+});
+
 test("eTest protections use enabled defaults while remaining master-gated", () => {
   const html = fs.readFileSync(path.join(ROOT, "menu/settings.html"), "utf8");
   const settings = fs.readFileSync(path.join(ROOT, "menu/settings.js"), "utf8");
@@ -131,6 +164,35 @@ test("eTest protections use enabled defaults while remaining master-gated", () =
   );
 });
 
+test("Activity Shield avoids permanent high-frequency polling and cancels synthetic frames reliably", () => {
+  const main = fs.readFileSync(path.join(ROOT, "scripts/activity-shield-main.js"), "utf8");
+
+  assert.match(main, /jqueryGateAttempts >= 400/);
+  assert.match(main, /clearInterval\(jqueryGateTimer\)/);
+  assert.match(main, /if \(syntheticFrames\.has\(id\)\)/);
+  assert.doesNotMatch(main, /active\("animationFrame"\) && readNativeHidden\(\) && syntheticFrames\.has\(id\)/);
+});
+
+test("route-specific and short-lived enhancers do not leave unrelated observers running", () => {
+  const bootstrap = fs.readFileSync(path.join(ROOT, "scripts/grades-bootstrap.js"), "utf8");
+  const autologin = fs.readFileSync(path.join(ROOT, "scripts/autologin.js"), "utf8");
+
+  assert.match(bootstrap, /\^\\\/znamky\(\?:\\\/\|\$\)/);
+  assert.match(bootstrap, /if \(!isGradesPage\(\)\) return;/);
+  assert.match(autologin, /observer\?\.disconnect\(\)/);
+  assert.match(autologin, /attempts >= maxAttempts/);
+});
+
+test("virtual grade popover exposes accessible semantics and viewport handling", () => {
+  const virtual = fs.readFileSync(path.join(ROOT, "scripts/grades-virtual.js"), "utf8");
+
+  assert.match(virtual, /setAttribute\("role", "dialog"\)/);
+  assert.match(virtual, /setAttribute\("aria-labelledby", "ee-vg-popover-title"\)/);
+  assert.match(virtual, /event\.key !== "Escape"/);
+  assert.match(virtual, /restoreFocus: true/);
+  assert.match(virtual, /computeVirtualPopoverPosition/);
+});
+
 test("mobile redirect remains an explicit storage-backed opt-in", () => {
   const content = fs.readFileSync(path.join(ROOT, "scripts/content.js"), "utf8");
   const background = fs.readFileSync(path.join(ROOT, "scripts/background.js"), "utf8");
@@ -141,10 +203,23 @@ test("mobile redirect remains an explicit storage-backed opt-in", () => {
 
 test("iOS app compatibility avoids native-only browser paths", () => {
   const compat = fs.readFileSync(path.join(ROOT, "scripts/ua-ios-fix.js"), "utf8");
+  const manifest = readJson("manifest.json");
+  const isolatedScripts = manifest.content_scripts?.[0]?.js || [];
+  const accessibleResources = (manifest.web_accessible_resources || [])
+    .flatMap((entry) => entry.resources || []);
 
   assert.match(compat, /shadow\(window, "webkit", undefined\)/, "iOS browsers must skip EduPage's native-only request shim");
   assert.match(compat, /window\.iNoBounce\?\.disable\?\.\(\)/, "the obsolete iOS touch blocker must be disabled");
   assert.match(compat, /bridge\.runFlexMethod = function/, "unsupported native URL-scheme calls must be guarded");
+  assert.equal(
+    isolatedScripts[0],
+    "scripts/ua-ios-bootstrap.js",
+    "the Safari-compatible MAIN-world fallback must run before other page scripts",
+  );
+  assert.ok(
+    accessibleResources.includes("scripts/ua-ios-fix.js"),
+    "the MAIN-world fallback target must be loadable by the EduPage document",
+  );
   assert.doesNotMatch(compat, /shadow\(Navigator\.prototype, "platform"/, "the real iPhone platform must remain visible");
   assert.doesNotMatch(compat, /shadow\(Navigator\.prototype, "vendor"/, "the real WebKit vendor must remain visible");
 });

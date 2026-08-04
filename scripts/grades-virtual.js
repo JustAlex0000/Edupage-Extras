@@ -10,6 +10,8 @@
 (function () {
   "use strict";
 
+  if (window.top !== window) return;
+
   const GE = (window.__eeGrades = window.__eeGrades || {});
 
   const VIRTUAL_GRADES_KEY = "eeVirtualGrades";
@@ -19,6 +21,8 @@
   // time the popover opens on the same subject.
   const autoDetectedMassCache = new Map();
   let activeVirtualPopover = null;
+  let activeVirtualTrigger = null;
+  let virtualPositionFrame = 0;
 
     function calcWeightedAvg(grades) {
       if (!grades.length) return Number.NaN;
@@ -410,10 +414,22 @@
       GE.state.virtualGradesByOrigin[GE.currentOrigin()] = GE.state.virtualGradesData;
       return GE.storageSet({ [VIRTUAL_GRADES_KEY]: GE.state.virtualGradesByOrigin });
     }
-    function closeVirtualPopover() {
+    function closeVirtualPopover({ restoreFocus = false } = {}) {
+      if (virtualPositionFrame) {
+        window.cancelAnimationFrame(virtualPositionFrame);
+        virtualPositionFrame = 0;
+      }
+      window.removeEventListener("resize", handleVirtualViewportChange);
+      window.removeEventListener("scroll", handleVirtualViewportChange, true);
       if (activeVirtualPopover) {
         activeVirtualPopover.remove();
         activeVirtualPopover = null;
+      }
+      if (activeVirtualTrigger) {
+        activeVirtualTrigger.setAttribute("aria-expanded", "false");
+        activeVirtualTrigger.removeAttribute("aria-controls");
+        if (restoreFocus && activeVirtualTrigger.isConnected) activeVirtualTrigger.focus();
+        activeVirtualTrigger = null;
       }
     }
     function handleDocumentClickForPopover(event) {
@@ -421,6 +437,47 @@
       if (activeVirtualPopover.contains(event.target)) return;
       if (event.target instanceof Element && event.target.closest(".ee-vg-btn")) return;
       closeVirtualPopover();
+    }
+    function computeVirtualPopoverPosition(triggerRect, popoverSize, viewport) {
+      const margin = 8;
+      const gap = 4;
+      const maxHeight = Math.max(0, viewport.height - (margin * 2));
+      const renderedHeight = Math.min(popoverSize.height, maxHeight);
+      const rightmostLeft = Math.max(margin, viewport.width - margin - popoverSize.width);
+      const left = Math.min(Math.max(margin, triggerRect.left), rightmostLeft);
+      const below = triggerRect.bottom + gap;
+      const spaceBelow = viewport.height - margin - below;
+      const spaceAbove = triggerRect.top - gap - margin;
+      const top = renderedHeight > spaceBelow && spaceAbove > spaceBelow
+        ? Math.max(margin, triggerRect.top - gap - renderedHeight)
+        : Math.min(Math.max(margin, below), Math.max(margin, viewport.height - margin - renderedHeight));
+      return { left, top, maxHeight };
+    }
+    function positionVirtualPopover() {
+      if (!activeVirtualPopover || !activeVirtualTrigger?.isConnected) return;
+      const triggerRect = activeVirtualTrigger.getBoundingClientRect();
+      const position = computeVirtualPopoverPosition(
+        triggerRect,
+        {
+          width: activeVirtualPopover.offsetWidth || 210,
+          height: activeVirtualPopover.offsetHeight || 0,
+        },
+        { width: window.innerWidth, height: window.innerHeight },
+      );
+      activeVirtualPopover.style.left = `${position.left}px`;
+      activeVirtualPopover.style.top = `${position.top}px`;
+      activeVirtualPopover.style.maxHeight = `${position.maxHeight}px`;
+    }
+    function scheduleVirtualPopoverPosition() {
+      if (!activeVirtualPopover) return;
+      if (virtualPositionFrame) window.cancelAnimationFrame(virtualPositionFrame);
+      virtualPositionFrame = window.requestAnimationFrame(() => {
+        virtualPositionFrame = 0;
+        positionVirtualPopover();
+      });
+    }
+    function handleVirtualViewportChange() {
+      scheduleVirtualPopoverPosition();
     }
     function updateVirtualDisplay(row, predmetid, scale, originalAvg) {
       const priemerCell = row.querySelector(".znPriemerCell");
@@ -458,6 +515,7 @@
 
       const header = document.createElement("div");
       header.className = "ee-vg-popover-header";
+      header.id = "ee-vg-popover-title";
       header.textContent = GE.t("vgTitle");
       popover.appendChild(header);
 
@@ -484,6 +542,7 @@
           removeBtn.className = "ee-vg-remove";
           removeBtn.textContent = "×";
           removeBtn.title = GE.t("vgRemove");
+          removeBtn.setAttribute("aria-label", GE.t("vgRemove"));
           removeBtn.addEventListener("click", async () => {
             const arr = GE.state.virtualGradesData[predmetid] || [];
             arr.splice(i, 1);
@@ -552,6 +611,7 @@
           massInput.step = "0.5";
           massInput.min = "0.5";
           massInput.className = "ee-vg-input ee-vg-mass-input";
+          massInput.setAttribute("aria-label", GE.t("vgExistingWeightInputLabel"));
           massInput.value = String(Number.isInteger(effectiveMass) ? effectiveMass : Number(effectiveMass.toFixed(2)));
           massInput.title = override !== null
             ? GE.t("vgMassOverrideTitle", [String(detectedMass)])
@@ -574,8 +634,8 @@
             const resetBtn = document.createElement("button");
             resetBtn.type = "button";
             resetBtn.className = "ee-vg-mass-reset";
-            resetBtn.textContent = `auto: ${detectedMass}`;
-            resetBtn.title = "Clear the manual override and use the auto-detected value.";
+            resetBtn.textContent = GE.t("vgAutoValue", [String(detectedMass)]);
+            resetBtn.title = GE.t("vgMassResetTitle");
             resetBtn.addEventListener("click", async () => {
               await saveExistingMassOverride(predmetid, null);
               updateVirtualDisplay(row, predmetid, scale, originalAvg);
@@ -590,13 +650,13 @@
           const hint = document.createElement("div");
           hint.className = "ee-vg-mass-hint";
           if (override !== null) {
-            hint.textContent = "Using manual override.";
+            hint.textContent = GE.t("vgManualOverrideHint");
           } else if (detectionSucceeded) {
-            hint.textContent = `Auto-detected (${detectedCellCount} grades, mass ${detectedMass}).`;
+            hint.textContent = GE.t("vgAutoDetectedHint", [String(detectedCellCount), String(detectedMass)]);
           } else if (detectedCellCount > 0) {
-            hint.textContent = "Detecting weights… if the row didn't expand automatically, expand it with the \"+\" toggle.";
+            hint.textContent = GE.t("vgDetectingHint");
           } else {
-            hint.textContent = "No grade cells found yet — try expanding the subject row.";
+            hint.textContent = GE.t("vgNoGradeCellsHint");
           }
           popover.appendChild(hint);
         }
@@ -612,6 +672,7 @@
       gradeInput.max = scale === "percent" ? "100" : "5";
       gradeInput.placeholder = scale === "percent" ? GE.t("vgGradePlaceholderPercent") : GE.t("vgGradePlaceholder");
       gradeInput.className = "ee-vg-input";
+      gradeInput.setAttribute("aria-label", GE.t("vgGradeInputLabel"));
 
       const weightInput = document.createElement("input");
       weightInput.type = "number";
@@ -620,6 +681,7 @@
       weightInput.value = "1";
       weightInput.placeholder = GE.t("vgWeightPlaceholder");
       weightInput.className = "ee-vg-input ee-vg-weight-input";
+      weightInput.setAttribute("aria-label", GE.t("vgWeightInputLabel"));
 
       const addBtn = document.createElement("button");
       addBtn.className = "ee-vg-add-btn";
@@ -647,15 +709,24 @@
       form.appendChild(weightInput);
       form.appendChild(addBtn);
       popover.appendChild(form);
+      scheduleVirtualPopoverPosition();
     }
     function openVirtualPopover(triggerBtn, row, predmetid, scale, originalAvg) {
       const popover = document.createElement("div");
       popover.className = "ee-vg-popover";
+      popover.id = "ee-vg-popover";
+      popover.setAttribute("role", "dialog");
+      popover.setAttribute("aria-modal", "false");
+      popover.setAttribute("aria-labelledby", "ee-vg-popover-title");
       popover.dataset.eeVgFor = predmetid;
+      popover.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") return;
+        event.preventDefault();
+        closeVirtualPopover({ restoreFocus: true });
+      });
       // Render once immediately with whatever mass info is available right now,
       // then run async detection (which may briefly expand the row to surface
       // category sub-rows) and re-render once the real weights are known.
-      buildPopoverContent(popover, row, predmetid, scale, originalAvg);
       document.body.appendChild(popover);
       // Set before detectExistingMass runs: it can synthetically click toggle
       // candidates inside the row, which — despite findExpandToggleCandidates
@@ -664,21 +735,17 @@
       // live already lets that handler's re-entrancy guard short-circuit
       // instead of recursing into another openVirtualPopover call.
       activeVirtualPopover = popover;
+      activeVirtualTrigger = triggerBtn;
+      triggerBtn.setAttribute("aria-expanded", "true");
+      triggerBtn.setAttribute("aria-controls", popover.id);
+      buildPopoverContent(popover, row, predmetid, scale, originalAvg);
+      window.addEventListener("resize", handleVirtualViewportChange, { passive: true });
+      window.addEventListener("scroll", handleVirtualViewportChange, true);
       detectExistingMass(row, predmetid).then(() => {
         if (activeVirtualPopover !== popover) return;
         buildPopoverContent(popover, row, predmetid, scale, originalAvg);
         updateVirtualDisplay(row, predmetid, scale, originalAvg);
       });
-
-      const btnRect = triggerBtn.getBoundingClientRect();
-      const popWidth = popover.offsetWidth || 210;
-      let left = btnRect.left;
-      const top = btnRect.bottom + 4;
-      if (left + popWidth > window.innerWidth - 8) {
-        left = Math.max(4, window.innerWidth - popWidth - 8);
-      }
-      popover.style.top = `${top}px`;
-      popover.style.left = `${left}px`;
 
       popover.querySelector(".ee-vg-input")?.focus();
     }
@@ -700,8 +767,8 @@
       const btn = document.createElement("button");
       btn.className = "ee-vg-reset-btn";
       btn.textContent = "↺";
-      btn.title = "Reset all virtual grades";
-      btn.setAttribute("aria-label", "Reset all virtual grades");
+      btn.title = GE.t("vgResetAll");
+      btn.setAttribute("aria-label", GE.t("vgResetAll"));
       btn.disabled = Object.keys(GE.state.virtualGradesData).length === 0
         && Object.keys(GE.state.existingMassOverrides).length === 0;
       btn.addEventListener("click", async (e) => {
@@ -745,8 +812,9 @@
           const btn = document.createElement("button");
           btn.className = "ee-vg-btn";
           btn.textContent = "+";
-          btn.title = "Virtual grade calculator";
-          btn.setAttribute("aria-label", "Open virtual grade calculator");
+          btn.title = GE.t("vgCalculatorTitle");
+          btn.setAttribute("aria-label", GE.t("vgOpenCalculator"));
+          btn.setAttribute("aria-expanded", "false");
           btn.addEventListener("click", (e) => {
             e.stopPropagation();
             if (activeVirtualPopover?.dataset.eeVgFor === predmetid) {
@@ -776,5 +844,6 @@
     projectAverageWithVirtualGrades,
     readExistingGradeMass,
     buildGradeWeightModel,
+    computeVirtualPopoverPosition,
   };
 })();

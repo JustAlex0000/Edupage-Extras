@@ -179,25 +179,42 @@
     let attempts = 0;
     const maxAttempts = 40;
     const interval = 250;
+    let observer = null;
+    let stopped = false;
+
+    const stopWatching = () => {
+      if (stopped) return;
+      stopped = true;
+      clearInterval(timer);
+      observer?.disconnect();
+    };
 
     const timer = setInterval(() => {
       attempts += 1;
       if (submitted || userTyped || attempts >= maxAttempts) {
-        clearInterval(timer);
+        stopWatching();
         return;
       }
       tryAdvance();
+      if (submitted || userTyped) stopWatching();
     }, interval);
 
-    const observer = new MutationObserver(() => {
-      if (!submitted && !userTyped) tryAdvance();
+    observer = new MutationObserver(() => {
+      if (submitted || userTyped || attempts >= maxAttempts) {
+        stopWatching();
+        return;
+      }
+      tryAdvance();
+      if (submitted || userTyped) stopWatching();
     });
 
     if (document.body) {
       observer.observe(document.body, { childList: true, subtree: true });
     } else {
       document.addEventListener("DOMContentLoaded", () => {
-        observer.observe(document.body, { childList: true, subtree: true });
+        if (!stopped && document.body) {
+          observer.observe(document.body, { childList: true, subtree: true });
+        }
       }, { once: true });
     }
   }

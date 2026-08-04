@@ -211,11 +211,23 @@
     return values;
   };
 
-  // RFC 4180-style CSV field escaping.
+  EE.escapeHtml = function escapeHtml(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  };
+
+  // RFC 4180-style CSV field escaping with spreadsheet formula protection.
+  // EduPage text is untrusted: prefix cells whose first non-whitespace
+  // character can trigger a formula when opened in Excel/Calc.
   EE.csvEscape = function csvEscape(value) {
     const text = String(value == null ? "" : value);
-    if (/[",\n]/.test(text)) return '"' + text.replace(/"/g, '""') + '"';
-    return text;
+    const safeText = /^\s*[=+\-@]/.test(text) ? `'${text}` : text;
+    if (/[",\r\n]/.test(safeText)) return '"' + safeText.replace(/"/g, '""') + '"';
+    return safeText;
   };
 
   EE.downloadTextFile = function downloadTextFile(filename, mime, content) {

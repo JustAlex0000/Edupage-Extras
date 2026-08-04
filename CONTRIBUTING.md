@@ -34,6 +34,9 @@ loudly. Run `npm test` after touching any file that has a matching
 `tests/*.test.js`.
 
 `npm run lint:firefox` runs web-ext lint (also run by CI on every push/PR).
+CI also builds and verifies the Firefox and Chrome archives. Both builders stage
+the same explicit shipping allowlist, so ignored local files cannot enter a
+store package.
 
 ## Conventions
 

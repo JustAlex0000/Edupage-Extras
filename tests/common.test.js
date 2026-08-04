@@ -1,0 +1,36 @@
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const test = require("node:test");
+const vm = require("node:vm");
+
+function loadCommon() {
+  const source = fs.readFileSync(
+    path.join(__dirname, "..", "scripts", "lib", "ee-common.js"),
+    "utf8",
+  );
+  const context = { globalThis: null };
+  context.globalThis = context;
+  vm.runInNewContext(source, context, { filename: "ee-common.js" });
+  return context.EE;
+}
+
+test("CSV escaping neutralizes spreadsheet formulas after leading whitespace", () => {
+  const { csvEscape } = loadCommon();
+
+  assert.equal(csvEscape("=HYPERLINK(\"https://example.test\")"), "\"'=HYPERLINK(\"\"https://example.test\"\")\"");
+  assert.equal(csvEscape("  +SUM(1,2)"), "\"'  +SUM(1,2)\"");
+  assert.equal(csvEscape("\t@SUM(A1:A2)"), "'\t@SUM(A1:A2)");
+  assert.equal(csvEscape("-2"), "'-2");
+  assert.equal(csvEscape("ordinary text"), "ordinary text");
+  assert.equal(csvEscape("quoted, text"), "\"quoted, text\"");
+});
+
+test("shared HTML escaping protects text interpolated into extension markup", () => {
+  const { escapeHtml } = loadCommon();
+
+  assert.equal(
+    escapeHtml("<img src=x onerror='alert(1)'>&"),
+    "&lt;img src=x onerror=&#39;alert(1)&#39;&gt;&amp;",
+  );
+});

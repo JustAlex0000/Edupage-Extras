@@ -31,3 +31,13 @@ jobs:
 
       - name: Lint for Firefox
         run: npm run lint:firefox
+
+      - name: Build and verify Firefox package
+        run: |
+          npm run build:firefox
+          npm run verify:firefox-package
+
+      - name: Build and verify Chrome package
+        run: |
+          npm run build:chrome
+          npm run verify:chrome-package

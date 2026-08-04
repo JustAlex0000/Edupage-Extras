@@ -862,9 +862,34 @@ async function readTimetableSyncCache(origin) {
   const root = result?.[TIMETABLE_SYNC_CACHE_KEY];
   if (!root || root.version !== TIMETABLE_SYNC_CACHE_VERSION) return null;
 
-  const bucket = root.byOrigin?.[origin];
+  const originalByOrigin = root.byOrigin && typeof root.byOrigin === "object" ? root.byOrigin : {};
+  const byOrigin = pruneTimetableSyncCache(originalByOrigin);
+  if (JSON.stringify(byOrigin) !== JSON.stringify(originalByOrigin)) {
+    await storageSet({
+      [TIMETABLE_SYNC_CACHE_KEY]: {
+        version: TIMETABLE_SYNC_CACHE_VERSION,
+        byOrigin,
+      },
+    });
+  }
+  const bucket = byOrigin[origin];
   if (!bucket || typeof bucket !== "object") return null;
   return bucket;
+}
+
+function pruneTimetableSyncCache(byOrigin, now = Date.now()) {
+  const cache = byOrigin && typeof byOrigin === "object" ? byOrigin : {};
+  return Object.fromEntries(
+    Object.entries(cache).filter(([, bucket]) => {
+      const fetchedAt = Number(bucket?.fetchedAt);
+      const age = now - fetchedAt;
+      return bucket
+        && typeof bucket === "object"
+        && Number.isFinite(fetchedAt)
+        && age >= 0
+        && age <= TIMETABLE_LIVE_CACHE_TTL_MS;
+    }),
+  );
 }
 
 async function writeTimetableSyncCache(origin, bundle) {
@@ -873,7 +898,7 @@ async function writeTimetableSyncCache(origin, bundle) {
   const result = await storageGet([TIMETABLE_SYNC_CACHE_KEY]);
   const root = result?.[TIMETABLE_SYNC_CACHE_KEY];
   const byOrigin = root?.version === TIMETABLE_SYNC_CACHE_VERSION && root?.byOrigin && typeof root.byOrigin === "object"
-    ? { ...root.byOrigin }
+    ? pruneTimetableSyncCache(root.byOrigin)
     : {};
 
   byOrigin[origin] = {
@@ -1537,6 +1562,7 @@ if (globalThis.__EE_TEST__) {
     parseExcludedDateRanges,
     buildThemeUpdateMessage,
     buildReportIssueUrl,
+    pruneTimetableSyncCache,
   };
 }
 

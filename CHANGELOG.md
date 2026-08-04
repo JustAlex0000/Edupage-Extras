@@ -4,6 +4,28 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.9.21 — 2026-08-02
+
+- Hardened Firefox signing and both browser package builds around one explicit
+  shipping allowlist, with browser-specific archive verification in normal CI
+  and the release workflow.
+- Improved the iOS `/app/*` compatibility fix in Orion and Safari-compatible
+  extension hosts by injecting a narrowly exposed MAIN-world fallback and
+  keeping EduPage's unavailable native request paths disabled for the page.
+- Limited locally cached attendance and timetable data to short-lived,
+  school-scoped buckets that prune automatically, and added a localized Debug
+  action for clearing those reconstructible caches without changing settings.
+- Scoped grade-title overrides by school, persisted legacy origin migrations,
+  escaped user-entered grade titles, and protected CSV exports from spreadsheet
+  formula injection.
+- Reduced unnecessary page work by bounding Activity Shield's initial jQuery
+  polling, reliably cancelling synthetic animation frames, restricting Grades
+  initialization to its documented route and top frame, and cleaning up the
+  Auto-Login observer on terminal states.
+- Improved injected UX with localized Activity Shield and attendance status
+  text plus an accessible, keyboard-dismissible Virtual Grades popover that
+  remains within the viewport.
+
 ## 0.9.20 — 2026-07-28
 
 - Fixed the opt-in mobile redirect on iPhone and iPad when

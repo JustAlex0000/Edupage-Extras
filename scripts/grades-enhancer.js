@@ -43,6 +43,7 @@
   // IIFE and can't see this file's local `let`s), addressed as GE.state.*.
   GE.state = {
     gradeTitleOverrides: {},
+    gradeTitleOverridesByOrigin: {},
     virtualGradesData: {},
     existingMassOverrides: {},
     virtualGradesByOrigin: {},
@@ -52,6 +53,7 @@
     halfyearEndOverride: "",
     attendanceStatsCache: null,
     gradesAttendanceEnabled: true,
+    storageReady: false,
     gradesView: { selectedYear: null, halfKey: "", signature: "current:current" },
   };
 
@@ -266,10 +268,16 @@
     // the legacy shape by value type (legacy values are arrays/numbers; the
     // new byOrigin map's values are always per-origin objects) and nest it
     // under the current origin so existing saved data isn't lost.
+    function isLegacyFlatMap(stored, isLegacyValue) {
+      return Boolean(
+        stored
+        && typeof stored === "object"
+        && Object.values(stored).some((value) => isLegacyValue(value)),
+      );
+    }
     function migrateFlatMapToByOrigin(stored, origin, isLegacyValue) {
       if (!stored || typeof stored !== "object") return {};
-      const looksLegacy = Object.values(stored).some((value) => isLegacyValue(value));
-      return looksLegacy ? { [origin]: stored } : stored;
+      return isLegacyFlatMap(stored, isLegacyValue) ? { [origin]: stored } : stored;
     }
     function getGradesTables() {
       return Array.from(document.querySelectorAll("table.znamkyTable"));
@@ -727,13 +735,15 @@
         .ee-vg-popover {
           position: fixed;
           z-index: 99999;
+          box-sizing: border-box;
           background: #fff;
           border: 1px solid #d0d0d0;
           border-radius: 8px;
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
           padding: 12px;
-          min-width: 210px;
-          max-width: 290px;
+          min-width: min(210px, calc(100vw - 16px));
+          max-width: min(290px, calc(100vw - 16px));
+          overflow-y: auto;
         }
 
         .ee-vg-popover-header {
@@ -1272,26 +1282,60 @@
         gradeBadgesEnabled = result[GRADE_BADGES_KEY] === true;
         gradesSortFilterEnabled = result[GRADES_SORT_FILTER_KEY] !== false;
         gradesExportEnabled = result[GRADES_EXPORT_KEY] === true;
-        GE.state.gradeTitleOverrides = result[GRADE_TITLE_OVERRIDES_KEY] && typeof result[GRADE_TITLE_OVERRIDES_KEY] === "object"
-          ? result[GRADE_TITLE_OVERRIDES_KEY]
-          : {};
         GE.state.gradesAttendanceEnabled = result[GRADES_ATTENDANCE_KEY] !== false;
         GE.state.gradesAttendanceDebugEnabled = result[GRADES_ATTENDANCE_DEBUG_KEY] === true;
         GE.state.halfyearStartOverride = normalizeDateInput(result[HALFYEAR_START_KEY]);
         GE.state.halfyearEndOverride = normalizeDateInput(result[HALFYEAR_END_KEY]);
         const origin = currentOrigin();
-        GE.state.virtualGradesByOrigin = migrateFlatMapToByOrigin(result[VIRTUAL_GRADES_KEY], origin, Array.isArray);
+        const storedGradeTitleOverrides = result[GRADE_TITLE_OVERRIDES_KEY];
+        const gradeTitleOverridesWereLegacy = isLegacyFlatMap(
+          storedGradeTitleOverrides,
+          (value) => typeof value === "string",
+        );
+        GE.state.gradeTitleOverridesByOrigin = migrateFlatMapToByOrigin(
+          storedGradeTitleOverrides,
+          origin,
+          (value) => typeof value === "string",
+        );
+        GE.state.gradeTitleOverrides = GE.state.gradeTitleOverridesByOrigin[origin]
+          && typeof GE.state.gradeTitleOverridesByOrigin[origin] === "object"
+          ? GE.state.gradeTitleOverridesByOrigin[origin]
+          : {};
+        const storedVirtualGrades = result[VIRTUAL_GRADES_KEY];
+        const virtualGradesWereLegacy = isLegacyFlatMap(storedVirtualGrades, Array.isArray);
+        GE.state.virtualGradesByOrigin = migrateFlatMapToByOrigin(storedVirtualGrades, origin, Array.isArray);
         GE.state.virtualGradesData = GE.state.virtualGradesByOrigin[origin] && typeof GE.state.virtualGradesByOrigin[origin] === "object"
           ? GE.state.virtualGradesByOrigin[origin]
           : {};
+        const storedExistingMassOverrides = result[EXISTING_MASS_OVERRIDES_KEY];
+        const existingMassOverridesWereLegacy = isLegacyFlatMap(
+          storedExistingMassOverrides,
+          (value) => typeof value === "number",
+        );
         GE.state.existingMassOverridesByOrigin = migrateFlatMapToByOrigin(
-          result[EXISTING_MASS_OVERRIDES_KEY],
+          storedExistingMassOverrides,
           origin,
           (value) => typeof value === "number",
         );
         GE.state.existingMassOverrides = GE.state.existingMassOverridesByOrigin[origin] && typeof GE.state.existingMassOverridesByOrigin[origin] === "object"
           ? GE.state.existingMassOverridesByOrigin[origin]
           : {};
+        const originMigrations = {};
+        if (gradeTitleOverridesWereLegacy) {
+          originMigrations[GRADE_TITLE_OVERRIDES_KEY] = GE.state.gradeTitleOverridesByOrigin;
+        }
+        if (virtualGradesWereLegacy) {
+          originMigrations[VIRTUAL_GRADES_KEY] = GE.state.virtualGradesByOrigin;
+        }
+        if (existingMassOverridesWereLegacy) {
+          originMigrations[EXISTING_MASS_OVERRIDES_KEY] = GE.state.existingMassOverridesByOrigin;
+        }
+        if (Object.keys(originMigrations).length > 0) {
+          GE.storageSet(originMigrations).catch(() => {
+            /* The in-memory migration still keeps the current page functional. */
+          });
+        }
+        GE.state.storageReady = true;
         enhanceGradesTable();
       });
 
@@ -1316,8 +1360,15 @@
         }
 
         if (changes[GRADE_TITLE_OVERRIDES_KEY]) {
-          GE.state.gradeTitleOverrides = changes[GRADE_TITLE_OVERRIDES_KEY].newValue && typeof changes[GRADE_TITLE_OVERRIDES_KEY].newValue === "object"
-            ? changes[GRADE_TITLE_OVERRIDES_KEY].newValue
+          const origin = currentOrigin();
+          GE.state.gradeTitleOverridesByOrigin = migrateFlatMapToByOrigin(
+            changes[GRADE_TITLE_OVERRIDES_KEY].newValue,
+            origin,
+            (value) => typeof value === "string",
+          );
+          GE.state.gradeTitleOverrides = GE.state.gradeTitleOverridesByOrigin[origin]
+            && typeof GE.state.gradeTitleOverridesByOrigin[origin] === "object"
+            ? GE.state.gradeTitleOverridesByOrigin[origin]
             : {};
           shouldEnhance = true;
         }
@@ -1385,7 +1436,6 @@
     }
     function init() {
       injectStyles();
-      GE.badges.loadGradeTitleOverrides();
       document.addEventListener("dblclick", GE.badges.handleGradeTitleEdit, true);
       document.addEventListener("click", GE.virtual.handleDocumentClickForPopover, true);
       initStorage();
@@ -1426,6 +1476,7 @@
   GE.buildGradesViewContext = buildGradesViewContext;
   GE.readGradesViewContext = readGradesViewContext;
   GE.migrateFlatMapToByOrigin = migrateFlatMapToByOrigin;
+  GE.isLegacyFlatMap = isLegacyFlatMap;
   GE.getGradesTables = getGradesTables;
   GE.gradeTableRowCount = gradeTableRowCount;
   GE.getPrimaryGradesTable = getPrimaryGradesTable;

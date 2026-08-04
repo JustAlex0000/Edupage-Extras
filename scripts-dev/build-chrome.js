@@ -8,37 +8,31 @@
  * manifest without those keys, and zips it into web-ext-artifacts/ (same place
  * the Firefox build lands, so verify-firefox-package.js checks it too).
  */
-const { execSync } = require("node:child_process");
+const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
-const os = require("node:os");
 const path = require("node:path");
+const {
+  ROOT: root,
+  ARTIFACTS_DIR: artifactsDir,
+  createPackageStaging,
+} = require("./package-policy");
 
-const root = path.join(__dirname, "..");
-const artifactsDir = path.join(root, "web-ext-artifacts");
+const staging = createPackageStaging("ee-chrome-");
 
-// Everything the extension actually ships — anything not listed here never
-// reaches the zip, so gitignored/analysis dirs can't leak in by accident.
-const SHIP = ["manifest.json", "_locales", "images", "menu", "scripts", "LICENSE"];
+try {
+  const manifestPath = path.join(staging, "manifest.json");
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  delete manifest.browser_specific_settings;
+  delete manifest.background.scripts; // keep only service_worker for Chrome
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
 
-const staging = fs.mkdtempSync(path.join(os.tmpdir(), "ee-chrome-"));
-for (const entry of SHIP) {
-  fs.cpSync(path.join(root, entry), path.join(staging, entry), { recursive: true });
+  fs.mkdirSync(artifactsDir, { recursive: true });
+  const zipName = `edupage_extras-${manifest.version}-chrome.zip`;
+  const zipPath = path.join(artifactsDir, zipName);
+  fs.rmSync(zipPath, { force: true });
+  execFileSync("zip", ["-r", "-X", zipPath, "."], { cwd: staging, stdio: "pipe" });
+
+  console.log(`Built ${path.relative(root, zipPath)} (Chrome manifest: Firefox-only keys stripped).`);
+} finally {
+  fs.rmSync(staging, { recursive: true, force: true });
 }
-
-// Dev-only skeleton for new enhancers — never referenced by the manifest.
-fs.rmSync(path.join(staging, "scripts", "_template-enhancer.js"), { force: true });
-
-const manifestPath = path.join(staging, "manifest.json");
-const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-delete manifest.browser_specific_settings;
-delete manifest.background.scripts; // keep only service_worker for Chrome
-fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
-
-fs.mkdirSync(artifactsDir, { recursive: true });
-const zipName = `edupage_extras-${manifest.version}-chrome.zip`;
-const zipPath = path.join(artifactsDir, zipName);
-fs.rmSync(zipPath, { force: true });
-execSync(`zip -r -X ${JSON.stringify(zipPath)} .`, { cwd: staging, stdio: "pipe" });
-fs.rmSync(staging, { recursive: true, force: true });
-
-console.log(`Built ${path.relative(root, zipPath)} (Chrome manifest: Firefox-only keys stripped).`);

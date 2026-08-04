@@ -8,6 +8,10 @@ const SOURCE = fs.readFileSync(
   path.join(__dirname, "..", "scripts", "ua-ios-fix.js"),
   "utf8",
 );
+const BOOTSTRAP_SOURCE = fs.readFileSync(
+  path.join(__dirname, "..", "scripts", "ua-ios-bootstrap.js"),
+  "utf8",
+);
 
 const IPHONE_UA =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) " +
@@ -56,6 +60,8 @@ function createHarness({ pathname = "/app/main", nativeBridge = false } = {}) {
   document.querySelectorAll = () => scripts;
   const window = new FakeEventTarget();
   window.window = window;
+  window.self = window;
+  window.top = window;
   window.webkit = {
     messageHandlers: nativeBridge
       ? { NativePersistenceProvider: { postMessage() {} } }
@@ -85,7 +91,7 @@ function createHarness({ pathname = "/app/main", nativeBridge = false } = {}) {
   return { context, edubar, inobounce, edupage, window };
 }
 
-test("ordinary iOS browsers skip EduPage's native request transport", () => {
+test("ordinary iOS browsers keep EduPage's native request transport disabled", () => {
   const harness = createHarness();
 
   assert.equal(harness.window.webkit, undefined);
@@ -94,8 +100,8 @@ test("ordinary iOS browsers skip EduPage's native request transport", () => {
   assert.equal(harness.context.navigator.vendor, "Apple Computer, Inc.");
 
   harness.edupage.dispatch("load");
-  assert.ok(harness.window.webkit);
-  assert.deepEqual(harness.window.webkit.messageHandlers, {});
+  harness.window.dispatch("DOMContentLoaded");
+  assert.equal(harness.window.webkit, undefined);
 });
 
 test("browser app mode disables native scheme fallback and iNoBounce", () => {
@@ -127,6 +133,7 @@ test("the real EduPage native container keeps its WebKit bridge", () => {
 
   assert.ok(harness.window.webkit);
   assert.ok(harness.window.webkit.messageHandlers.NativePersistenceProvider);
+  assert.match(harness.context.navigator.userAgent, /iPhone/);
 });
 
 test("the compatibility bootstrap stays scoped to /app routes", () => {
@@ -134,4 +141,83 @@ test("the compatibility bootstrap stays scoped to /app routes", () => {
 
   assert.ok(harness.window.webkit);
   assert.match(harness.context.navigator.userAgent, /iPhone/);
+});
+
+test("the compatibility script is idempotent when direct and injected copies run", () => {
+  const harness = createHarness();
+
+  vm.runInContext(SOURCE, harness.context, { filename: "ua-ios-fix.js" });
+  assert.equal(harness.window.webkit, undefined);
+  assert.match(harness.context.navigator.userAgent, /Android 14/);
+});
+
+function createBootstrapHarness({
+  pathname = "/app/main",
+  userAgent = IPHONE_UA,
+  topFrame = true,
+} = {}) {
+  const inserted = [];
+  const root = {
+    prepend(node) {
+      inserted.push(node);
+    },
+  };
+  const document = {
+    documentElement: root,
+    createElement() {
+      return {
+        async: true,
+        dataset: {},
+        addEventListener() {},
+        remove() {},
+      };
+    },
+  };
+  const window = {};
+  window.self = window;
+  window.top = topFrame ? window : {};
+
+  class FakeMutationObserver {
+    observe() {}
+    disconnect() {}
+  }
+
+  const context = vm.createContext({
+    chrome: {
+      runtime: {
+        getURL(resource) {
+          return `safari-web-extension://extension/${resource}`;
+        },
+      },
+    },
+    document,
+    location: { pathname },
+    MutationObserver: FakeMutationObserver,
+    navigator: { userAgent },
+    window,
+  });
+  window.document = document;
+  window.location = context.location;
+  window.navigator = context.navigator;
+
+  vm.runInContext(BOOTSTRAP_SOURCE, context, { filename: "ua-ios-bootstrap.js" });
+  return inserted;
+}
+
+test("isolated iOS bootstrap injects the compatibility script into the page", () => {
+  const inserted = createBootstrapHarness();
+
+  assert.equal(inserted.length, 1);
+  assert.equal(
+    inserted[0].src,
+    "safari-web-extension://extension/scripts/ua-ios-fix.js",
+  );
+  assert.equal(inserted[0].async, false);
+  assert.equal(inserted[0].dataset.eeIosMainBootstrap, "true");
+});
+
+test("isolated bootstrap avoids unrelated pages and subframes", () => {
+  assert.equal(createBootstrapHarness({ pathname: "/elearning/" }).length, 0);
+  assert.equal(createBootstrapHarness({ userAgent: "Mozilla/5.0 Android Mobile" }).length, 0);
+  assert.equal(createBootstrapHarness({ topFrame: false }).length, 0);
 });

@@ -10,6 +10,8 @@
 (function () {
   "use strict";
 
+  if (window.top !== window) return;
+
   const GE = (window.__eeGrades = window.__eeGrades || {});
 
   const GRADES_ATTENDANCE_CACHE_KEY = "eeGradesAttendanceStatsCache";
@@ -28,8 +30,31 @@
       attendanceStatsPromise = null;
       GE.state.attendanceStatsCache = null;
     }
-    function updateAttendanceCache(byOrigin, origin, stats, fallbackSignature) {
+    function pruneAttendanceCache(byOrigin, now = Date.now()) {
       const cache = byOrigin && typeof byOrigin === "object" ? byOrigin : {};
+      return Object.fromEntries(
+        Object.entries(cache)
+          .map(([origin, storedOrigin]) => {
+            if (!storedOrigin || typeof storedOrigin !== "object" || "version" in storedOrigin) {
+              return [origin, {}];
+            }
+            const freshViews = Object.fromEntries(
+              Object.entries(storedOrigin).filter(([, stats]) => {
+                const age = now - GE.numberValue(stats?.fetchedAt);
+                return stats
+                  && typeof stats === "object"
+                  && stats.version === GRADES_ATTENDANCE_CACHE_VERSION
+                  && age >= 0
+                  && age <= CACHE_TTL_MS;
+              }),
+            );
+            return [origin, freshViews];
+          })
+          .filter(([, storedOrigin]) => Object.keys(storedOrigin).length > 0),
+      );
+    }
+    function updateAttendanceCache(byOrigin, origin, stats, fallbackSignature, now = Date.now()) {
+      const cache = pruneAttendanceCache(byOrigin, now);
       const storedOrigin = cache[origin];
       const byView = storedOrigin && typeof storedOrigin === "object" && !("version" in storedOrigin)
         ? storedOrigin
@@ -1762,7 +1787,11 @@
       if (GE.state.gradesAttendanceDebugEnabled) return null;
       const result = await GE.storageGet([GRADES_ATTENDANCE_CACHE_KEY]);
       const byOrigin = result[GRADES_ATTENDANCE_CACHE_KEY] || {};
-      const cached = byOrigin[GE.currentOrigin()]?.[viewSignature];
+      const pruned = pruneAttendanceCache(byOrigin);
+      if (JSON.stringify(pruned) !== JSON.stringify(byOrigin)) {
+        await GE.storageSet({ [GRADES_ATTENDANCE_CACHE_KEY]: pruned });
+      }
+      const cached = pruned[GE.currentOrigin()]?.[viewSignature];
 
       if (!cached) return null;
       if (cached.version !== GRADES_ATTENDANCE_CACHE_VERSION) return null;
@@ -2300,6 +2329,7 @@
 
   GE.attendance = {
     resetForGradesView,
+    pruneAttendanceCache,
     updateAttendanceCache,
     ensureAttendanceColumns,
     clearSubjectAttendance,

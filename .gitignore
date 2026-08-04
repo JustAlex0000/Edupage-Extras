@@ -20,8 +20,9 @@ web-ext-artifacts/
 .env
 .env.*
 !.env.example
-# Local-only research may contain saved page captures or school-specific notes.
-# Keep it available to maintainers without risking it in a source package.
+# Local-only documentation and research may contain generated notes, saved page
+# captures, school-specific material, or standalone experiments. Never commit
+# or package anything under this directory.
 docs/
 PROJECT_CONTEXT.md
 AGENTS.md

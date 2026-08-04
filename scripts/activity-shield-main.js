@@ -290,6 +290,8 @@
   try {
     if (typeof nativeRequestAnimationFrame === "function" && typeof nativeCancelAnimationFrame === "function") {
       let lastFrameTime = 0;
+      let nextSyntheticFrameId = -1;
+      const syntheticFrames = new Map();
       window.requestAnimationFrame = new Proxy(nativeRequestAnimationFrame, {
         apply(target, self, args) {
           if (active("animationFrame") && readNativeHidden()) {
@@ -299,7 +301,13 @@
             }
             const currentTime = Date.now();
             const delay = Math.max(0, 16 - (currentTime - lastFrameTime));
-            const id = setTimeout(() => callback(performance.now()), delay);
+            const id = nextSyntheticFrameId;
+            nextSyntheticFrameId -= 1;
+            const timer = setTimeout(() => {
+              syntheticFrames.delete(id);
+              callback(performance.now());
+            }, delay);
+            syntheticFrames.set(id, timer);
             lastFrameTime = currentTime + delay;
             return id;
           }
@@ -309,8 +317,10 @@
 
       window.cancelAnimationFrame = new Proxy(nativeCancelAnimationFrame, {
         apply(target, self, args) {
-          if (active("animationFrame") && readNativeHidden()) {
-            clearTimeout(args[0]);
+          const id = args[0];
+          if (syntheticFrames.has(id)) {
+            clearTimeout(syntheticFrames.get(id));
+            syntheticFrames.delete(id);
             return undefined;
           }
           return Reflect.apply(target, self, args);
@@ -330,7 +340,11 @@
   let jqueryGateInstalled = false;
   const installJqueryListenerGate = () => {
     const jq = window.jQuery || window.$;
-    if (!jq?.event?.add || jq.event.add.__eeActivityShieldGate) return false;
+    if (!jq?.event?.add) return false;
+    if (jq.event.add.__eeActivityShieldGate) {
+      jqueryGateInstalled = true;
+      return true;
+    }
 
     const nativeAdd = jq.event.add;
     const gatedHandlers = new WeakMap();
@@ -363,16 +377,26 @@
     return true;
   };
 
-  const jqueryGateTimer = setInterval(() => {
-    if (installJqueryListenerGate()) clearInterval(jqueryGateTimer);
-  }, 25);
-  installJqueryListenerGate();
+  // Poll rapidly only across the initial script-loading window. If jQuery is
+  // already present, do not create a timer at all. The slower compatibility
+  // sweep below keeps trying after this bounded window, without leaving a
+  // permanent 40 Hz task on pages or frames that never load jQuery.
+  if (!installJqueryListenerGate()) {
+    let jqueryGateAttempts = 0;
+    const jqueryGateTimer = setInterval(() => {
+      jqueryGateAttempts += 1;
+      if (installJqueryListenerGate() || jqueryGateAttempts >= 400) {
+        clearInterval(jqueryGateTimer);
+      }
+    }, 25);
+  }
 
   // Remove once any eTest handlers that raced registration before the gate.
   // If a jQuery build does not expose event.add, retain the periodic sweep as
   // the compatibility fallback.
   let preGateHandlersRemoved = false;
   setInterval(() => {
+    if (!jqueryGateInstalled) installJqueryListenerGate();
     if (!strictActive("jquerySweep")) return;
     if (jqueryGateInstalled && preGateHandlersRemoved) return;
     const jq = window.jQuery || window.$;

@@ -9,6 +9,8 @@
 (function () {
   "use strict";
 
+  if (window.top !== window) return;
+
   const GE = (window.__eeGrades = window.__eeGrades || {});
 
     function debugLog(...args) {

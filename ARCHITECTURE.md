@@ -48,13 +48,32 @@ intact. Sorting/filtering state is page-local and is reset when EduPage replaces
 or reloads the table.
 
 Load order matters and is defined by the manifest `js` array:
-`diagnostics.js` loads **first** to install early error capture (it exposes
+`ua-ios-bootstrap.js` loads first as the isolated-world fallback described
+below. `diagnostics.js` then installs early error capture (it exposes
 `window.__eeDiagnostics`, and only ever sends data in response to an explicit
 `ee-collect-page-diagnostics` message from the user-triggered "Report a
 Problem" flow; the default snapshot is structure-only redacted). Then the
 Activity Shield bridge, `content.js` (theming), and the per-page enhancers
 (`timetable-`, `grades-`, `attendance-`, `ucivo-`, `etest-enhancer.js`,
 `autologin.js`).
+
+## iOS browser app compatibility
+
+EduPage serves `/app/main` with `AscMobileAppVersion` even in an ordinary iOS
+browser. Its app code also treats any truthy `window.webkit` as proof that
+native request handlers exist. In Orion and Safari-compatible WebExtension
+hosts this can hide the web login and route RPC/storage calls into native
+handlers that never answer.
+
+`ua-ios-fix.js` runs directly in the MAIN world where the manifest host
+supports MV3's `world` key. Orion may ignore that key, so the first isolated
+content script, `ua-ios-bootstrap.js`, also injects the packaged fix through a
+narrow `web_accessible_resources` entry. The fix is top-level, iOS, and
+`/app/*` only. It leaves the real iPhone platform/vendor visible, shadows the
+UA needed by EduPage's login gate, and keeps the generic `window.webkit`
+namespace hidden for that page's lifetime because EduPage repeats its
+truthiness check for every RPC and lazy appstorage call. A genuine EduPage
+message handler/native provider bypasses the browser compatibility behavior.
 
 ## FOUC prevention (theme cache)
 
@@ -128,6 +147,13 @@ Keys are camelCase in `chrome.storage.local`. Newer keys are prefixed `ee`
 (e.g. `eeMobileResponsiveEnabled`); legacy ones are unprefixed
 (`darkModeEnabled`) and stay that way for compatibility.
 
+School-specific grade-title overrides are nested by EduPage origin; legacy
+flat maps migrate under the current origin. Structured attendance and
+timetable caches use the same origin boundary, expire after 15 and 10 minutes
+respectively, and prune stale buckets during normal reads/writes. Settings →
+Debug can remove both reconstructible caches without touching preferences or
+user-authored grade data.
+
 ## Tests
 
 `npm test` runs Node's built-in test runner over `tests/*.test.js`. Tests
@@ -146,3 +172,9 @@ bumped only via `npm version` (a lifecycle hook syncs `manifest.json`), every
 bump gets a `CHANGELOG.md` entry in the same commit, and pushing a matching
 `vX.Y.Z` tag triggers the workflow that tests, builds, publishes to the
 Chrome Web Store + AMO, and creates the GitHub Release.
+
+Both browser builders stage only the paths declared in
+`scripts-dev/package-policy.js`; Firefox packaging and signing never operate
+directly on the working tree. Browser-specific verification selects the exact
+current-version archive and rejects every entry outside the shared allowlist.
+Normal CI builds and verifies both packages before release time.

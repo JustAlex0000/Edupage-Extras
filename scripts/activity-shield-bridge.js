@@ -66,6 +66,14 @@
     port.dataset[name] = String(value === true);
   }
 
+  function t(key) {
+    try {
+      return chrome.i18n.getMessage(key) || key;
+    } catch (_) {
+      return key;
+    }
+  }
+
   function ensureIndicator() {
     let indicator = document.getElementById(INDICATOR_ID);
     if (indicator) return indicator;
@@ -73,8 +81,8 @@
     indicator = document.createElement("button");
     indicator.id = INDICATOR_ID;
     indicator.type = "button";
-    indicator.title = "Edupage Extras Activity Shield";
-    indicator.setAttribute("aria-label", "Edupage Extras Activity Shield");
+    indicator.title = t("activityShieldIndicatorName");
+    indicator.setAttribute("aria-label", t("activityShieldIndicatorName"));
     indicator.style.cssText = [
       "position:fixed",
       "right:18px",
@@ -101,7 +109,7 @@
     const indicator = ensureIndicator();
     indicator.style.display = visible ? "block" : "none";
     indicator.style.background = enabled ? "#89b4fa" : "#f38ba8";
-    const label = enabled ? "Activity Shield active" : "Activity Shield paused";
+    const label = t(enabled ? "activityShieldIndicatorActive" : "activityShieldIndicatorPaused");
     indicator.title = label;
     indicator.setAttribute("aria-label", label);
   }

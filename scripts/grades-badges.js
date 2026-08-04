@@ -9,11 +9,12 @@
 (function () {
   "use strict";
 
+  if (window.top !== window) return;
+
   const GE = (window.__eeGrades = window.__eeGrades || {});
 
   const GRADE_TITLE_OVERRIDES_KEY = "eeGradeTitleOverrides";
   const AVERAGE_RENDER_SIGNATURE_ATTR = "data-ee-average-render-signature";
-  let gradeTitleOverridesPromise = null;
 
     function parseGradeTitleSegments(originalTitleHtml) {
       const html = String(originalTitleHtml || "").trim();
@@ -31,7 +32,7 @@
       return { title, detailHtml };
     }
     function buildGradeOriginalTitleHtml(title, detailHtml = "") {
-      const safeTitle = GE.normalizeWhitespace(title);
+      const safeTitle = EE.escapeHtml(GE.normalizeWhitespace(title));
       const safeDetail = String(detailHtml || "").trim();
       if (!safeTitle && !safeDetail) return "";
       if (!safeTitle) return safeDetail;
@@ -82,26 +83,13 @@
         storageKey: buildGradeTitleOverrideKey(subjectId, dateText, gradeValue, columnIndex, title),
       };
     }
-    async function loadGradeTitleOverrides() {
-      if (gradeTitleOverridesPromise) {
-        return gradeTitleOverridesPromise;
-      }
-
-      gradeTitleOverridesPromise = GE.storageGet([GRADE_TITLE_OVERRIDES_KEY])
-        .then((result) => {
-          GE.state.gradeTitleOverrides = result[GRADE_TITLE_OVERRIDES_KEY] && typeof result[GRADE_TITLE_OVERRIDES_KEY] === "object"
-            ? result[GRADE_TITLE_OVERRIDES_KEY]
-            : {};
-          return GE.state.gradeTitleOverrides;
-        })
-        .finally(() => {
-          gradeTitleOverridesPromise = null;
-        });
-
-      return gradeTitleOverridesPromise;
-    }
     async function saveGradeTitleOverrides() {
-      await GE.storageSet({ [GRADE_TITLE_OVERRIDES_KEY]: GE.state.gradeTitleOverrides });
+      const origin = GE.currentOrigin();
+      GE.state.gradeTitleOverridesByOrigin = {
+        ...GE.state.gradeTitleOverridesByOrigin,
+        [origin]: GE.state.gradeTitleOverrides,
+      };
+      await GE.storageSet({ [GRADE_TITLE_OVERRIDES_KEY]: GE.state.gradeTitleOverridesByOrigin });
     }
     function applyStoredGradeTitles(table) {
       Array.from(table.querySelectorAll("span.tips")).forEach((gradeTip) => {
@@ -123,6 +111,7 @@
       });
     }
     async function handleGradeTitleEdit(event) {
+      if (!GE.state.storageReady) return;
       const gradeTip = event.target instanceof Element ? event.target.closest("span.tips") : null;
       if (!(gradeTip instanceof Element) || !gradeTip.querySelector(".znZnamka")) return;
 
@@ -204,7 +193,6 @@
 
   GE.badges = {
     applyStoredGradeTitles,
-    loadGradeTitleOverrides,
     handleGradeTitleEdit,
     enhanceAverageCell,
     restoreAverageCells,

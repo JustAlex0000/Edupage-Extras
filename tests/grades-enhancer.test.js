@@ -103,6 +103,27 @@ runTest("virtual grade expansion stops after the first dispatched candidate", ()
   assert.deepEqual(calls, ["explicit-toggle"]);
 });
 
+runTest("virtual grade popovers stay inside the viewport and flip above when needed", () => {
+  const { computeVirtualPopoverPosition } = loadGradesEnhancerInternals();
+
+  const nearBottomRight = computeVirtualPopoverPosition(
+    { left: 390, top: 710, bottom: 730 },
+    { width: 210, height: 240 },
+    { width: 400, height: 740 },
+  );
+  assert.equal(nearBottomRight.left, 182);
+  assert.equal(nearBottomRight.top, 466);
+  assert.equal(nearBottomRight.maxHeight, 724);
+
+  const nearTop = computeVirtualPopoverPosition(
+    { left: 12, top: 20, bottom: 40 },
+    { width: 210, height: 240 },
+    { width: 400, height: 740 },
+  );
+  assert.equal(nearTop.left, 12);
+  assert.equal(nearTop.top, 44);
+});
+
 runTest("numeric averages still use the existing 1-5 grading scale", () => {
   const { parseAverage, gradeColor, gradePercentage } = loadGradesEnhancerInternals();
   const average = parseAverage("2.13");
@@ -366,26 +387,61 @@ runTest("selected current first half overrides today's second-half inference", (
 
 runTest("attendance cache isolates periods and replaces the legacy origin entry", () => {
   const { updateAttendanceCache } = loadGradesEnhancerInternals();
+  const now = 1_000_000;
   const legacy = {
     "https://school.example": { version: 14, halfKey: "2" },
   };
-  const firstHalfStats = { viewSignature: "2024:1", halfKey: "1" };
+  const firstHalfStats = {
+    version: 15,
+    viewSignature: "2024:1",
+    halfKey: "1",
+    fetchedAt: now - 1_000,
+  };
   const firstUpdate = updateAttendanceCache(
     legacy,
     "https://school.example",
     firstHalfStats,
+    undefined,
+    now,
   );
-  const secondHalfStats = { viewSignature: "2024:2", halfKey: "2" };
+  const secondHalfStats = {
+    version: 15,
+    viewSignature: "2024:2",
+    halfKey: "2",
+    fetchedAt: now,
+  };
   const secondUpdate = updateAttendanceCache(
     firstUpdate,
     "https://school.example",
     secondHalfStats,
+    undefined,
+    now,
   );
 
   assert.equal(firstUpdate["https://school.example"]["2024:1"].halfKey, "1");
   assert.equal(firstUpdate["https://school.example"].version, undefined);
   assert.equal(secondUpdate["https://school.example"]["2024:1"].halfKey, "1");
   assert.equal(secondUpdate["https://school.example"]["2024:2"].halfKey, "2");
+});
+
+runTest("attendance cache pruning removes expired views and empty origins", () => {
+  const { pruneAttendanceCache } = loadGradesEnhancerInternals();
+  const now = 2_000_000;
+  const cache = {
+    "https://school-a.example": {
+      "2024:1": { version: 15, fetchedAt: now - 1_000 },
+      "2023:2": { version: 15, fetchedAt: now - (16 * 60 * 1_000) },
+    },
+    "https://school-b.example": {
+      "2024:1": { version: 14, fetchedAt: now },
+    },
+  };
+
+  const pruned = pruneAttendanceCache(cache, now);
+
+  assert.equal(Object.keys(pruned).length, 1);
+  assert.equal(pruned["https://school-a.example"]["2024:1"].version, 15);
+  assert.equal(pruned["https://school-a.example"]["2023:2"], undefined);
 });
 
 runTest("subject absences can be assigned directly from attendance subject ids", () => {
@@ -610,6 +666,15 @@ runTest("grade title overrides preserve the date details and replace only the ti
   assert.equal(parsed.title, "Písomná odpoveď");
   assert.equal(parsed.detailHtml, "Dátum známky: 12.02.2026");
   assert.equal(rebuilt, "<b>Esej</b><br>Dátum známky: 12.02.2026");
+});
+
+runTest("grade title overrides escape user-entered markup", () => {
+  const { buildGradeOriginalTitleHtml } = loadGradesEnhancerInternals();
+
+  assert.equal(
+    buildGradeOriginalTitleHtml("<img src=x onerror=alert(1)>", "Dátum známky: 12.02.2026"),
+    "<b>&lt;img src=x onerror=alert(1)&gt;</b><br>Dátum známky: 12.02.2026",
+  );
 });
 
 runTest("grade title override keys stay stable for the same subject, date, grade, column, and default title", () => {
@@ -1082,6 +1147,30 @@ runTest("migrateFlatMapToByOrigin nests a legacy flat mass-overrides map under t
   const migrated = migrateFlatMapToByOrigin(legacy, "https://school-a.edupage.org", (v) => typeof v === "number");
 
   assert.equal(JSON.stringify(migrated), JSON.stringify({ "https://school-a.edupage.org": legacy }));
+});
+
+runTest("migrateFlatMapToByOrigin scopes legacy grade title strings to the current school", () => {
+  const { migrateFlatMapToByOrigin } = loadGradesEnhancerInternals();
+  const legacy = { "101|12.02.2026|2|3|Test": "Essay" };
+  const origin = "https://school-a.edupage.org";
+  const migrated = migrateFlatMapToByOrigin(legacy, origin, (value) => typeof value === "string");
+
+  assert.equal(JSON.stringify(migrated), JSON.stringify({ [origin]: legacy }));
+});
+
+runTest("legacy flat maps are detected for persistent origin migration", () => {
+  const { isLegacyFlatMap } = loadGradesEnhancerInternals();
+
+  assert.equal(isLegacyFlatMap({ gradeKey: "Essay" }, (value) => typeof value === "string"), true);
+  assert.equal(isLegacyFlatMap({ 101: [{ value: 2, weight: 1 }] }, Array.isArray), true);
+  assert.equal(isLegacyFlatMap({ 101: 8 }, (value) => typeof value === "number"), true);
+  assert.equal(
+    isLegacyFlatMap(
+      { "https://school-a.edupage.org": { gradeKey: "Essay" } },
+      (value) => typeof value === "string",
+    ),
+    false,
+  );
 });
 
 runTest("migrateFlatMapToByOrigin leaves an already-byOrigin map untouched", () => {

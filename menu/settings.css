@@ -678,6 +678,16 @@ code {
     color: var(--danger-color);
 }
 
+.cache-maintenance-controls {
+    display: grid;
+    gap: 8px;
+    justify-items: end;
+}
+
+#ClearCachedSchoolDataButton {
+    min-height: 44px;
+}
+
 /* ---- Switch ------------------------------------------------------------- */
 
 .switch {

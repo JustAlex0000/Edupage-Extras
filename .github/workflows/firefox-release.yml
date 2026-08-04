@@ -49,7 +49,7 @@ jobs:
       - name: Build package and verify it contains no excluded files
         run: |
           npm run build:firefox
-          npm run verify:package
+          npm run verify:firefox-package
 
       - name: Build Chrome package and verify it contains no excluded files
         # Chrome needs its own zip: build-chrome.js strips the Firefox-only
@@ -57,7 +57,7 @@ jobs:
         # the Chrome Web Store validator rejects. See CHROME_RELEASE.md.
         run: |
           npm run build:chrome
-          npm run verify:package
+          npm run verify:chrome-package
 
       - name: Upload Chrome .zip as a workflow artifact
         if: always()

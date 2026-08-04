@@ -116,6 +116,20 @@ runTest("timetable date helpers reject calendar overflow dates", () => {
   assert.match(toRfc3339("2026-02-28", "08:00"), /^2026-02-28T08:00:00[+-]\d{2}:\d{2}$/);
 });
 
+runTest("timetable cache pruning removes expired and malformed origins", () => {
+  const { pruneTimetableSyncCache } = loadBackgroundInternals();
+  const now = 1_000_000;
+  const cache = {
+    "https://fresh.example": { fetchedAt: now - 1_000, liveWeek: {} },
+    "https://expired.example": { fetchedAt: now - (11 * 60 * 1_000), liveWeek: {} },
+    "https://malformed.example": { liveWeek: {} },
+  };
+
+  const pruned = pruneTimetableSyncCache(cache, now);
+
+  assert.deepEqual(Object.keys(pruned), ["https://fresh.example"]);
+});
+
 runTest("theme shortcut messages carry the complete current theme state", () => {
   const { buildThemeUpdateMessage } = loadBackgroundInternals();
   const message = buildThemeUpdateMessage({
