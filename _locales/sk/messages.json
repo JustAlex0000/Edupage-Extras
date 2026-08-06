@@ -163,8 +163,8 @@
   "etestImageExportFailed": { "message": "Obrázok sa nepodarilo vytvoriť." },
 
   "groupDebug": { "message": "Ladenie" },
-  "mobileResponsive": { "message": "Vylepšiť EduPage na mobile" },
-  "mobileResponsiveDesc": { "message": "Prispôsobí rozloženie, tabuľky, navigáciu a text EduPage menším obrazovkám. Funkcia sa ešte testuje na rôznych stránkach." },
+  "mobileResponsive": { "message": "Vylepšiť domovskú stránku EduPage na mobile" },
+  "mobileResponsiveDesc": { "message": "Prispôsobí staršiu domovskú stránku EduPage menším obrazovkám. Ostatné stránky a samostatná mobilná aplikácia si zachovajú pôvodné rozloženie." },
   "toggleMobileResponsive": { "message": "Prepnúť responzívne rozloženie pre mobil" },
   "mobileRedirect": { "message": "Presmerovať na /app/main na mobile" },
   "mobileRedirectDesc": { "message": "Keď je funkcia zapnutá, otvorenie Edupage na telefóne presmeruje priamo na mobilné zobrazenie /app/main tvojej školy. Na počítači ju nechaj vypnutú." },

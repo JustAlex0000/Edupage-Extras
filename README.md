@@ -47,9 +47,9 @@ in Settings or report it on [Discord](https://discord.gg/eNZXHesA9j).
   Rose Pink, Royal Purple, and Light themes.
 - **Centered layout** option for a cleaner main page layout.
 - **Help text cleanup** for hiding the top-right Edupage help greeting.
-- **Mobile-responsive layout** (opt-in, not fully verified on every page yet) —
-  injects layout overrides (flex-wrap, scrollable tables, scaled sidebar/fonts)
-  so Edupage's normally desktop-only UI is usable on small screens.
+- **Mobile-responsive home layout** (opt-in) — adapts the legacy authenticated
+  `/user/` home for smaller screens. Other EduPage modules and the dedicated
+  `/app/*` mobile client keep their native layouts.
 
 ### Grades
 

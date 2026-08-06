@@ -203,6 +203,7 @@ test("mobile redirect remains an explicit storage-backed opt-in", () => {
 
 test("iOS app compatibility avoids native-only browser paths", () => {
   const compat = fs.readFileSync(path.join(ROOT, "scripts/ua-ios-fix.js"), "utf8");
+  const bootstrap = fs.readFileSync(path.join(ROOT, "scripts/ua-ios-bootstrap.js"), "utf8");
   const manifest = readJson("manifest.json");
   const isolatedScripts = manifest.content_scripts?.[0]?.js || [];
   const accessibleResources = (manifest.web_accessible_resources || [])
@@ -211,6 +212,16 @@ test("iOS app compatibility avoids native-only browser paths", () => {
   assert.match(compat, /shadow\(window, "webkit", undefined\)/, "iOS browsers must skip EduPage's native-only request shim");
   assert.match(compat, /window\.iNoBounce\?\.disable\?\.\(\)/, "the obsolete iOS touch blocker must be disabled");
   assert.match(compat, /bridge\.runFlexMethod = function/, "unsupported native URL-scheme calls must be guarded");
+  assert.match(
+    bootstrap,
+    /early\.textContent = EARLY_COMPAT_SOURCE/,
+    "the page-world transport guard must run synchronously before EduPage's parser-loaded app",
+  );
+  assert.match(
+    bootstrap,
+    /app\(\?:.*\|\$\)/,
+    "the iOS compatibility path must include both /app and nested /app routes",
+  );
   assert.equal(
     isolatedScripts[0],
     "scripts/ua-ios-bootstrap.js",

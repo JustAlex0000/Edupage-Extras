@@ -57,6 +57,7 @@ function createHarness({ pathname = "/app/main", nativeBridge = false } = {}) {
   const edupage = new FakeScript("https://school.test/app/pics/jsw/Edupage.js");
   const scripts = [edubar, inobounce, edupage];
   const document = new FakeEventTarget();
+  document.documentElement = { dataset: {} };
   document.querySelectorAll = () => scripts;
   const window = new FakeEventTarget();
   window.window = window;
@@ -98,6 +99,7 @@ test("ordinary iOS browsers keep EduPage's native request transport disabled", (
   assert.match(harness.context.navigator.userAgent, /Android 14/);
   assert.equal(harness.context.navigator.platform, "iPhone");
   assert.equal(harness.context.navigator.vendor, "Apple Computer, Inc.");
+  assert.equal(harness.context.document.documentElement.dataset.eeIosCompat, "active");
 
   harness.edupage.dispatch("load");
   harness.window.dispatch("DOMContentLoaded");
@@ -155,11 +157,17 @@ function createBootstrapHarness({
   pathname = "/app/main",
   userAgent = IPHONE_UA,
   topFrame = true,
+  nativeBridge = false,
 } = {}) {
   const inserted = [];
+  let context;
   const root = {
+    dataset: {},
     prepend(node) {
       inserted.push(node);
+      if (node.textContent) {
+        vm.runInContext(node.textContent, context, { filename: "ua-ios-early-inline.js" });
+      }
     },
   };
   const document = {
@@ -168,6 +176,8 @@ function createBootstrapHarness({
       return {
         async: true,
         dataset: {},
+        src: "",
+        textContent: "",
         addEventListener() {},
         remove() {},
       };
@@ -176,13 +186,18 @@ function createBootstrapHarness({
   const window = {};
   window.self = window;
   window.top = topFrame ? window : {};
+  window.webkit = {
+    messageHandlers: nativeBridge
+      ? { NativeWebviewProvider: {} }
+      : {},
+  };
 
   class FakeMutationObserver {
     observe() {}
     disconnect() {}
   }
 
-  const context = vm.createContext({
+  context = vm.createContext({
     chrome: {
       runtime: {
         getURL(resource) {
@@ -201,23 +216,42 @@ function createBootstrapHarness({
   window.navigator = context.navigator;
 
   vm.runInContext(BOOTSTRAP_SOURCE, context, { filename: "ua-ios-bootstrap.js" });
-  return inserted;
+  return { context, inserted, root, window };
 }
 
-test("isolated iOS bootstrap injects the compatibility script into the page", () => {
-  const inserted = createBootstrapHarness();
+test("isolated iOS bootstrap synchronously disables the native transport before loading the follow-up", () => {
+  const harness = createBootstrapHarness();
 
-  assert.equal(inserted.length, 1);
+  assert.equal(harness.inserted.length, 2);
+  assert.equal(harness.inserted[0].dataset.eeIosEarlyBootstrap, "true");
+  assert.match(harness.inserted[0].textContent, /shadow\(window, "webkit", undefined\)/);
+  assert.equal(harness.root.dataset.eeIosCompatEarly, "ready");
+  assert.equal(harness.window.webkit, undefined);
+  assert.match(harness.context.navigator.userAgent, /Android 14/);
   assert.equal(
-    inserted[0].src,
+    harness.inserted[1].src,
     "safari-web-extension://extension/scripts/ua-ios-fix.js",
   );
-  assert.equal(inserted[0].async, false);
-  assert.equal(inserted[0].dataset.eeIosMainBootstrap, "true");
+  assert.equal(harness.inserted[1].async, false);
+  assert.equal(harness.inserted[1].dataset.eeIosMainBootstrap, "true");
 });
 
 test("isolated bootstrap avoids unrelated pages and subframes", () => {
-  assert.equal(createBootstrapHarness({ pathname: "/elearning/" }).length, 0);
-  assert.equal(createBootstrapHarness({ userAgent: "Mozilla/5.0 Android Mobile" }).length, 0);
-  assert.equal(createBootstrapHarness({ topFrame: false }).length, 0);
+  assert.equal(createBootstrapHarness({ pathname: "/elearning/" }).inserted.length, 0);
+  assert.equal(createBootstrapHarness({ userAgent: "Mozilla/5.0 Android Mobile" }).inserted.length, 0);
+  assert.equal(createBootstrapHarness({ topFrame: false }).inserted.length, 0);
+});
+
+test("isolated bootstrap covers the exact /app entry route", () => {
+  const harness = createBootstrapHarness({ pathname: "/app" });
+
+  assert.equal(harness.inserted.length, 2);
+  assert.equal(harness.root.dataset.eeIosCompatEarly, "ready");
+});
+
+test("isolated bootstrap preserves a genuine EduPage native bridge", () => {
+  const harness = createBootstrapHarness({ nativeBridge: true });
+
+  assert.equal(harness.root.dataset.eeIosCompatEarly, "native");
+  assert.notEqual(harness.window.webkit, undefined);
 });

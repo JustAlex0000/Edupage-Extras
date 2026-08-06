@@ -66,14 +66,24 @@ hosts this can hide the web login and route RPC/storage calls into native
 handlers that never answer.
 
 `ua-ios-fix.js` runs directly in the MAIN world where the manifest host
-supports MV3's `world` key. Orion may ignore that key, so the first isolated
-content script, `ua-ios-bootstrap.js`, also injects the packaged fix through a
-narrow `web_accessible_resources` entry. The fix is top-level, iOS, and
-`/app/*` only. It leaves the real iPhone platform/vendor visible, shadows the
-UA needed by EduPage's login gate, and keeps the generic `window.webkit`
-namespace hidden for that page's lifetime because EduPage repeats its
-truthiness check for every RPC and lazy appstorage call. A genuine EduPage
-message handler/native provider bypasses the browser compatibility behavior.
+supports MV3's `world` key. Orion may ignore that key, and a dynamically loaded
+external fallback can arrive after EduPage has already selected its native
+transport. The first isolated content script, `ua-ios-bootstrap.js`, therefore
+inserts a constant inline page-world guard synchronously, then loads the
+packaged follow-up through a narrow `web_accessible_resources` entry. The fix
+is top-level, iOS, and `/app`-route only. It leaves the real iPhone
+platform/vendor visible, shadows the UA needed by EduPage's login gate, and
+keeps the generic `window.webkit` namespace hidden for that page's lifetime
+because EduPage repeats its truthiness check for every RPC and lazy appstorage
+call. A genuine EduPage message handler/native provider bypasses the browser
+compatibility behavior. DOM dataset markers expose only compatibility state
+for device-side diagnosis; they contain no account or page data.
+
+The separate legacy responsive stylesheet is deliberately limited to the
+top-level authenticated home route (`/user/`). Its structural overrides were
+designed for that page and must not be applied to iframes, route-specific
+modules, login, or the already-responsive `/app/*` client. Expand coverage
+through route-specific adapters and fixtures rather than global overrides.
 
 ## FOUC prevention (theme cache)
 

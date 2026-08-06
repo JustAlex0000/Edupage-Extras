@@ -1355,10 +1355,27 @@ function ensureMobileViewport(enabled) {
   });
 }
 
+// The structural mobile stylesheet was built and visually verified against
+// the authenticated legacy home at /user/. EduPage's other modules have their
+// own unrelated layout systems, while /app/* is already the dedicated mobile
+// client. Applying the same global overrides there can replace positioning,
+// table, dialog, and overflow behavior the page depends on.
+function shouldApplyMobileResponsive(pathname, topLevel = true) {
+  return topLevel === true && /^\/user\/?$/i.test(String(pathname || ""));
+}
+
 function applyMobileResponsive(enabled) {
+  const supportedPage = shouldApplyMobileResponsive(
+    window.location.pathname,
+    window.top === window.self,
+  );
+  const active = supportedPage && Boolean(enabled);
+
+  document.documentElement.classList.toggle("ee-mobile-responsive", active);
+  if (!supportedPage) return;
+
   ensureMobileResponsiveStylesheet();
-  ensureMobileViewport(Boolean(enabled));
-  document.documentElement.classList.toggle("ee-mobile-responsive", Boolean(enabled));
+  ensureMobileViewport(active);
 }
 
 function ensureStylesheet() {
@@ -1796,6 +1813,7 @@ if (globalThis.__EE_TEST__) {
     isEtestAutoThemeOffActive,
     isMobileUA,
     shouldRedirectMobileToApp,
+    shouldApplyMobileResponsive,
   };
 }
 

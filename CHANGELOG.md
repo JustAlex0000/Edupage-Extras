@@ -4,6 +4,17 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
 log — this file starts at the Firefox-compatibility milestone.
 
+## 0.9.22 — 2026-08-06
+
+- Fixed Orion on iPhone getting stuck on the blue app shell or “loading data
+  from server” by installing the `/app` browser-compatibility guard
+  synchronously before EduPage selects its unavailable native request
+  transport. The fallback now covers both `/app` and nested `/app/*` routes
+  while preserving genuine EduPage native containers.
+- Limited the opt-in legacy mobile-responsive stylesheet to the authenticated
+  `/user/` home page so it no longer breaks unrelated modules, frames, login,
+  or EduPage's dedicated mobile app layout.
+
 ## 0.9.21 — 2026-08-02
 
 - Hardened Firefox signing and both browser package builds around one explicit

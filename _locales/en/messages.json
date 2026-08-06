@@ -163,8 +163,8 @@
   "etestImageExportFailed": { "message": "Could not create the image." },
 
   "groupDebug": { "message": "Debug" },
-  "mobileResponsive": { "message": "Improve EduPage on Mobile" },
-  "mobileResponsiveDesc": { "message": "Adapt EduPage layouts, tables, navigation, and text for smaller screens. This is still being tested across different pages." },
+  "mobileResponsive": { "message": "Improve the EduPage Home on Mobile" },
+  "mobileResponsiveDesc": { "message": "Adapt the legacy EduPage home layout for smaller screens. Other pages and the dedicated mobile app keep their native layout." },
   "toggleMobileResponsive": { "message": "Toggle mobile-responsive layout" },
   "mobileRedirect": { "message": "Redirect to /app/main on Mobile" },
   "mobileRedirectDesc": { "message": "When enabled, opening Edupage on a phone jumps straight to your school's /app/main mobile view. Leave this off on desktop." },

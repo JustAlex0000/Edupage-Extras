@@ -157,6 +157,19 @@ runTest("mobile redirect follows the current opt-in and never redirects app rout
   assert.equal(shouldRedirectMobileToApp("/app/main", true, true), false);
 });
 
+runTest("mobile layout only targets the verified top-level home page", () => {
+  const { shouldApplyMobileResponsive } = loadContentInternals("/user/");
+
+  assert.equal(shouldApplyMobileResponsive("/user/", true), true);
+  assert.equal(shouldApplyMobileResponsive("/user", true), true);
+  assert.equal(shouldApplyMobileResponsive("/user/", false), false);
+  assert.equal(shouldApplyMobileResponsive("/", true), false);
+  assert.equal(shouldApplyMobileResponsive("/znamky/", true), false);
+  assert.equal(shouldApplyMobileResponsive("/dashboard/eb.php", true), false);
+  assert.equal(shouldApplyMobileResponsive("/app/main", true), false);
+  assert.equal(shouldApplyMobileResponsive("/login/", true), false);
+});
+
 runTest("mobile detection treats iOS as mobile even when userAgentData disagrees", () => {
   const { isMobileUA } = loadContentInternals("/dashboard");
 

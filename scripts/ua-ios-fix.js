@@ -14,13 +14,14 @@
  */
 (() => {
   "use strict";
-  const realUA = navigator.userAgent || "";
+  const earlyCompat = window.__eeIosEarlyCompat;
+  const realUA = earlyCompat?.realUA || navigator.userAgent || "";
   // Only iOS is gated by EduPage, and only /app/* is affected — bail otherwise.
   if (window.top !== window.self) return;
   if (!/iP(hone|ad|od)/i.test(realUA)) return;
-  if (!String(location.pathname || "").startsWith("/app/")) return;
+  if (!/^\/app(?:\/|$)/i.test(String(location.pathname || ""))) return;
 
-  const realWebkit = window.webkit;
+  const realWebkit = earlyCompat ? undefined : window.webkit;
 
   const androidMobileUA =
     "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 " +
@@ -39,6 +40,7 @@
   };
 
   const hasEdupageNativeBridge = () => {
+    if (earlyCompat) return earlyCompat.nativeBridge === true;
     const handlers = realWebkit?.messageHandlers;
     return Boolean(
       window.AscNativeWebview
@@ -68,6 +70,11 @@
   // initial script load. The captured reference above remains available only
   // for detecting a genuine EduPage bridge.
   shadow(window, "webkit", undefined);
+  if (document.documentElement?.dataset) {
+    document.documentElement.dataset.eeIosCompat = window.webkit === undefined
+      ? "active"
+      : "webkit-visible";
+  }
 
   const disableINoBounce = () => {
     try {
