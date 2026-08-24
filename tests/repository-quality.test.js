@@ -37,6 +37,25 @@ test("manifest version and referenced package files stay valid", () => {
   }
 });
 
+test("AI providers use optional, narrowly scoped host access", () => {
+  const manifest = readJson("manifest.json");
+  const optionalHosts = manifest.optional_host_permissions || [];
+  assert.deepEqual(optionalHosts.sort(), [
+    "http://127.0.0.1/*",
+    "http://localhost/*",
+    "https://integrate.api.nvidia.com/*",
+    "https://openrouter.ai/*",
+  ].sort());
+  assert.ok(!manifest.host_permissions.includes("https://integrate.api.nvidia.com/*"));
+  assert.ok(!manifest.host_permissions.includes("https://openrouter.ai/*"));
+});
+
+test("AI suggestion command is declared without a browser-assigned default", () => {
+  const manifest = readJson("manifest.json");
+  assert.equal(manifest.commands["suggest-test-question"].description, "Suggest an eTest answer");
+  assert.equal(Object.hasOwn(manifest.commands["suggest-test-question"], "suggested_key"), false);
+});
+
 test("locale catalogs have aligned, non-empty messages", () => {
   const locales = Object.fromEntries(
     ["en", "sk", "cs"].map((locale) => [locale, readJson(`_locales/${locale}/messages.json`)]),

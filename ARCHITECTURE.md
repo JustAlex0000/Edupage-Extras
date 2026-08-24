@@ -6,8 +6,6 @@ framework — everything under `scripts/` and `menu/` ships exactly as written.
 
 ## Layout
 
-| Path | What it is |
-|------|------------|
 | `manifest.json` | MV3 manifest, shared by Chrome and Firefox |
 | `scripts/` | Background script + all content scripts (shipped as-is) |
 | `menu/` | Toolbar popup (`menu.html`) and options page (`settings.html`), each with its own JS and a shared i18n helper |
@@ -127,6 +125,25 @@ independently control the two button placements without disabling serialization.
 The icon-only whole-test control reuses EduPage's action-button classes and keeps
 its accessible name in `aria-label`/`title`; the per-question icon keeps an
 explicit high-contrast dark-theme foreground.
+
+## Experimental Test Question Helper
+
+The opt-in helper reuses the eTest serializer's structured question model. A
+question action sends only the plain question text, detected interaction type,
+allowlisted choices or control structure, and any existing response in that
+question to `scripts/background.js`.
+Provider credentials stay in extension storage and never enter the EduPage
+page. The background accepts loopback-only Ollama and LM Studio addresses or
+the fixed NVIDIA and OpenRouter origins, makes one bounded request without retries, and
+validates the model's JSON before returning it to the content script.
+
+For an untouched choice, text field, dropdown, or complete one-to-one matching
+task, the page may apply the model response but never submits it. The matching
+path sends a synthetic drag sequence only while no pair is connected. Once a
+response exists, it only adds a quiet border, order number, input placeholder,
+or small inline dropdown/matching hint. A placeholder suggestion can be
+accepted with Tab. Provider host access is optional and requested from Settings
+when the user tests a connection.
 
 ## Activity Shield (three pieces)
 

@@ -69,6 +69,21 @@ runTest("test copying and its image export remain experimental dependent setting
   assert.match(html, /src="etest-image-export\.js"/);
 });
 
+runTest("Test Question Helper stays opt-in inside Experimental", () => {
+  const experimentalPanel = html.indexOf('id="panel-experimental"');
+  const helper = html.indexOf('id="AiQuestionHelperCheckbox"');
+  assert.ok(helper > experimentalPanel, "expected AI helper in Experimental");
+  assert.match(html, /id="AiQuestionHelperSettings"[^>]*hidden/);
+  assert.match(html, /id="AiProviderSelect"/);
+  assert.match(html, /value="ollama"/);
+  assert.match(html, /value="lmstudio"/);
+  assert.match(html, /value="nvidia"/);
+  assert.match(html, /value="openrouter"/);
+  assert.match(html, /id="OpenAiShortcutSettingsButton"/);
+  assert.match(settingsScript, /suggest-test-question/);
+  assert.match(settingsScript, /aiQuestionHelperToggle\.checked = result\[AI_HELPER_ENABLED_KEY\] === true/);
+});
+
 runTest("optional export tools are opt-in", () => {
   assert.match(html, /id="TimetableExportCheckbox"/);
   assert.match(html, /id="TimetableExportContent" hidden/);

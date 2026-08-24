@@ -2,7 +2,7 @@
   "name": "__MSG_extName__",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
-  "version": "0.9.22",
+  "version": "0.9.23",
   "manifest_version": 3,
   "icons": {
     "16": "images/icon-16.png",
@@ -23,6 +23,12 @@
     }
   },
   "permissions": ["storage", "alarms", "notifications"],
+  "optional_host_permissions": [
+    "http://127.0.0.1/*",
+    "http://localhost/*",
+    "https://integrate.api.nvidia.com/*",
+    "https://openrouter.ai/*"
+  ],
   "host_permissions": [
     "https://*.edupage.org/*",
     "https://edublurtesting.ct.ws/*",
@@ -41,6 +47,9 @@
     },
     "open-settings": {
       "description": "Open Edupage Extras settings"
+    },
+    "suggest-test-question": {
+      "description": "Suggest an eTest answer"
     },
     "toggle-mobile-responsive": {
       "description": "Toggle mobile responsive layout"

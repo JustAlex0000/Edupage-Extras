@@ -1,8 +1,18 @@
 # Changelog
 
 All notable changes to Edupage Extras are documented here. Versions follow
-`package.json` / `manifest.json`. Older history (pre-0.7.0) is only in the git
-log — this file starts at the Firefox-compatibility milestone.
+`package.json` / `manifest.json`. History pre v0.7.0 is only in the git
+log — this file starts at the Firefox-compatibility update.
+
+## 0.9.23 — 2026-08-24
+
+- Added an opt-in experimental Test Question Helper for eTest practice
+  questions, with Ollama, LM Studio, NVIDIA, and OpenRouter providers, optional host
+  access, and quiet suggestions that never overwrite or submit an existing answer.
+- Updated Test Question Helper suggestions to fill only untouched controls,
+  support Tab acceptance for input hints, handle label-based multi-field,
+  multi-dropdown, and ordering responses, and drag complete untouched matching
+  answers without submitting the test.
 
 ## 0.9.22 — 2026-08-06
 

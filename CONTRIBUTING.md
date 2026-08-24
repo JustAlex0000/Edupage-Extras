@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve Edupage Extras! Start with
+Thanks for trying to improve Edupage Extras! Start with
 [ARCHITECTURE.md](ARCHITECTURE.md) for how the extension is put together.
 
 ## Setup

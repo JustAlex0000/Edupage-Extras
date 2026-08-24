@@ -8,149 +8,107 @@ or any school using Edupage.**
 
 ## Installation
 
-### Chrome / Edge (Chrome Web Store)
+### Installation in Chrome / Edge
 
 Install directly from the
 [Chrome Web Store](https://chromewebstore.google.com/detail/edupage-extras/ljakjcljhfkjgndmopmpaakklgnkccca).
-Updates automatically — no manual steps needed.
-
-### Load unpacked in Chrome or Edge (development)
-
-1. Download or clone this repository. (Do not forget to extract it if downloading directly)
-**Updating with git pull WILL NOT WORK when downloading directly!**
-2. Open `chrome://extensions` in any Chromium browser.
-3. Enable **Developer mode**.
-4. Click **Load unpacked**.
-5. Select the project folder: `Edupage-Extras/`.
-6. Open an Edupage page such as `https://your-school.edupage.org/`, or reload an already opened page.
 
 ### Installation in Firefox
 
-Search "Edupage Extras" on [addons.mozilla.org](https://addons.mozilla.org) or
-install directly from
+Install directly from the
 [the AMO listing](https://addons.mozilla.org/en-US/firefox/addon/edupage-extras/).
-Also available on Firefox for Android through the same listing. Installs from
-AMO update automatically — no manual steps needed.
+Also available for Android through the same listing.
 
-Edupage Extras is Chromium-first and also supports Firefox. If something does
-not work on your school's EduPage, use the built-in **Report a Problem** tool
-in Settings or report it on [Discord](https://discord.gg/eNZXHesA9j).
+Edupage Extras is Chromium-first. If something does
+not work on your school's EduPage, make a github issue or report it on my [Discord](https://discord.gg/eNZXHesA9j).
+
+### Load unpacked in Chrome or Edge (development)
+
+[Full Contributor guide here](CONTRIBUTING.md)
+
+1. Clone the repository.
+2. Open `about://extensions` in any chromium browser, or `about://addons` in any firefox browser.
+3. Enable **Developer mode**.
+4. Click **Load unpacked**.
+5. Select the project folder: `Edupage-Extras/`.
+6. Configure settings.
+7. Automatic updating does not work on cloned repositories, git pull is needed to update.
 
 ## Features
 
 ### Appearance
 
-- **Themes** for Edupage pages and extension menus.
-- **Theme hotkey** support for toggling themes on or off through the browser's
-  extension shortcuts page.
-- **Theme picker** with Dark, Ocean Cyan, Forest Green, Emerald Green,
-  Rose Pink, Royal Purple, and Light themes.
-- **Centered layout** option for a cleaner main page layout.
-- **Help text cleanup** for hiding the top-right Edupage help greeting.
-- **Mobile-responsive home layout** (opt-in) — adapts the legacy authenticated
-  `/user/` home for smaller screens. Other EduPage modules and the dedicated
+- **Themes** for Edupage pages and extension menus, custom themes supported.
+- **Centered layout** centers the page layout.
+- **Help text hide** for hiding the annoying top-right Edupage help greeting.
+- **Mobile-responsive home layout** (WIP) — adapts the legacy authenticated
+  `/user/` home for mobile and tablet screens. Other EduPage modules and the dedicated
   `/app/*` mobile client keep their native layouts.
 
 ### Grades
 
-- **Grade badges** on the Edupage grades page.
 - **Color-coded average bars** for subject averages.
-- **Overall average row** based on the averages Edupage already renders.
-- **Optional subject sorting and filtering** above the grades table: search by subject, restore EduPage's original order, sort by name, grade count, or average, and hide subjects without grades.
-- **Virtual Grade Calculator** — add hypothetical grades to any subject and
-  see the projected average update live, using EduPage's own grade weights
-  (read directly from EduPage's data, not guessed from on-screen labels).
-- **Grades export** to `.json`, `.csv`, or `.txt` via an export toolbar above
-  the table — one row per grade with subject, date, value, weight, title, and
+- **Subject sorting and filtering** Search by subject, name, grade count, or average, and hide subjects without grades.
+- **Virtual Grade Calculator** — add grades to any subject and
+  see the projected average, using EduPage's grade weights to calculate "future" grades.
+- **Grades export** to `.json`, `.csv`, or `.txt` via an export button.
+  One row per grade with subject, date, value, weight, title, and
   the subject's average. CSV includes a UTF-8 BOM so Excel renders diacritics
-  correctly. Controlled by a "Grades Export" settings toggle.
+  correctly.
 
 ### Attendance
 
-- **Subject attendance** inside the Edupage grades table.
-- **Halfyear absence percentage** inside Edupage's existing attendance summary.
-- **Second halfyear start/end date overrides** in Settings for attendance
-  calculations when EduPage's default dates need adjusting.
-- Uses the official attendance data already embedded in the loaded Edupage page.
-- Highlights the currently active halfyear and shows the raw absent/total lesson ratio.
-
-The extension reads the values from Edupage's existing grade table. It does not
-log in, use credentials, fetch grades from a server, or calculate hidden grade data.
+- **Subject attendance** shows attendance for individual subjects calculated from the Attednance page.
+- **Halfyear absence percentage** overall absence percentage inside Edupage's existing attendance page.
 
 ### Učivo / Curriculum
 
-- **Curriculum export** — on a subject's Učivo (topic plan) page, export the
+- **Curriculum export** — on a subject's topic plan page, export the
   full year's chapters, topics, and taught dates as `.txt` or `.csv`.
-- **Copy test questions** — copies eTest questions with inline blanks, compact
-  answer choices, optional selected-answer markers, rich-text images, and
-  independently configurable per-question and whole-test actions controlled
-  from Settings.
+
+### Experimental AI
+
+- **Test Question Helper** (opt-in) — asks a configured Ollama, LM Studio,
+  NVIDIA, or OpenRouter model about the current eTest question. It fills only
+  an untouched question and never submits an answer.
 
 ### Login
 
-- **Auto-login** (opt-in, off by default) — clicks through EduPage's
-  multi-step login (account picker included) and submits once your browser
-  autofills the saved password. No credentials are ever stored or read by the
+- **Auto-login** (off by default) — clicks through EduPage's
+  multi-step login (account picker included) and submits to log in.
+  No credentials are ever stored or read by the
   extension, and it stops the moment you type anything yourself. A preferred
-  account can be chosen for multi-account pickers.
-
-### Activity Shield
-
-- **Stay Active Mode** — for Edupage test/e-learning pages that watch tab
-  visibility, focus, and mouse activity to detect if you've switched away or
-  gone idle. When enabled, it keeps the page reporting itself as focused and
-  active. Individual signals (visibility, focus, mouse, clipboard, etc.) can
-  be toggled independently, toggled via a keyboard shortcut, and reset to
-  defaults from Settings.
+  account can be chosen in settings.
 
 ### Timetable
 
 - **Substitution and room-change highlights**, colored by change type instead
   of EduPage's single generic color, so you can tell at a glance what changed.
 - **Export to .ics** — download the current week or the whole half-year as a
-  standard calendar file, importable into Google Calendar, Apple Calendar,
-  Outlook, and most other calendar apps. Optionally include or exclude this
-  week's substitutions/room changes. Half-year exports skip Slovak/Czech
-  public holidays, school vacation weeks, and any custom date ranges you
-  exclude in Settings.
+  standard calendar file, importable into calendar apps.
 
 ### Keyboard shortcuts
 
-Four commands can be bound on the browser's extension-shortcuts page
-(`chrome://extensions/shortcuts`, or Add-ons Manager on Firefox): toggle
-themes, toggle Stay Active Mode, open Settings, and toggle the
-mobile-responsive layout.
+Some features can be bound on the browser's extension-shortcuts page.
+(`chrome://extensions/shortcuts`, or Add-ons Manager on Firefox)
 
 ### Languages
 
-- **Localized interface** for the popup and Settings (including the
-  Experimental section), plus the injected on-page UI (grades columns, virtual
-  grades popover, export buttons). English, Slovak, and Czech are bundled.
+- **Localized interface** Extension is translated into English, Slovak, and Czech.
 - The language follows the browser UI language automatically
   (`chrome.i18n`/`browser.i18n`), falling back to English.
 
 ### Updates
 
 - **Chrome Web Store / AMO installs:** update automatically through the
-  browser's own add-on store — no manual steps.
-- **Chrome/Edge (unpacked/development installs only):** an update reminder
+  browser's store.
+- **Chrome/Edge (unpacked/development installs):** an update reminder
   checks the public GitHub project manifest and compares it with the
-  installed version. If a newer version is available, it prompts you to pull
+  installed version. If a newer version is available, it prompts you to git pull
   the latest project and reload the unpacked extension from
   `chrome://extensions/`.
-- Update checks do not send Edupage data anywhere.
 
-See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
-
-## Usage
-
-- Click the extension icon to quickly toggle themes or open settings.
-- Open **Settings** to search normal options on the continuous settings page.
-- Assign a shortcut in the extension shortcuts page if you want to toggle
-  themes without opening Settings.
-- Choose **Custom** in the theme picker to build your own themes.
-- Use **Check For Updates** in Settings to manually check the public GitHub
-  version (Chrome/Edge unpacked installs only — see Updates above).
+See [CHANGELOG.md](CHANGELOG.md) for what changed in recent versions.
 
 ## Permissions
 
@@ -167,6 +125,9 @@ Edupage Extras requests:
 - `https://edublurtesting.ct.ws/*` - testing purposes
 - `https://raw.githubusercontent.com/JustAlex0000/Edupage-Extras/*` host access -
   reads the public project manifest for update checks.
+- Optional access to `localhost`, `127.0.0.1`, `integrate.api.nvidia.com`, or
+  `openrouter.ai` is requested
+  only when the user tests the matching AI provider connection.
 
 The extension does not request access to all websites.
 
@@ -174,53 +135,19 @@ The extension does not request access to all websites.
 
 - No backend server.
 - No analytics.
-- No external requests made by the extension except the optional public GitHub
-  manifest update check.
+- External requests are limited to the optional public GitHub update check and
+  user-triggered Test Question Helper requests. Ollama and LM Studio stay on
+  the local computer; NVIDIA and OpenRouter receive the current question text
+  and any responses already chosen in that question.
 - No Edupage credentials are collected.
-- Settings are stored locally with `chrome.storage.local`.
+- Settings are stored locally.
 - Structured attendance and timetable data used by enhancements is cached
-  locally for at most 15 minutes. Expired entries are pruned, and the cache can
-  be cleared at any time from Settings → Debug without changing preferences.
+  locally.
 - Grade enhancements are generated from data already present in the currently
   loaded Edupage page.
 - Attendance percentages are generated from Edupage's existing attendance page
   data and do not use an external API.
-- Timetable export generates a calendar file locally in the browser; nothing
-  is uploaded anywhere.
-
-## Main Files
-
-- `manifest.json` - extension manifest, permissions, and content script setup.
-- `scripts/background.js` - GitHub update checks, update reminders, and
-  timetable `.ics` export.
-- `scripts/lib/ee-common.js` - shared helpers and defaults used by the other
-  scripts (loads first).
-- `scripts/diagnostics.js` - early error capture for the "Report a Problem"
-  flow; only sends data when explicitly triggered from Settings.
-- `scripts/content.js` - themes, layout cleanup, and visual fixes.
-- `scripts/grades-enhancer.js` - grades table enhancer core (shared state,
-  storage, render loop). Feature modules loaded alongside it: `grades-debug.js`,
-  `grades-badges.js` (average badges/bars, grade-title overrides),
-  `grades-virtual.js` (Virtual Grade Calculator), `grades-summary.js`
-  (overall average row), `grades-attendance.js` (current-halfyear absence
-  stats columns), `grades-sort-filter.js` (subject sorting/filtering),
-  `grades-export.js` (.json/.csv/.txt export), and
-  `grades-bootstrap.js` (starts everything once all modules are loaded).
-- `scripts/attendance-enhancer.js` - injects current halfyear absence
-  percentages into Edupage's attendance summary.
-- `scripts/timetable-enhancer.js` - substitution/room-change highlights on the
-  homepage timetable widget.
-- `scripts/timetable-sync.js` - reads the EduPage timetable page, used by the
-  `.ics` export.
-- `scripts/ucivo-enhancer.js` - curriculum/topic-plan export (`.txt`/`.csv`)
-  on the Učivo page.
-- `scripts/etest-enhancer.js` - copy buttons on e-test/e-learning questions.
-- `scripts/autologin.js` - opt-in auto-login for EduPage's multi-step login.
-- `scripts/activity-shield-main.js` / `activity-shield-bridge.js` - Stay
-  Active Mode (see Activity Shield above).
-- `menu/menu.html` - the toolbar popup.
-- `menu/settings.html` - the options page: normal settings are searchable and scrollable. Experimental features are hidden behind a warning modal.
-- `menu/i18n.js` - shared localization helper for the extension's own pages.
+- Timetable export generates a calendar file locally.
 
 ## Development Notes
 
@@ -264,6 +191,7 @@ If a feature stops working:
 2. Reload the Edupage tab.
 3. Check whether the feature is enabled in Settings or Experimental.
 4. Open the browser console and look for Edupage Extras errors.
+5. Report it as an issue or through Discord.
 
 ## License
 

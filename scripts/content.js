@@ -194,7 +194,7 @@ function buildDarkCSS() {
          --ee-text-muted  secondary text (timestamps, subtitles).
          --ee-link        clickable text / highlighted values.
        "dark" now uses the palette from the "EduPage Dark Mode" design
-       handoff (Claude Design, 2026-07-01) — same regions/selectors as
+       palette specification (2026-07-01) — same regions/selectors as
        before, just repainted with that spec's exact hex values. The other
        theme classes still alias to the previous dark values for now —
        recoloring them properly is the next step once this base is

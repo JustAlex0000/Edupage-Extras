@@ -165,6 +165,185 @@ runTest("report issue URLs use the renamed repository and preserve fields", () =
   assert.equal(url.searchParams.get("body"), "line one\nline two");
 });
 
+runTest("AI provider configuration only accepts fixed OpenRouter or loopback servers", () => {
+  const { normalizeLocalAiEndpoint, resolveAiProviderConfig } = loadBackgroundInternals();
+
+  assert.equal(normalizeLocalAiEndpoint("http://localhost:11434", "ollama"), "http://localhost:11434");
+  assert.throws(() => normalizeLocalAiEndpoint("https://example.com", "ollama"), /localhost/);
+  assert.throws(() => normalizeLocalAiEndpoint("http://127.0.0.1:11434/api/chat", "ollama"), /without a path/);
+  assert.throws(() => resolveAiProviderConfig({ eeAiProvider: "openrouter", eeAiModel: "openai/model" }), /API key/);
+  assert.throws(() => resolveAiProviderConfig({ eeAiProvider: "nvidia", eeAiModel: "nvidia/model" }), /API key/);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(resolveAiProviderConfig({
+      eeAiProvider: "openrouter",
+      eeAiModel: "openai/model:free",
+      eeAiAccessToken: "secret",
+    }))),
+    {
+      provider: "openrouter",
+      model: "openai/model:free",
+      accessToken: "secret",
+      endpoint: "https://openrouter.ai",
+    },
+  );
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(resolveAiProviderConfig({
+      eeAiProvider: "nvidia",
+      eeAiModel: "nvidia/llama-3.3-nemotron-super-49b-v1",
+      eeAiAccessToken: "secret",
+    }))),
+    {
+      provider: "nvidia",
+      model: "nvidia/llama-3.3-nemotron-super-49b-v1",
+      accessToken: "secret",
+      endpoint: "https://integrate.api.nvidia.com",
+    },
+  );
+});
+
+runTest("AI question and model responses are bounded before reaching the page", () => {
+  const { sanitizeAiQuestion, buildAiQuestionPrompt, validateAiSuggestion } = loadBackgroundInternals();
+  const question = sanitizeAiQuestion({
+    plainBody: "Pick one",
+    type: "choice",
+    interactionData: { options: ["A", "B"], ignored: "private" },
+    htmlBody: "<script>ignored</script>",
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(question)), {
+    plainBody: "Pick one",
+    type: "choice",
+    interactionData: { options: ["A", "B"] },
+    currentAnswers: [],
+  });
+  assert.match(buildAiQuestionPrompt(question), /untrusted content/);
+  assert.match(buildAiQuestionPrompt(question), /same language as the question/);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(validateAiSuggestion({
+      answer: "B",
+      choiceIndexes: [1, 99],
+      ordering: [1, 0],
+      fillIns: ["must be ignored"],
+    }, question))),
+    {
+      answer: "",
+      choiceIndexes: [1],
+      ordering: [],
+      fillIns: [],
+      dropdownIndexes: [],
+      matches: [],
+    },
+  );
+});
+
+runTest("AI suggestions preserve ordered multi-field answers and dropdown labels", () => {
+  const { validateAiSuggestion } = loadBackgroundInternals();
+  const question = {
+    plainBody: "Complete both fields.",
+    type: "mixed",
+    interactionData: {
+      blanks: 2,
+      dropdowns: [["one", "two"], ["alpha", "beta"]],
+    },
+  };
+
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(validateAiSuggestion({
+      fillIns: ["function answer() {}", "second value"],
+      dropdownIndexes: [1, "beta"],
+    }, question))),
+    {
+      answer: "",
+      choiceIndexes: [],
+      ordering: [],
+      fillIns: ["function answer() {}", "second value"],
+      dropdownIndexes: [1, 1],
+      matches: [],
+    },
+  );
+});
+
+runTest("AI accepts labels and answer arrays for dropdown and ordering questions", () => {
+  const { validateAiSuggestion } = loadBackgroundInternals();
+  const dropdownQuestion = {
+    plainBody: "Choose both.",
+    type: "dropdown",
+    interactionData: { dropdowns: [["one", "two"], ["alpha", "beta"]] },
+  };
+  const orderingQuestion = {
+    plainBody: "Order the steps.",
+    type: "ordering",
+    interactionData: { options: ["edit", "add", "commit"] },
+  };
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(validateAiSuggestion({ answer: ["two", "beta"] }, dropdownQuestion).dropdownIndexes)),
+    [1, 1],
+  );
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(validateAiSuggestion({ answer: ["edit", "add", "commit"] }, orderingQuestion).ordering)),
+    [0, 1, 2],
+  );
+});
+
+runTest("AI accepts a model's answer array for multiple code blanks", () => {
+  const { validateAiSuggestion, buildAiQuestionPrompt } = loadBackgroundInternals();
+  const question = {
+    plainBody: "Complete the code.",
+    type: "fill-in",
+    interactionData: { blanks: 3 },
+  };
+  assert.match(buildAiQuestionPrompt(question), /exactly 3 blanks/);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(validateAiSuggestion({ answer: ["background", ":", "?"] }, question))),
+    {
+      answer: "",
+      choiceIndexes: [],
+      ordering: [],
+      fillIns: ["background", ":", "?"],
+      dropdownIndexes: [],
+      matches: [],
+    },
+  );
+});
+
+runTest("AI accepts a single elaboration returned through text", () => {
+  const { validateAiSuggestion, buildAiQuestionPrompt } = loadBackgroundInternals();
+  const question = {
+    plainBody: "Explain the topic.",
+    type: "fill-in",
+    interactionData: { blanks: 1 },
+  };
+  assert.match(buildAiQuestionPrompt(question), /elaboration answer/);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(validateAiSuggestion({ text: "A complete explanation." }, question))),
+    {
+      answer: "",
+      choiceIndexes: [],
+      ordering: [],
+      fillIns: ["A complete explanation."],
+      dropdownIndexes: [],
+      matches: [],
+    },
+  );
+});
+
+runTest("AI parsing keeps the first complete JSON object from a model response", () => {
+  const { parseAiJsonObject } = loadBackgroundInternals();
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(parseAiJsonObject('Here is the result: {"fillIns":["{ code }"],"dropdownIndexes":[1]} Extra text {"ignored":true}'))),
+    { fillIns: ["{ code }"], dropdownIndexes: [1] },
+  );
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(parseAiJsonObject('{"fillIns":["first","second",],}'))),
+    { fillIns: ["first", "second"] },
+  );
+});
+
+runTest("AI access keys are excluded from diagnostics settings", () => {
+  const { DIAGNOSTICS_SECRET_PATTERN } = loadBackgroundInternals();
+  assert.equal(DIAGNOSTICS_SECRET_PATTERN.test("eeAiAccessToken"), true);
+  assert.equal(DIAGNOSTICS_SECRET_PATTERN.test("openRouterApiKey"), true);
+});
+
 runTest("template weeks prefer a later recurring slot over an earlier one-off variant", () => {
   const { buildTemplateWeekMap } = loadBackgroundInternals();
 

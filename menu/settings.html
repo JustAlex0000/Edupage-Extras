@@ -595,6 +595,97 @@
           <h2 id="experimental-heading" data-i18n="experimentalHeading">Experimental</h2>
           <p class="setting-group-subtitle" data-i18n="experimentalSubtitle">Test activity and visibility protections on Edupage pages.</p>
           <p class="setting-group-subtitle"><a class="inline-link" href="https://edublurtesting.ct.ws/" target="_blank" rel="noopener noreferrer" data-i18n="openTestingSite">Open the testing website</a></p>
+
+          <div class="section-heading">
+            <h3 id="ai-heading" data-i18n="aiHeading">AI</h3>
+            <p data-i18n="aiHeadingDesc">Optional question suggestions for eTest practice material. Nothing is sent until you press the question button.</p>
+          </div>
+
+          <div class="setting-card">
+            <div class="setting-row">
+              <div>
+                <h3><span data-i18n="aiQuestionHelper">Test Question Helper</span> <span class="setting-tag setting-tag-wip" data-i18n="wipBadge">WIP</span></h3>
+                <p data-i18n="aiQuestionHelperDesc">Add a small suggestion button beside each eTest question. Suggestions can be wrong, so check them before using them.</p>
+              </div>
+              <label class="switch switch-compact" for="AiQuestionHelperCheckbox">
+                <input type="checkbox" id="AiQuestionHelperCheckbox">
+                <span class="switch-track" aria-hidden="true"></span>
+                <span class="sr-only" data-i18n="toggleAiQuestionHelper">Toggle Test Question Helper</span>
+              </label>
+            </div>
+
+            <div class="ai-settings" id="AiQuestionHelperSettings" hidden>
+              <div class="setting-row">
+                <div>
+                  <h3 data-i18n="aiProvider">Provider</h3>
+                  <p data-i18n="aiProviderDesc">Ollama and LM Studio stay on this computer. OpenRouter sends the question text to the selected model provider.</p>
+                </div>
+                <label class="select-control" for="AiProviderSelect">
+                  <span class="sr-only" data-i18n="aiProvider">Provider</span>
+                  <select id="AiProviderSelect">
+                    <option value="ollama">Ollama</option>
+                    <option value="lmstudio">LM Studio</option>
+                    <option value="nvidia">NVIDIA</option>
+                    <option value="openrouter">OpenRouter</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="setting-row setting-row-stack" id="AiEndpointRow">
+                <div>
+                  <h3 data-i18n="aiEndpoint">Local server address</h3>
+                  <p data-i18n="aiEndpointDesc">Only localhost and 127.0.0.1 are accepted. Include the port, without an API path.</p>
+                </div>
+                <label class="sr-only" for="AiEndpointInput" data-i18n="aiEndpoint">Local server address</label>
+                <input id="AiEndpointInput" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="http://127.0.0.1:11434">
+              </div>
+
+              <div class="setting-row setting-row-stack">
+                <div>
+                  <h3 data-i18n="aiModel">Model</h3>
+                  <p data-i18n="aiModelDesc">Use the exact model identifier shown by your provider.</p>
+                </div>
+                <label class="sr-only" for="AiModelInput" data-i18n="aiModel">Model</label>
+                <input id="AiModelInput" type="text" autocomplete="off" spellcheck="false" placeholder="qwen3:8b">
+              </div>
+
+              <div class="setting-row setting-row-stack" id="AiAccessTokenRow" hidden>
+                <div>
+                  <h3 data-i18n="aiAccessToken">Access token</h3>
+                  <p data-i18n="aiAccessTokenDesc">Required for OpenRouter and optional for protected LM Studio servers. Stored in this browser profile and never exposed to EduPage.</p>
+                </div>
+                <label class="sr-only" for="AiAccessTokenInput" data-i18n="aiAccessToken">Access token</label>
+                <input id="AiAccessTokenInput" type="password" autocomplete="off" spellcheck="false">
+              </div>
+
+              <div class="setting-row">
+                <div>
+                  <h3 data-i18n="aiConnection">Connection</h3>
+                  <p data-i18n="aiConnectionDesc">Save these settings and check that the model is available.</p>
+                </div>
+                <div class="shortcut-controls">
+                  <button class="secondary-button" id="AiTestConnectionButton" type="button" data-i18n="aiTestConnection">Test connection</button>
+                  <span class="save-status" id="AiConnectionStatus" role="status" aria-live="polite"></span>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div>
+                  <h3 data-i18n="aiShortcut">Keyboard shortcut</h3>
+                  <p data-i18n="aiShortcutDesc">Assign a browser shortcut to ask about the focused or last-clicked eTest question.</p>
+                </div>
+                <div class="shortcut-controls">
+                  <button class="secondary-button" id="OpenAiShortcutSettingsButton" type="button" data-i18n="openShortcutSettings">Open Shortcut Settings</button>
+                  <span class="shortcut-status" id="AiShortcutStatus" data-i18n="noHotkey">No hotkey assigned.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-heading">
+            <h3 id="etest-tools-heading" data-i18n="etestToolsHeading">eTest tools</h3>
+          </div>
+
           <div class="setting-card">
             <div class="setting-row">
               <div>

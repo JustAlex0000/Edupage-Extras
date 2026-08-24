@@ -60,6 +60,23 @@ function element(tagName, { className = "", children = [], attributes = {}, ...p
   };
 }
 
+function interactiveControl({ type = "text", value = "", options = [] } = {}) {
+  const attributes = new Map();
+  const events = [];
+  return {
+    type,
+    value,
+    options,
+    events,
+    classList: { remove() {}, contains() { return false; } },
+    getAttribute(name) { return attributes.get(name) || null; },
+    hasAttribute(name) { return attributes.has(name); },
+    setAttribute(name, attributeValue) { attributes.set(name, String(attributeValue)); },
+    removeAttribute(name) { attributes.delete(name); },
+    dispatchEvent(event) { events.push(event.type); return true; },
+  };
+}
+
 test("structured serialization keeps inline blanks and exactly one newline between ABCD answers", () => {
   const { serializeNode, normalizeStructuredText, SELECTED_MARKER_TOKEN, renderQuestionPlain } = loadInternals().exports;
   const select = element("select", {
@@ -181,6 +198,7 @@ test("test copying is opt-in while its child preferences default on", () => {
       wholeTestButton: true,
       selectedAnswers: true,
       wholeTestImages: true,
+      aiHelper: false,
     },
   );
   assert.deepEqual(
@@ -194,9 +212,136 @@ test("test copying is opt-in while its child preferences default on", () => {
       wholeTestButton: true,
       selectedAnswers: true,
       wholeTestImages: true,
+      aiHelper: false,
     },
   );
   assert.equal(resolvePreferences({ eeEtestCopyEnabled: true }).copyEnabled, true);
+  assert.equal(resolvePreferences({ eeAiQuestionHelperEnabled: true }).aiHelper, true);
+});
+
+test("mixed question interaction data keeps every supported control type", () => {
+  const { getQuestionInteractionData } = loadInternals().exports;
+  const option = element("li", { children: [text("A) First")] });
+  const select = element("select", {
+    options: [
+      { value: "", textContent: "-- choose --" },
+      { value: "one", textContent: "One" },
+    ],
+  });
+  const input = element("input", { type: "text" });
+  const content = {
+    querySelectorAll(selector) {
+      if (selector === ".etest-alist-answer") return [option];
+      if (selector === "select") return [select];
+      if (selector === "textarea, input") return [input];
+      return [];
+    },
+  };
+
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(getQuestionInteractionData(content, "mixed"))),
+    { options: ["A) First"], dropdowns: [["One"]], blanks: 1 },
+  );
+});
+
+test("AI fills every untouched multi-field control and Tab accepts a fallback hint", () => {
+  const Event = class { constructor(type) { this.type = type; } };
+  const { applyAiAnswer, canApplyAiAnswer, acceptAiSuggestionWithTab } = loadInternals({ Event }).exports;
+  const first = interactiveControl();
+  const second = interactiveControl();
+  const firstSelect = interactiveControl({
+    options: [
+      { value: "", textContent: "-- choose --", selected: true },
+      { value: "one", textContent: "One", selected: false },
+      { value: "two", textContent: "Two", selected: false },
+    ],
+  });
+  const secondSelect = interactiveControl({
+    options: [
+      { value: "", textContent: "-- choose --", selected: true },
+      { value: "alpha", textContent: "Alpha", selected: false },
+      { value: "beta", textContent: "Beta", selected: false },
+    ],
+  });
+  const content = {
+    querySelectorAll(selector) {
+      if (selector === ".etest-alist-answer") return [];
+      if (selector === "textarea, input") return [first, second];
+      if (selector === "select") return [firstSelect, secondSelect];
+      return [];
+    },
+  };
+
+  assert.equal(canApplyAiAnswer(content, {
+    choiceIndexes: [],
+    fillIns: ["only the first"],
+    dropdownIndexes: [1, 1],
+  }), false);
+
+  assert.equal(applyAiAnswer(content, {
+    choiceIndexes: [],
+    fillIns: ["function answer() {}", "second value"],
+    dropdownIndexes: [1, 1],
+  }), 4);
+  assert.equal(first.value, "function answer() {}");
+  assert.equal(second.value, "second value");
+  assert.equal(firstSelect.value, "two");
+  assert.equal(secondSelect.value, "beta");
+  assert.deepEqual(first.events, ["input", "change"]);
+
+  const hinted = interactiveControl();
+  hinted.setAttribute("placeholder", "Original hint");
+  hinted.setAttribute("data-ee-ai-original-placeholder", "Original hint");
+  hinted.setAttribute("data-ee-ai-suggestion", "accepted text");
+  let prevented = false;
+  acceptAiSuggestionWithTab({ key: "Tab", target: hinted, preventDefault() { prevented = true; } });
+  assert.equal(prevented, true);
+  assert.equal(hinted.value, "accepted text");
+  assert.equal(hinted.getAttribute("placeholder"), "Original hint");
+  assert.equal(hinted.getAttribute("data-ee-ai-suggestion"), null);
+});
+
+test("AI updates EduPage's visible dropdown label after selecting an answer", () => {
+  const { syncDropdownDisplay } = loadInternals().exports;
+  const label = { textContent: "-- choose --" };
+  const host = { querySelector(selector) { return selector === ".ui-selectmenu-text" ? label : null; } };
+  const select = { closest(selector) { return selector === ".etest-answer-input-field-outer" ? host : null; } };
+  syncDropdownDisplay(select, { textContent: "Correct answer" });
+  assert.equal(label.textContent, "Correct answer");
+});
+
+test("AI drags a complete matching suggestion only when nothing is connected", () => {
+  const dispatched = [];
+  const MouseEvent = class { constructor(type) { this.type = type; } };
+  const document = { dispatchEvent(event) { dispatched.push(event.type); } };
+  const makeRow = () => {
+    const sourceEvents = [];
+    const source = {
+      getBoundingClientRect() { return { left: 0, top: 0, width: 20, height: 20 }; },
+      dispatchEvent(event) { sourceEvents.push(event.type); },
+    };
+    const target = { getBoundingClientRect() { return { left: 40, top: 40, width: 20, height: 20 }; } };
+    return {
+      sourceEvents,
+      classList: { contains() { return false; } },
+      querySelector(selector) { return selector === ".pair-r" ? source : target; },
+    };
+  };
+  const first = makeRow();
+  const second = makeRow();
+  const content = {
+    querySelectorAll(selector) {
+      if (selector === ".etest-pair-item") return [first, second];
+      return [];
+    },
+  };
+  const { applyAiAnswer, canApplyAiAnswer } = loadInternals({ MouseEvent, document }).exports;
+  const suggestion = { choiceIndexes: [], fillIns: [], dropdownIndexes: [], matches: [{ left: 0, right: 1 }, { left: 1, right: 0 }] };
+  assert.equal(canApplyAiAnswer(content, suggestion), true);
+  assert.equal(applyAiAnswer(content, suggestion), 2);
+  assert.deepEqual(first.sourceEvents, ["mousedown"]);
+  assert.deepEqual(second.sourceEvents, ["mousedown"]);
+  assert.deepEqual(dispatched, ["mousemove", "mousemove", "mouseup", "mousemove", "mousemove", "mouseup"]);
 });
 
 test("the test page keeps image export out of its action bar", () => {

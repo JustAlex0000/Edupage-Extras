@@ -428,6 +428,23 @@ code {
     border-top: 1px solid var(--border-subtle);
 }
 
+.ai-settings > .setting-row + .setting-row {
+    border-top: 1px solid var(--border-subtle);
+}
+
+@media (max-width: 600px) {
+    .ai-settings > .setting-row:not(.setting-row-stack) {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .ai-settings .select-control,
+    .ai-settings .select-control select {
+        width: 100%;
+    }
+}
+
 .setting-row {
     display: flex;
     align-items: center;

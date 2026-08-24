@@ -70,6 +70,18 @@ const etestIncludeImagesToggle = document.getElementById("EtestIncludeImagesChec
 const etestImageExportRow = document.getElementById("EtestImageExportRow");
 const etestImageExportInput = document.getElementById("EtestImageExportInput");
 const etestImageExportButton = document.getElementById("EtestImageExportButton");
+const aiQuestionHelperToggle = document.getElementById("AiQuestionHelperCheckbox");
+const aiQuestionHelperSettings = document.getElementById("AiQuestionHelperSettings");
+const aiProviderSelect = document.getElementById("AiProviderSelect");
+const aiEndpointRow = document.getElementById("AiEndpointRow");
+const aiEndpointInput = document.getElementById("AiEndpointInput");
+const aiModelInput = document.getElementById("AiModelInput");
+const aiAccessTokenRow = document.getElementById("AiAccessTokenRow");
+const aiAccessTokenInput = document.getElementById("AiAccessTokenInput");
+const aiTestConnectionButton = document.getElementById("AiTestConnectionButton");
+const aiConnectionStatus = document.getElementById("AiConnectionStatus");
+const openAiShortcutSettingsButton = document.getElementById("OpenAiShortcutSettingsButton");
+const aiShortcutStatus = document.getElementById("AiShortcutStatus");
 const previewUpdateToastButton = document.getElementById("PreviewUpdateToastButton");
 const STORAGE_KEY = "darkModeEnabled";
 const THEME_KEY = "themeMode";
@@ -94,6 +106,7 @@ const UPDATE_REMINDER_ENABLED_KEY = "eeUpdateReminderEnabled";
 const THEME_TOGGLE_COMMAND = "toggle-theme-mode";
 const REPO_URL = "https://github.com/JustAlex0000/Edupage-Extras";
 const ACTIVITY_SHIELD_COMMAND = "toggle-stay-active-mode";
+const AI_SUGGEST_QUESTION_COMMAND = "suggest-test-question";
 const MOBILE_RESPONSIVE_KEY = "eeMobileResponsiveEnabled";
 const MOBILE_REDIRECT_KEY = "eeMobileRedirectEnabled";
 const ETEST_AUTO_THEME_OFF_KEY = "eeEtestAutoThemeOffEnabled";
@@ -108,6 +121,16 @@ const ETEST_QUESTION_BUTTONS_KEY = "eeEtestQuestionButtonsEnabled";
 const ETEST_WHOLE_TEST_BUTTON_KEY = "eeEtestWholeTestButtonEnabled";
 const ETEST_INCLUDE_ANSWERS_KEY = "eeEtestIncludeAnswers";
 const ETEST_INCLUDE_IMAGES_KEY = "eeEtestIncludeImages";
+const AI_HELPER_ENABLED_KEY = "eeAiQuestionHelperEnabled";
+const AI_PROVIDER_KEY = "eeAiProvider";
+const AI_ENDPOINT_KEY = "eeAiEndpoint";
+const AI_MODEL_KEY = "eeAiModel";
+const AI_ACCESS_TOKEN_KEY = "eeAiAccessToken";
+const AI_DEFAULT_ENDPOINTS = {
+	ollama: "http://127.0.0.1:11434",
+	lmstudio: "http://127.0.0.1:1234",
+};
+const AI_CLOUD_PROVIDERS = new Set(["nvidia", "openrouter"]);
 const activityShieldSettings = [
 	["ActivityShieldEnabled", "eeActivityShieldEnabled"],
 	["ActivityVisibilityState", "eeActivityShieldVisibilityState"],
@@ -289,6 +312,16 @@ function updateDependentControls() {
 	if (etestImageExportRow) etestImageExportRow.hidden = !etestCopyEnabled;
 	if (etestImageExportInput) etestImageExportInput.disabled = !etestCopyEnabled;
 	if (etestImageExportButton) etestImageExportButton.disabled = !etestCopyEnabled;
+
+	const aiEnabled = aiQuestionHelperToggle?.checked === true;
+	if (aiQuestionHelperSettings) aiQuestionHelperSettings.hidden = !aiEnabled;
+	const aiProvider = aiProviderSelect?.value || "ollama";
+	if (aiEndpointRow) aiEndpointRow.hidden = !aiEnabled || AI_CLOUD_PROVIDERS.has(aiProvider);
+	if (aiAccessTokenRow) aiAccessTokenRow.hidden = !aiEnabled || aiProvider === "ollama";
+	if (aiEndpointInput) aiEndpointInput.disabled = !aiEnabled || AI_CLOUD_PROVIDERS.has(aiProvider);
+	if (aiModelInput) aiModelInput.disabled = !aiEnabled;
+	if (aiAccessTokenInput) aiAccessTokenInput.disabled = !aiEnabled || aiProvider === "ollama";
+	if (aiTestConnectionButton) aiTestConnectionButton.disabled = !aiEnabled;
 }
 
 function updateTimetableExportVisibility() {
@@ -921,6 +954,19 @@ function renderActivityShieldShortcutStatus() {
 	});
 }
 
+function renderAiShortcutStatus() {
+	if (!aiShortcutStatus) return;
+	if (!chrome.commands?.getAll) {
+		aiShortcutStatus.textContent = t("shortcutUnavailable");
+		return;
+	}
+	chrome.commands.getAll((commands) => {
+		const command = commands.find((entry) => entry.name === AI_SUGGEST_QUESTION_COMMAND);
+		const shortcut = command?.shortcut?.trim();
+		aiShortcutStatus.textContent = shortcut ? t("currentHotkey", [shortcut]) : t("noHotkey");
+	});
+}
+
 function setExperimentalStatus(message, isError = false) {
 	if (!experimentalSaveStatus) return;
 	experimentalSaveStatus.textContent = message;
@@ -929,6 +975,59 @@ function setExperimentalStatus(message, isError = false) {
 	setExperimentalStatus.timer = window.setTimeout(() => {
 		experimentalSaveStatus.textContent = "";
 	}, 2200);
+}
+
+function setAiConnectionStatus(message, isError = false) {
+	if (!aiConnectionStatus) return;
+	aiConnectionStatus.textContent = message;
+	aiConnectionStatus.style.color = isError ? "var(--danger-color)" : "var(--accent-color)";
+}
+
+function currentAiSettings() {
+	return {
+		[AI_HELPER_ENABLED_KEY]: aiQuestionHelperToggle?.checked === true,
+		[AI_PROVIDER_KEY]: aiProviderSelect?.value || "ollama",
+		[AI_ENDPOINT_KEY]: aiEndpointInput?.value.trim() || "",
+		[AI_MODEL_KEY]: aiModelInput?.value.trim() || "",
+		[AI_ACCESS_TOKEN_KEY]: aiAccessTokenInput?.value.trim() || "",
+	};
+}
+
+function saveAiSettings(callback) {
+	chrome.storage.local.set(currentAiSettings(), callback);
+}
+
+function getAiPermissionPattern() {
+	const provider = aiProviderSelect?.value || "ollama";
+	if (provider === "openrouter") return "https://openrouter.ai/*";
+	if (provider === "nvidia") return "https://integrate.api.nvidia.com/*";
+	let endpoint;
+	try {
+		endpoint = new URL(aiEndpointInput?.value.trim() || AI_DEFAULT_ENDPOINTS[provider]);
+	} catch (_) {
+		throw new Error(t("aiInvalidEndpoint"));
+	}
+	if (endpoint.protocol !== "http:" || !["localhost", "127.0.0.1"].includes(endpoint.hostname.toLowerCase())) {
+		throw new Error(t("aiInvalidEndpoint"));
+	}
+	return `${endpoint.protocol}//${endpoint.hostname}/*`;
+}
+
+function requestAiHostPermission(pattern) {
+	return new Promise((resolve, reject) => {
+		if (!chrome.permissions?.request) {
+			reject(new Error(t("aiPermissionUnavailable")));
+			return;
+		}
+		chrome.permissions.request({ origins: [pattern] }, (granted) => {
+			const error = chrome.runtime.lastError;
+			if (error || !granted) {
+				reject(new Error(t("aiPermissionDenied")));
+				return;
+			}
+			resolve();
+		});
+	});
 }
 
 function updateActivityShieldDependentControls() {
@@ -1147,6 +1246,72 @@ if (etestIncludeImagesToggle) {
 	});
 }
 
+if (aiQuestionHelperToggle) {
+	chrome.storage.local.get([
+		AI_HELPER_ENABLED_KEY,
+		AI_PROVIDER_KEY,
+		AI_ENDPOINT_KEY,
+		AI_MODEL_KEY,
+		AI_ACCESS_TOKEN_KEY,
+	], (result) => {
+		const provider = ["ollama", "lmstudio", "nvidia", "openrouter"].includes(result[AI_PROVIDER_KEY])
+			? result[AI_PROVIDER_KEY]
+			: "ollama";
+		aiQuestionHelperToggle.checked = result[AI_HELPER_ENABLED_KEY] === true;
+		if (aiProviderSelect) aiProviderSelect.value = provider;
+		if (aiEndpointInput) aiEndpointInput.value = result[AI_ENDPOINT_KEY] || AI_DEFAULT_ENDPOINTS[provider] || "";
+		if (aiModelInput) aiModelInput.value = result[AI_MODEL_KEY] || "";
+		if (aiAccessTokenInput) aiAccessTokenInput.value = result[AI_ACCESS_TOKEN_KEY] || "";
+		updateDependentControls();
+	});
+	aiQuestionHelperToggle.addEventListener("change", () => {
+		saveAiSettings();
+		setAiConnectionStatus("");
+		updateDependentControls();
+	});
+}
+
+aiProviderSelect?.addEventListener("change", () => {
+	const provider = aiProviderSelect.value;
+	if (aiEndpointInput && AI_DEFAULT_ENDPOINTS[provider]) aiEndpointInput.value = AI_DEFAULT_ENDPOINTS[provider];
+	saveAiSettings();
+	setAiConnectionStatus("");
+	updateDependentControls();
+});
+
+[aiEndpointInput, aiModelInput, aiAccessTokenInput].forEach((input) => {
+	input?.addEventListener("change", () => {
+		saveAiSettings();
+		setAiConnectionStatus("");
+	});
+});
+
+aiTestConnectionButton?.addEventListener("click", async () => {
+	setAiConnectionStatus(t("aiConnectionTesting"));
+	aiTestConnectionButton.disabled = true;
+	try {
+		const pattern = getAiPermissionPattern();
+		await requestAiHostPermission(pattern);
+		await new Promise((resolve) => saveAiSettings(resolve));
+		const response = await chrome.runtime.sendMessage({ type: "ee-ai-test-connection" });
+		if (!response?.ok) throw new Error(response?.error || t("aiConnectionFailed"));
+		setAiConnectionStatus(t("aiConnectionSucceeded"));
+	} catch (error) {
+		setAiConnectionStatus(error?.message || t("aiConnectionFailed"), true);
+	} finally {
+		aiTestConnectionButton.disabled = aiQuestionHelperToggle?.checked !== true;
+	}
+});
+
+openAiShortcutSettingsButton?.addEventListener("click", () => {
+	if (window.eeI18n?.isFirefox) {
+		chrome.tabs.create({ url: "about:addons" });
+		if (aiShortcutStatus) aiShortcutStatus.textContent = t("shortcutSettingsFirefoxHint");
+		return;
+	}
+	chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
+});
+
 if (previewUpdateToastButton) {
 	previewUpdateToastButton.addEventListener("click", () => {
 		chrome.tabs.query({ url: "https://*.edupage.org/*" }, (tabs) => {
@@ -1163,11 +1328,21 @@ if (previewUpdateToastButton) {
 }
 
 renderShortcutStatus();
+renderAiShortcutStatus();
 renderDefaultHalfyearHints();
-window.addEventListener("focus", renderShortcutStatus);
-window.addEventListener("pageshow", renderShortcutStatus);
+window.addEventListener("focus", () => {
+	renderShortcutStatus();
+	renderAiShortcutStatus();
+});
+window.addEventListener("pageshow", () => {
+	renderShortcutStatus();
+	renderAiShortcutStatus();
+});
 document.addEventListener("visibilitychange", () => {
-	if (!document.hidden) renderShortcutStatus();
+	if (!document.hidden) {
+		renderShortcutStatus();
+		renderAiShortcutStatus();
+	}
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
