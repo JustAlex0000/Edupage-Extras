@@ -214,7 +214,13 @@ runTest("AI provider configuration only accepts fixed OpenRouter or loopback ser
 });
 
 runTest("Gemini response text is extracted from candidate parts", () => {
-  const { extractAiMessageContent } = loadBackgroundInternals();
+  const { buildGeminiGenerationConfig, extractAiMessageContent } = loadBackgroundInternals();
+  assert.deepEqual(JSON.parse(JSON.stringify(buildGeminiGenerationConfig())), {
+    temperature: 0.1,
+    maxOutputTokens: 1000,
+    responseMimeType: "application/json",
+    thinkingConfig: { thinkingLevel: "LOW" },
+  });
   assert.equal(extractAiMessageContent({
     candidates: [{ content: { parts: [{ text: '{"answer":' }, { text: '"B"}' }] } }],
   }, "gemini"), '{"answer":"B"}');

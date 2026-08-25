@@ -249,6 +249,17 @@ function extractAiMessageContent(data, provider) {
   return "";
 }
 
+function buildGeminiGenerationConfig() {
+  return {
+    temperature: 0.1,
+    maxOutputTokens: 1_000,
+    responseMimeType: "application/json",
+    // Gemini 3 Flash defaults to medium thinking. Question Helper requests are
+    // short structured tasks, so low thinking avoids unnecessary long waits.
+    thinkingConfig: { thinkingLevel: "LOW" },
+  };
+}
+
 function parseAiJsonObject(content) {
   const stripped = String(content || "").replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
   const start = stripped.indexOf("{");
@@ -436,11 +447,7 @@ async function requestAiQuestionSuggestion(questionInput) {
     headers["x-goog-api-key"] = config.accessToken;
     body = {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 500,
-        responseMimeType: "application/json",
-      },
+      generationConfig: buildGeminiGenerationConfig(),
     };
   } else {
     url = config.provider === "openrouter"
@@ -1996,6 +2003,7 @@ if (globalThis.__EE_TEST__) {
     resolveAiProviderConfig,
     sanitizeAiQuestion,
     buildAiQuestionPrompt,
+    buildGeminiGenerationConfig,
     extractAiMessageContent,
     parseAiJsonObject,
     validateAiSuggestion,
