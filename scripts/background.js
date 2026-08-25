@@ -260,6 +260,16 @@ function buildGeminiGenerationConfig() {
   };
 }
 
+function buildGeminiGenerateUrl(config) {
+  const model = config.model.replace(/^models\//, "");
+  const url = new URL(`${config.endpoint}/v1beta/models/${encodeURIComponent(model)}:generateContent`);
+  // Google supports API keys in either x-goog-api-key or ?key=. Chrome's MV3
+  // network stack can stall a cross-origin POST carrying the custom header,
+  // while the query form avoids that extra header negotiation.
+  url.searchParams.set("key", config.accessToken);
+  return url.href;
+}
+
 function parseAiJsonObject(content) {
   const stripped = String(content || "").replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
   const start = stripped.indexOf("{");
@@ -442,9 +452,7 @@ async function requestAiQuestionSuggestion(questionInput) {
       options: { temperature: 0.1 },
     };
   } else if (config.provider === "gemini") {
-    const model = config.model.replace(/^models\//, "");
-    url = `${config.endpoint}/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-    headers["x-goog-api-key"] = config.accessToken;
+    url = buildGeminiGenerateUrl(config);
     body = {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: buildGeminiGenerationConfig(),
@@ -2004,6 +2012,7 @@ if (globalThis.__EE_TEST__) {
     sanitizeAiQuestion,
     buildAiQuestionPrompt,
     buildGeminiGenerationConfig,
+    buildGeminiGenerateUrl,
     extractAiMessageContent,
     parseAiJsonObject,
     validateAiSuggestion,
