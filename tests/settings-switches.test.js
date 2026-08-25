@@ -87,6 +87,7 @@ runTest("Test Question Helper stays opt-in inside Experimental", () => {
   assert.match(html, /value="lmstudio"/);
   assert.match(html, /value="nvidia"/);
   assert.match(html, /value="openrouter"/);
+  assert.match(html, /value="gemini"/);
   assert.match(html, /id="OpenAiShortcutSettingsButton"/);
   assert.match(settingsScript, /suggest-test-question/);
   assert.match(settingsScript, /aiQuestionHelperToggle\.checked = result\[AI_HELPER_ENABLED_KEY\] === true/);

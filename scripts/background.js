@@ -30,10 +30,11 @@ const AI_PROVIDER_KEY = "eeAiProvider";
 const AI_ENDPOINT_KEY = "eeAiEndpoint";
 const AI_MODEL_KEY = "eeAiModel";
 const AI_ACCESS_TOKEN_KEY = "eeAiAccessToken";
-const AI_PROVIDERS = new Set(["ollama", "lmstudio", "nvidia", "openrouter"]);
+const AI_PROVIDERS = new Set(["ollama", "lmstudio", "nvidia", "openrouter", "gemini"]);
 const AI_CLOUD_ENDPOINTS = {
   nvidia: "https://integrate.api.nvidia.com",
   openrouter: "https://openrouter.ai",
+  gemini: "https://generativelanguage.googleapis.com",
 };
 const AI_LOCAL_ENDPOINTS = {
   ollama: "http://127.0.0.1:11434",
@@ -120,7 +121,9 @@ function resolveAiProviderConfig(values = {}) {
   const accessToken = normalizeAiText(values[AI_ACCESS_TOKEN_KEY], 500);
   if (!model) throw new Error("Choose a model first.");
   if (AI_CLOUD_ENDPOINTS[provider] && !accessToken) {
-    throw new Error(`Enter an ${provider === "nvidia" ? "NVIDIA" : "OpenRouter"} API key first.`);
+    const providerName = { nvidia: "NVIDIA", openrouter: "OpenRouter", gemini: "Gemini" }[provider];
+    const article = provider === "nvidia" ? "an" : "a";
+    throw new Error(`Enter ${article} ${providerName} API key first.`);
   }
   return {
     provider,
@@ -232,6 +235,12 @@ async function fetchAiJson(url, options = {}) {
 
 function extractAiMessageContent(data, provider) {
   if (provider === "ollama") return normalizeAiText(data?.message?.content, AI_MAX_RESPONSE_LENGTH);
+  if (provider === "gemini") {
+    const parts = data?.candidates?.[0]?.content?.parts;
+    return Array.isArray(parts)
+      ? normalizeAiText(parts.map((part) => part?.text || "").join(""), AI_MAX_RESPONSE_LENGTH)
+      : "";
+  }
   const content = data?.choices?.[0]?.message?.content;
   if (typeof content === "string") return normalizeAiText(content, AI_MAX_RESPONSE_LENGTH);
   if (Array.isArray(content)) {
@@ -421,6 +430,18 @@ async function requestAiQuestionSuggestion(questionInput) {
       format: "json",
       options: { temperature: 0.1 },
     };
+  } else if (config.provider === "gemini") {
+    const model = config.model.replace(/^models\//, "");
+    url = `${config.endpoint}/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+    headers["x-goog-api-key"] = config.accessToken;
+    body = {
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 500,
+        responseMimeType: "application/json",
+      },
+    };
   } else {
     url = config.provider === "openrouter"
       ? "https://openrouter.ai/api/v1/chat/completions"
@@ -465,6 +486,10 @@ async function testAiProviderConnection() {
       throw new Error("The provider returned an unreadable test response.");
     }
     return { provider: config.provider, model: config.model };
+  } else if (config.provider === "gemini") {
+    const model = config.model.replace(/^models\//, "");
+    url = `${config.endpoint}/v1beta/models/${encodeURIComponent(model)}`;
+    headers["x-goog-api-key"] = config.accessToken;
   } else if (config.provider === "ollama") {
     url = `${config.endpoint}/api/tags`;
   } else {
@@ -472,7 +497,12 @@ async function testAiProviderConnection() {
     if (config.accessToken) headers.Authorization = `Bearer ${config.accessToken}`;
   }
   const data = await fetchAiJson(url, { method: "GET", headers });
-  if (config.provider !== "openrouter") {
+  if (config.provider === "gemini") {
+    const returnedModel = normalizeAiText(data?.name, 240).replace(/^models\//, "");
+    if (returnedModel !== config.model.replace(/^models\//, "")) {
+      throw new Error("The configured model is not available for this API key.");
+    }
+  } else if (config.provider !== "openrouter") {
     const models = config.provider === "ollama" ? data?.models : data?.data;
     if (!Array.isArray(models)) throw new Error("The provider returned an unreadable model list.");
     const names = models.map((model) => normalizeAiText(model?.name || model?.model || model?.id, 240));
@@ -1966,6 +1996,7 @@ if (globalThis.__EE_TEST__) {
     resolveAiProviderConfig,
     sanitizeAiQuestion,
     buildAiQuestionPrompt,
+    extractAiMessageContent,
     parseAiJsonObject,
     validateAiSuggestion,
     normalizeAiFillIns,

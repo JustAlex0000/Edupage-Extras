@@ -81,6 +81,12 @@ EduPage, open a GitHub issue or report it on [Discord](https://discord.gg/eNZXHe
 - **Curriculum export** — on a subject's topic plan page, export the
   full year's chapters, topics, and taught dates as `.txt` or `.csv`.
 
+### Experimental AI
+
+- **Test Question Helper** (opt-in) — asks a configured Ollama, LM Studio,
+  NVIDIA, OpenRouter, or Google Gemini model about the current eTest question.
+  It fills only an untouched question and never submits an answer.
+
 ### Login
 
 - **Auto-login** (off by default) — clicks through EduPage's
@@ -134,8 +140,8 @@ Edupage Extras requests:
 - Optional `https://edublurtesting.ct.ws/*` access is requested only after you choose to open the testing site from the experimental settings.
 - `https://raw.githubusercontent.com/JustAlex0000/Edupage-Extras/*` host access -
   reads the public project manifest for update checks.
-- Optional access to `localhost`, `127.0.0.1`, `integrate.api.nvidia.com`, or
-  `openrouter.ai` is requested
+- Optional access to `localhost`, `127.0.0.1`, `integrate.api.nvidia.com`,
+  `openrouter.ai`, or `generativelanguage.googleapis.com` is requested
   only when the user tests the matching AI provider connection.
 
 The extension does not request access to all websites.
@@ -146,7 +152,8 @@ The extension does not request access to all websites.
 - No analytics.
 - External requests are limited to the optional public GitHub update check and
   user-triggered Test Question Helper requests. Ollama and LM Studio stay on
-  the local computer; NVIDIA and OpenRouter receive the current question text
+  the local computer; NVIDIA, OpenRouter, and Google Gemini receive the current
+  question text
   and any responses already chosen in that question.
 - No Edupage credentials are collected.
 - Settings are stored locally.

@@ -128,7 +128,7 @@ const AI_DEFAULT_ENDPOINTS = {
 	ollama: "http://127.0.0.1:11434",
 	lmstudio: "http://127.0.0.1:1234",
 };
-const AI_CLOUD_PROVIDERS = new Set(["nvidia", "openrouter"]);
+const AI_CLOUD_PROVIDERS = new Set(["nvidia", "openrouter", "gemini"]);
 const TESTING_SITE_URL = "https://edublurtesting.ct.ws/";
 const TESTING_SITE_PERMISSION = "https://edublurtesting.ct.ws/*";
 const activityShieldSettings = [
@@ -1000,6 +1000,7 @@ function getAiPermissionPattern() {
 	const provider = aiProviderSelect?.value || "ollama";
 	if (provider === "openrouter") return "https://openrouter.ai/*";
 	if (provider === "nvidia") return "https://integrate.api.nvidia.com/*";
+	if (provider === "gemini") return "https://generativelanguage.googleapis.com/*";
 	let endpoint;
 	try {
 		endpoint = new URL(aiEndpointInput?.value.trim() || AI_DEFAULT_ENDPOINTS[provider]);
@@ -1256,7 +1257,7 @@ if (aiQuestionHelperToggle) {
 		AI_MODEL_KEY,
 		AI_ACCESS_TOKEN_KEY,
 	], (result) => {
-		const provider = ["ollama", "lmstudio", "nvidia", "openrouter"].includes(result[AI_PROVIDER_KEY])
+		const provider = ["ollama", "lmstudio", "nvidia", "openrouter", "gemini"].includes(result[AI_PROVIDER_KEY])
 			? result[AI_PROVIDER_KEY]
 			: "ollama";
 		aiQuestionHelperToggle.checked = result[AI_HELPER_ENABLED_KEY] === true;

@@ -25,6 +25,7 @@
     "http://localhost/*",
     "https://integrate.api.nvidia.com/*",
     "https://openrouter.ai/*",
+    "https://generativelanguage.googleapis.com/*",
     "https://edublurtesting.ct.ws/*"
   ],
   "host_permissions": [

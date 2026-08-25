@@ -171,6 +171,7 @@ runTest("AI provider configuration only accepts fixed OpenRouter or loopback ser
   assert.throws(() => normalizeLocalAiEndpoint("http://127.0.0.1:11434/api/chat", "ollama"), /without a path/);
   assert.throws(() => resolveAiProviderConfig({ eeAiProvider: "openrouter", eeAiModel: "openai/model" }), /API key/);
   assert.throws(() => resolveAiProviderConfig({ eeAiProvider: "nvidia", eeAiModel: "nvidia/model" }), /API key/);
+  assert.throws(() => resolveAiProviderConfig({ eeAiProvider: "gemini", eeAiModel: "gemini-2.5-flash" }), /Gemini API key/);
   assert.deepEqual(
     JSON.parse(JSON.stringify(resolveAiProviderConfig({
       eeAiProvider: "openrouter",
@@ -197,6 +198,26 @@ runTest("AI provider configuration only accepts fixed OpenRouter or loopback ser
       endpoint: "https://integrate.api.nvidia.com",
     },
   );
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(resolveAiProviderConfig({
+      eeAiProvider: "gemini",
+      eeAiModel: "gemini-2.5-flash",
+      eeAiAccessToken: "secret",
+    }))),
+    {
+      provider: "gemini",
+      model: "gemini-2.5-flash",
+      accessToken: "secret",
+      endpoint: "https://generativelanguage.googleapis.com",
+    },
+  );
+});
+
+runTest("Gemini response text is extracted from candidate parts", () => {
+  const { extractAiMessageContent } = loadBackgroundInternals();
+  assert.equal(extractAiMessageContent({
+    candidates: [{ content: { parts: [{ text: '{"answer":' }, { text: '"B"}' }] } }],
+  }, "gemini"), '{"answer":"B"}');
 });
 
 runTest("AI question and model responses are bounded before reaching the page", () => {

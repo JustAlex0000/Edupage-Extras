@@ -582,7 +582,7 @@
               <div class="setting-row">
                 <div>
                   <h3 data-i18n="aiProvider">Provider</h3>
-                  <p data-i18n="aiProviderDesc">Ollama and LM Studio stay on this computer. OpenRouter sends the question text to the selected model provider.</p>
+                  <p data-i18n="aiProviderDesc">Ollama and LM Studio stay on this computer. NVIDIA, OpenRouter, and Gemini send question text to their hosted models.</p>
                 </div>
                 <label class="select-control" for="AiProviderSelect">
                   <span class="sr-only" data-i18n="aiProvider">Provider</span>
@@ -591,6 +591,7 @@
                     <option value="lmstudio">LM Studio</option>
                     <option value="nvidia">NVIDIA</option>
                     <option value="openrouter">OpenRouter</option>
+                    <option value="gemini">Google Gemini</option>
                   </select>
                 </label>
               </div>
@@ -615,10 +616,10 @@
 
               <div class="setting-row setting-row-stack" id="AiAccessTokenRow" hidden>
                 <div>
-                  <h3 data-i18n="aiAccessToken">Access token</h3>
-                  <p data-i18n="aiAccessTokenDesc">Required for OpenRouter and optional for protected LM Studio servers. Stored in this browser profile and never exposed to EduPage.</p>
+                  <h3 data-i18n="aiAccessToken">API key or access token</h3>
+                  <p data-i18n="aiAccessTokenDesc">Required for NVIDIA, OpenRouter, and Gemini; optional for protected LM Studio servers. Stored in this browser profile and never exposed to EduPage.</p>
                 </div>
-                <label class="sr-only" for="AiAccessTokenInput" data-i18n="aiAccessToken">Access token</label>
+                <label class="sr-only" for="AiAccessTokenInput" data-i18n="aiAccessToken">API key or access token</label>
                 <input id="AiAccessTokenInput" type="password" autocomplete="off" spellcheck="false">
               </div>
 
