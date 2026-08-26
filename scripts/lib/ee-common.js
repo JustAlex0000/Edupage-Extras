@@ -15,6 +15,8 @@
 
   const EE = {};
 
+  // Keep "light" for existing installs that chose it before the theme picker
+  // stopped showing it. It is a valid no-recolor theme, not an invalid value.
   EE.THEMES = ["dark", "ocean", "forest", "emerald", "pink", "purple", "custom", "light"];
 
   EE.DEFAULT_CUSTOM_THEME = {

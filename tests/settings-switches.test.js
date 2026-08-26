@@ -45,9 +45,9 @@ runTest("debug-only attendance dates and WIP feature markers stay in their inten
   assert.ok(html.indexOf('id="HalfyearEndDateInput"') > debugStart);
 
   const autoLoginRow = html.indexOf('for="AutoLoginCheckbox"');
-  const etestCopyRow = html.indexOf('for="EtestCopyCheckbox"');
+  const etestCopyRow = html.match(/<div class="setting-row">[\s\S]*?setting-tag-wip[\s\S]*?for="EtestCopyCheckbox"[\s\S]*?<\/div>\s*<div class="setting-row setting-row-dependent"/);
   assert.ok(autoLoginRow >= 0 && html.indexOf('setting-tag-wip', autoLoginRow - 500) >= 0);
-  assert.ok(etestCopyRow >= 0 && html.indexOf('setting-tag-wip', etestCopyRow - 500) >= 0);
+  assert.ok(etestCopyRow, "expected the test-copy setting row to keep its WIP marker");
   assert.match(html, /id="AutoLoginPreferredAccountRow"/);
   assert.match(html, /id="EtestQuestionButtonsRow"[^>]*hidden/);
   assert.match(html, /id="EtestWholeTestButtonRow"[^>]*hidden/);
@@ -67,6 +67,14 @@ runTest("test copying and its image export remain experimental dependent setting
   assert.match(html, /id="EtestImageExportRow"[^>]*hidden/);
   assert.ok(html.indexOf('for="EtestCopyCheckbox"') > experimentalPanel, "expected test copying in Experimental");
   assert.match(html, /src="etest-image-export\.js"/);
+});
+
+runTest("test-copy shortcut and toggle stay together on narrow settings pages", () => {
+  const copyRow = html.match(/<div class="setting-row">[\s\S]*?for="EtestCopyCheckbox"[\s\S]*?<\/div>\s*<div class="setting-row setting-row-dependent"/);
+
+  assert.ok(copyRow, "expected the test-copy setting row");
+  assert.match(copyRow[0], /<div class="setting-row-actions">[\s\S]*?id="OpenEtestCopyShortcutSettingsButton"[\s\S]*?for="EtestCopyCheckbox"/);
+  assert.match(settingsCss, /\.setting-row:has\(\.setting-row-actions\)/);
 });
 
 runTest("Test Question Helper stays opt-in inside Experimental", () => {
@@ -166,7 +174,7 @@ runTest("Experimental stays isolated and acknowledgement expires on extension up
   assert.match(settingsScript, /settingsSearch\.hidden = true/);
 });
 
-runTest("mobile settings keep search and jump navigation sticky", () => {
+runTest("narrow settings keep search and jump navigation sticky", () => {
   assert.match(settingsCss, /@media \(max-width: 900px\)[\s\S]*?\.settings-sidebar\s*\{[\s\S]*?position:\s*sticky/);
   assert.match(settingsCss, /@media \(max-width: 900px\)[\s\S]*?\.settings-nav\s*\{[\s\S]*?flex-direction:\s*row/);
   assert.match(settingsCss, /\.setting-group\s*\{\s*scroll-margin-top:\s*132px/);

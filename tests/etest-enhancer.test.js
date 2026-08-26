@@ -407,3 +407,36 @@ test("rich clipboard writes both MIME types and falls back to plain text", async
   await exports.writeClipboard({ plain: "Fallback", html: "<p>Fallback</p>" });
   assert.deepEqual(plainWrites, ["Fallback"]);
 });
+
+test("plain clipboard fallback uses execCommand when a shortcut has no clipboard activation", async () => {
+  const appended = [];
+  const document = {
+    body: {
+      appendChild(element) {
+        appended.push(element);
+      },
+    },
+    createElement() {
+      return {
+        style: {},
+        setAttribute() {},
+        select() {},
+        remove() {},
+      };
+    },
+    execCommand(command) {
+      return command === "copy";
+    },
+  };
+  const navigator = {
+    clipboard: {
+      writeText() {
+        return Promise.reject(new Error("user activation is required"));
+      },
+    },
+  };
+  const { exports } = loadInternals({ document, navigator });
+  await exports.writePlainText("Shortcut copy");
+  assert.equal(appended.length, 1);
+  assert.equal(appended[0].value, "Shortcut copy");
+});

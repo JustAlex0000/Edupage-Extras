@@ -73,21 +73,13 @@
               </h3>
               <p data-i18n="themesDesc">Recolor EduPage and the extension menus with your selected theme.</p>
             </div>
-            <label class="switch switch-compact" for="DarkModeCheckbox">
-              <input type="checkbox" id="DarkModeCheckbox">
-              <span class="switch-track" aria-hidden="true"></span>
-              <span class="sr-only" data-i18n="toggleThemes">Toggle themes</span>
-            </label>
-          </div>
-
-          <div class="setting-row">
-            <div>
-              <h3 data-i18n="themeHotkey">Theme Keyboard Shortcut</h3>
-              <p data-i18n="themeHotkeyDesc">Open your browser's shortcut settings to assign a key combination for turning the theme on or off.</p>
-            </div>
-            <div class="shortcut-controls">
-              <button class="secondary-button" id="OpenShortcutSettingsButton" type="button" data-i18n="openShortcutSettings">Open Shortcut Settings</button>
-              <span class="shortcut-status" id="ThemeShortcutStatus" data-i18n="noHotkey">No hotkey assigned.</span>
+            <div class="setting-row-actions">
+              <button class="secondary-button setting-shortcut-button" id="OpenShortcutSettingsButton" type="button" data-i18n="openShortcutSettings">Open Shortcut Settings</button>
+              <label class="switch switch-compact" for="DarkModeCheckbox">
+                <input type="checkbox" id="DarkModeCheckbox">
+                <span class="switch-track" aria-hidden="true"></span>
+                <span class="sr-only" data-i18n="toggleThemes">Toggle themes</span>
+              </label>
             </div>
           </div>
 
@@ -121,11 +113,6 @@
               <span class="switch-track" aria-hidden="true"></span>
               <span class="sr-only" data-i18n="toggleEtestAutoThemeOff">Toggle auto-disable theme during tests</span>
             </label>
-          </div>
-
-          <div class="setting-note setting-note-warning" role="note" aria-label="Theme disclaimer">
-            <strong data-i18n="themeDisclaimerTitle">Theme Disclaimer</strong>
-            <p data-i18n="themeDisclaimerText">During an online test or exam, a recolored EduPage looks different from the standard page — which can draw a teacher's attention or be mistaken for tampering. Switch to the default theme (or turn themes off) while you take the test.</p>
           </div>
 
           <div class="setting-row custom-theme-row" id="CustomThemePanel" hidden>
@@ -231,29 +218,6 @@
             </label>
           </div>
 
-          <div class="setting-row">
-            <div>
-              <h3 data-i18n="mobileResponsive">Improve the EduPage Home on Mobile</h3>
-              <p data-i18n="mobileResponsiveDesc">Adapt the legacy EduPage home layout for smaller screens. Other pages and the dedicated mobile app keep their native layout.</p>
-            </div>
-            <label class="switch switch-compact" for="MobileResponsiveCheckbox">
-              <input type="checkbox" id="MobileResponsiveCheckbox">
-              <span class="switch-track" aria-hidden="true"></span>
-              <span class="sr-only" data-i18n="toggleMobileResponsive">Toggle mobile-responsive layout</span>
-            </label>
-          </div>
-
-          <div class="setting-row">
-            <div>
-              <h3 data-i18n="mobileRedirect">Redirect to /app/main on Mobile</h3>
-              <p data-i18n="mobileRedirectDesc">When enabled, opening Edupage on a phone jumps straight to your school's /app/main mobile view. Leave this off on desktop.</p>
-            </div>
-            <label class="switch switch-compact" for="MobileRedirectCheckbox">
-              <input type="checkbox" id="MobileRedirectCheckbox">
-              <span class="switch-track" aria-hidden="true"></span>
-              <span class="sr-only" data-i18n="toggleMobileRedirect">Toggle mobile redirect</span>
-            </label>
-          </div>
         </div>
       </section>
 
@@ -607,11 +571,14 @@
                 <h3><span data-i18n="aiQuestionHelper">Test Question Helper</span> <span class="setting-tag setting-tag-wip" data-i18n="wipBadge">WIP</span></h3>
                 <p data-i18n="aiQuestionHelperDesc">Add a small suggestion button beside each eTest question. Suggestions can be wrong, so check them before using them.</p>
               </div>
-              <label class="switch switch-compact" for="AiQuestionHelperCheckbox">
-                <input type="checkbox" id="AiQuestionHelperCheckbox">
-                <span class="switch-track" aria-hidden="true"></span>
-                <span class="sr-only" data-i18n="toggleAiQuestionHelper">Toggle Test Question Helper</span>
-              </label>
+              <div class="setting-row-actions">
+                <button class="secondary-button setting-shortcut-button" id="OpenAiShortcutSettingsButton" type="button" data-i18n="openShortcutSettings">Open Shortcut Settings</button>
+                <label class="switch switch-compact" for="AiQuestionHelperCheckbox">
+                  <input type="checkbox" id="AiQuestionHelperCheckbox">
+                  <span class="switch-track" aria-hidden="true"></span>
+                  <span class="sr-only" data-i18n="toggleAiQuestionHelper">Toggle Test Question Helper</span>
+                </label>
+              </div>
             </div>
 
             <div class="ai-settings" id="AiQuestionHelperSettings" hidden>
@@ -669,16 +636,6 @@
                 </div>
               </div>
 
-              <div class="setting-row">
-                <div>
-                  <h3 data-i18n="aiShortcut">Keyboard shortcut</h3>
-                  <p data-i18n="aiShortcutDesc">Assign a browser shortcut to ask about the focused or last-clicked eTest question.</p>
-                </div>
-                <div class="shortcut-controls">
-                  <button class="secondary-button" id="OpenAiShortcutSettingsButton" type="button" data-i18n="openShortcutSettings">Open Shortcut Settings</button>
-                  <span class="shortcut-status" id="AiShortcutStatus" data-i18n="noHotkey">No hotkey assigned.</span>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -692,11 +649,14 @@
                 <h3><span data-i18n="etestCopy">Copy Test Questions</span> <span class="setting-tag setting-tag-wip" data-i18n="wipBadge">WIP</span></h3>
                 <p data-i18n="etestCopyDesc">Add structured copy actions to EduPage tests (eTest), including a button for the whole numbered test.</p>
               </div>
-              <label class="switch switch-compact" for="EtestCopyCheckbox">
-                <input type="checkbox" id="EtestCopyCheckbox">
-                <span class="switch-track" aria-hidden="true"></span>
-                <span class="sr-only" data-i18n="toggleEtestCopy">Toggle test question copy button</span>
-              </label>
+              <div class="setting-row-actions">
+                <button class="secondary-button setting-shortcut-button" id="OpenEtestCopyShortcutSettingsButton" type="button" data-i18n="openShortcutSettings">Open Shortcut Settings</button>
+                <label class="switch switch-compact" for="EtestCopyCheckbox">
+                  <input type="checkbox" id="EtestCopyCheckbox">
+                  <span class="switch-track" aria-hidden="true"></span>
+                  <span class="sr-only" data-i18n="toggleEtestCopy">Toggle test question copy button</span>
+                </label>
+              </div>
             </div>
 
             <div class="setting-row setting-row-dependent" id="EtestQuestionButtonsRow" hidden>
@@ -774,21 +734,13 @@
                 <h3 data-i18n="samMaster">Stay Active Mode (Master Switch)</h3>
                 <p data-i18n="samMasterDesc">Turn the full Stay Active feature set on or off at once for Edupage pages.</p>
               </div>
-              <label class="switch switch-compact" for="ActivityShieldEnabled">
-                <input type="checkbox" id="ActivityShieldEnabled">
-                <span class="switch-track" aria-hidden="true"></span>
-                <span class="sr-only" data-i18n="toggleSam">Toggle Stay Active Mode</span>
-              </label>
-            </div>
-
-            <div class="setting-row">
-              <div>
-                <h3 data-i18n="samHotkey">Master Switch Hotkey</h3>
-                <p data-i18n="samHotkeyDesc">Optional. No default hotkey is assigned. Use Chrome's extension shortcuts page if you want a shortcut for toggling Stay Active Mode.</p>
-              </div>
-              <div class="shortcut-controls">
+              <div class="setting-row-actions">
                 <button class="secondary-button" id="ExperimentalShortcutSettingsButton" type="button" data-i18n="openShortcutSettings">Open Shortcut Settings</button>
-                <span class="shortcut-status" id="ActivityShieldShortcutStatus" data-i18n="noHotkey">No hotkey assigned.</span>
+                <label class="switch switch-compact" for="ActivityShieldEnabled">
+                  <input type="checkbox" id="ActivityShieldEnabled">
+                  <span class="switch-track" aria-hidden="true"></span>
+                  <span class="sr-only" data-i18n="toggleSam">Toggle Stay Active Mode</span>
+                </label>
               </div>
             </div>
           </div>

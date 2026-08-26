@@ -81,14 +81,14 @@
 }
 
 :root[data-theme="purple"] {
-    --page-bg: #171326;
-    --surface-bg: #211a33;
-    --control-bg: #2d2444;
-    --border-color: #5b4a7f;
-    --text-main: #f0eaff;
-    --text-muted: #c4b5e6;
-    --accent-color: #b69cff;
-    --danger-color: #ff7aa2;
+    --page-bg: #180b35;
+    --surface-bg: #25134b;
+    --control-bg: #352062;
+    --border-color: #7656ad;
+    --text-main: #f4edff;
+    --text-muted: #d2c2ee;
+    --accent-color: #c29cff;
+    --danger-color: #ff75a8;
 }
 
 :root[data-theme="custom"] {
@@ -155,7 +155,7 @@ body::before {
     flex-direction: column;
     position: relative;
     z-index: 1;
-    max-width: 960px;
+    max-width: 1160px;
     min-height: 100vh;
     margin: 0 auto;
     padding: 36px 24px 24px;
@@ -478,10 +478,6 @@ code {
     align-items: flex-start;
 }
 
-.prominent-row {
-    background: var(--accent-faint);
-}
-
 /* ---- Notes, tags, hints ------------------------------------------------ */
 
 .setting-note {
@@ -673,6 +669,13 @@ code {
     display: grid;
     gap: 8px;
     justify-items: end;
+}
+
+.setting-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 0 0 auto;
 }
 
 .shortcut-status {
@@ -1154,6 +1157,7 @@ input[type="checkbox"]:disabled {
     /* Only rows whose controls are genuinely wide stack vertically; simple
        toggle rows keep the label-left / switch-right layout. */
     .setting-row:has(.shortcut-controls),
+    .setting-row:has(.setting-row-actions),
     .setting-row:has(.date-setting-controls),
     .setting-row:has(.custom-theme-controls),
     .setting-row:has(.custom-theme-grid) {
@@ -1163,6 +1167,11 @@ input[type="checkbox"]:disabled {
 
     .shortcut-controls {
         justify-items: stretch;
+        width: 100%;
+    }
+
+    .setting-row-actions {
+        justify-content: space-between;
         width: 100%;
     }
 

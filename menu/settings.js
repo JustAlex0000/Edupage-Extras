@@ -47,8 +47,6 @@ const activityShieldShortcutStatus = document.getElementById("ActivityShieldShor
 const resetActivityShieldButton = document.getElementById("ResetActivityShieldButton");
 const reloadEdupageTabsButton = document.getElementById("ReloadEdupageTabsButton");
 const experimentalSaveStatus = document.getElementById("ExperimentalSaveStatus");
-const mobileResponsiveToggle = document.getElementById("MobileResponsiveCheckbox");
-const mobileRedirectToggle = document.getElementById("MobileRedirectCheckbox");
 const etestAutoThemeOffToggle = document.getElementById("EtestAutoThemeOffCheckbox");
 const autoLoginToggle = document.getElementById("AutoLoginCheckbox");
 const autoLoginPreferredAccountRow = document.getElementById("AutoLoginPreferredAccountRow");
@@ -59,6 +57,7 @@ const gradesExportToggle = document.getElementById("GradesExportCheckbox");
 const timetableExportToggle = document.getElementById("TimetableExportCheckbox");
 const timetableExportContent = document.getElementById("TimetableExportContent");
 const etestCopyToggle = document.getElementById("EtestCopyCheckbox");
+const openEtestCopyShortcutSettingsButton = document.getElementById("OpenEtestCopyShortcutSettingsButton");
 const etestQuestionButtonsRow = document.getElementById("EtestQuestionButtonsRow");
 const etestQuestionButtonsToggle = document.getElementById("EtestQuestionButtonsCheckbox");
 const etestWholeTestButtonRow = document.getElementById("EtestWholeTestButtonRow");
@@ -107,8 +106,6 @@ const THEME_TOGGLE_COMMAND = "toggle-theme-mode";
 const REPO_URL = "https://github.com/JustAlex0000/Edupage-Extras";
 const ACTIVITY_SHIELD_COMMAND = "toggle-stay-active-mode";
 const AI_SUGGEST_QUESTION_COMMAND = "suggest-test-question";
-const MOBILE_RESPONSIVE_KEY = "eeMobileResponsiveEnabled";
-const MOBILE_REDIRECT_KEY = "eeMobileRedirectEnabled";
 const ETEST_AUTO_THEME_OFF_KEY = "eeEtestAutoThemeOffEnabled";
 const AUTOLOGIN_KEY = "eeAutoLoginEnabled";
 const AUTOLOGIN_PREFERRED_ACCOUNT_KEY = "eeAutoLoginPreferredAccount";
@@ -333,7 +330,6 @@ function notifyEdupageTabs() {
 	const theme = themeSelect.value;
 	const cleanUiEnabled = cleanUiToggle.checked;
 	const hideHelpTextEnabled = hideHelpTextToggle.checked;
-	const mobileResponsiveEnabled = mobileResponsiveToggle?.checked === true;
 	const activityShieldEnabled = document.getElementById("ActivityShieldEnabled")?.checked === true;
 	const etestAutoThemeOff = activityShieldEnabled && etestAutoThemeOffToggle?.checked === true;
 
@@ -349,7 +345,6 @@ function notifyEdupageTabs() {
 					hideHelpTextEnabled,
 					rozvrhRoomChangeColor,
 					rozvrhSubstitutionColor,
-					mobileResponsiveEnabled,
 					etestAutoThemeOff,
 				}, () => {
 					void chrome.runtime.lastError;
@@ -481,6 +476,7 @@ function checkForUpdates() {
 let shortcutStatusRefreshTimer = null;
 
 function renderShortcutStatus(retriesRemaining = 4) {
+	if (!themeShortcutStatus) return;
 	if (!chrome.commands?.getAll) {
 		themeShortcutStatus.textContent = t("shortcutUnavailable");
 		return;
@@ -1110,25 +1106,6 @@ chrome.storage.onChanged.addListener((changes, area) => {
 	}
 });
 
-if (mobileResponsiveToggle) {
-	chrome.storage.local.get([MOBILE_RESPONSIVE_KEY], (result) => {
-		mobileResponsiveToggle.checked = result[MOBILE_RESPONSIVE_KEY] === true;
-	});
-	mobileResponsiveToggle.addEventListener("change", () => {
-		chrome.storage.local.set({ [MOBILE_RESPONSIVE_KEY]: mobileResponsiveToggle.checked });
-		notifyEdupageTabs();
-	});
-}
-
-if (mobileRedirectToggle) {
-	chrome.storage.local.get([MOBILE_REDIRECT_KEY], (result) => {
-		mobileRedirectToggle.checked = result[MOBILE_REDIRECT_KEY] === true;
-	});
-	mobileRedirectToggle.addEventListener("change", () => {
-		chrome.storage.local.set({ [MOBILE_REDIRECT_KEY]: mobileRedirectToggle.checked });
-	});
-}
-
 if (etestAutoThemeOffToggle) {
 	chrome.storage.local.get({ [ETEST_AUTO_THEME_OFF_KEY]: true }, (result) => {
 		etestAutoThemeOffToggle.checked = result[ETEST_AUTO_THEME_OFF_KEY] !== false;
@@ -1222,6 +1199,10 @@ if (etestCopyToggle) {
 	});
 }
 
+openEtestCopyShortcutSettingsButton?.addEventListener("click", () => {
+	openBrowserShortcutSettings();
+});
+
 if (etestQuestionButtonsToggle) {
 	etestQuestionButtonsToggle.addEventListener("change", () => {
 		chrome.storage.local.set({ [ETEST_QUESTION_BUTTONS_KEY]: etestQuestionButtonsToggle.checked });
@@ -1303,13 +1284,19 @@ aiTestConnectionButton?.addEventListener("click", async () => {
 	}
 });
 
-openAiShortcutSettingsButton?.addEventListener("click", () => {
+function openBrowserShortcutSettings() {
 	if (window.eeI18n?.isFirefox) {
 		chrome.tabs.create({ url: "about:addons" });
-		if (aiShortcutStatus) aiShortcutStatus.textContent = t("shortcutSettingsFirefoxHint");
 		return;
 	}
 	chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
+}
+
+openAiShortcutSettingsButton?.addEventListener("click", () => {
+	openBrowserShortcutSettings();
+	if (window.eeI18n?.isFirefox && aiShortcutStatus) {
+		aiShortcutStatus.textContent = t("shortcutSettingsFirefoxHint");
+	}
 });
 
 if (previewUpdateToastButton) {

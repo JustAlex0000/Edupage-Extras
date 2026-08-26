@@ -4,6 +4,18 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## 1.0.0 — 2026-08-25
+
+- Marked the first stable release of Edupage Extras, with themes,
+  grade tools, attendance details, timetable export, curriculum export, and
+  optional auto-login.
+- Refined the extension menu and settings layout, including a clearer theme
+  shortcut action and improved purple-theme contrast.
+- Added extension shortcuts for copying the current eTest question or a whole
+  test, with a clipboard fallback for browsers that reject the normal API.
+- Added a one-time post-update notice with release notes and a browser-matched
+  store review link.
+
 ## 0.9.23 — 2026-08-24
 
 - Added an opt-in experimental Test Question Helper for eTest practice

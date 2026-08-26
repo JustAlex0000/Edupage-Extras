@@ -331,7 +331,7 @@
     debug("Could not wrap animation frame APIs", error);
   }
 
-  // Gate eTest's namespaced handlers at registration time. The mobile app
+  // Gate eTest's namespaced handlers at registration time. The page
   // emits custom enterBackgroundHandler/enterForegroundHandler jQuery events
   // in addition to native visibility/focus events; capture-phase DOM
   // listeners cannot intercept those custom events. Wrapping the exact

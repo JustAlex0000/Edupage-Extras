@@ -1,10 +1,29 @@
-# Edupage Extras
+<p align="center">
+  <img src="images/icon-128.png" alt="Edupage Extras icon" width="112">
+</p>
 
-Edupage Extras is a browser extension that improves the
-Edupage web portal with small (and big) quality-of-life features. 
+<h1 align="center">Edupage Extras</h1>
 
-**This project is not affiliated with Edupage, aSc Applied Software Consultants,
-or any school using Edupage.**
+<p align="center">
+  Edupage Extras is a browser extension that improves the
+  Edupage web portal with small (and big) quality-of-life features.
+</p>
+
+<p align="center">
+  <a href="https://chromewebstore.google.com/detail/edupage-extras/ljakjcljhfkjgndmopmpaakklgnkccca"><img alt="Install from the Chrome Web Store" src="https://img.shields.io/badge/Chrome_Web_Store-Install-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
+  <a href="https://addons.mozilla.org/en-US/firefox/addon/edupage-extras/"><img alt="Install from Firefox Add-ons" src="https://img.shields.io/badge/Firefox_Add--ons-Install-FF7139?style=for-the-badge&logo=firefoxbrowser&logoColor=white"></a>
+  <a href="https://discord.gg/eNZXHesA9j"><img alt="Join the Discord" src="https://img.shields.io/badge/Discord-Join_the_community-5865F2?style=for-the-badge&logo=discord&logoColor=white"></a>
+</p>
+
+
+<p align="center">
+  <strong>This project is not affiliated with Edupage, aSc Applied Software Consultants,
+  or any school using Edupage.</strong>
+</p>
+
+<p align="center">
+  <a href="#features">Features</a> · <a href="#permissions">Permissions</a> · <a href="#privacy">Privacy</a> · <a href="#development-notes">Development</a> · <a href="#compatibility">Compatibility</a>
+</p>
 
 ## Installation
 
@@ -16,8 +35,7 @@ Install directly from the
 ### Installation in Firefox
 
 Install directly from the
-[the AMO listing](https://addons.mozilla.org/en-US/firefox/addon/edupage-extras/).
-Also available for Android through the same listing.
+[AMO listing](https://addons.mozilla.org/en-US/firefox/addon/edupage-extras/).
 
 Edupage Extras is Chromium-first. If something does
 not work on your school's EduPage, make a github issue or report it on my [Discord](https://discord.gg/eNZXHesA9j).
@@ -41,9 +59,6 @@ not work on your school's EduPage, make a github issue or report it on my [Disco
 - **Themes** for Edupage pages and extension menus, custom themes supported.
 - **Centered layout** centers the page layout.
 - **Help text hide** for hiding the annoying top-right Edupage help greeting.
-- **Mobile-responsive home layout** (WIP) — adapts the legacy authenticated
-  `/user/` home for mobile and tablet screens. Other EduPage modules and the dedicated
-  `/app/*` mobile client keep their native layouts.
 
 ### Grades
 
@@ -65,12 +80,6 @@ not work on your school's EduPage, make a github issue or report it on my [Disco
 
 - **Curriculum export** — on a subject's topic plan page, export the
   full year's chapters, topics, and taught dates as `.txt` or `.csv`.
-
-### Experimental AI
-
-- **Test Question Helper** (opt-in) — asks a configured Ollama, LM Studio,
-  NVIDIA, or OpenRouter model about the current eTest question. It fills only
-  an untouched question and never submits an answer.
 
 ### Login
 
@@ -149,6 +158,9 @@ The extension does not request access to all websites.
   data and do not use an external API.
 - Timetable export generates a calendar file locally.
 
+<details>
+<summary>Development notes and publishing checks</summary>
+
 ## Development Notes
 
 This is a plain browser extension with an `npm`-based toolchain for the
@@ -176,9 +188,7 @@ npm run verify:package  # enforces the exact extension shipping allowlist
 npm run run:firefox     # launches Firefox with the extension loaded
 ```
 
-See [FIREFOX_RELEASE.md](FIREFOX_RELEASE.md) for the full AMO publishing setup
-(one-time manual listing, then automatic releases via GitHub Actions on every
-version tag).
+</details>
 
 ## Compatibility
 

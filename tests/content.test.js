@@ -148,49 +148,49 @@ runTest("non-login routes still apply the selected theme", () => {
   assert.equal(resolveAppliedTheme({ darkModeEnabled: true, theme: "forest", pathname: "/dashboard" }), "forest");
 });
 
-runTest("mobile redirect follows the current opt-in and never redirects app routes", () => {
-  const { shouldRedirectMobileToApp } = loadContentInternals("/dashboard");
+runTest("stored light theme remains light when themes are enabled", () => {
+  const { normalizeTheme, resolveAppliedTheme } = loadContentInternals("/dashboard");
 
-  assert.equal(shouldRedirectMobileToApp("/dashboard", true, true), true);
-  assert.equal(shouldRedirectMobileToApp("/dashboard", true, false), false);
-  assert.equal(shouldRedirectMobileToApp("/dashboard", false, true), false);
-  assert.equal(shouldRedirectMobileToApp("/app/main", true, true), false);
+  assert.equal(normalizeTheme("light"), "light");
+  assert.equal(resolveAppliedTheme({ darkModeEnabled: true, theme: "light", pathname: "/dashboard" }), "light");
 });
 
-runTest("mobile layout only targets the verified top-level home page", () => {
-  const { shouldApplyMobileResponsive } = loadContentInternals("/user/");
+runTest("dark-mode normalizer only recolors visible non-heading borders", () => {
+  const { hasVisibleBorder, isHeadingElement } = loadContentInternals("/dashboard");
+  const noBorder = {
+    borderTopWidth: "0px", borderRightWidth: "0px", borderBottomWidth: "0px", borderLeftWidth: "0px",
+    borderTopStyle: "none", borderRightStyle: "none", borderBottomStyle: "none", borderLeftStyle: "none",
+    outlineWidth: "0px", outlineStyle: "none",
+  };
+  const bottomBorder = { ...noBorder, borderBottomWidth: "1px", borderBottomStyle: "solid" };
 
-  assert.equal(shouldApplyMobileResponsive("/user/", true), true);
-  assert.equal(shouldApplyMobileResponsive("/user", true), true);
-  assert.equal(shouldApplyMobileResponsive("/user/", false), false);
-  assert.equal(shouldApplyMobileResponsive("/", true), false);
-  assert.equal(shouldApplyMobileResponsive("/znamky/", true), false);
-  assert.equal(shouldApplyMobileResponsive("/dashboard/eb.php", true), false);
-  assert.equal(shouldApplyMobileResponsive("/app/main", true), false);
-  assert.equal(shouldApplyMobileResponsive("/login/", true), false);
+  assert.equal(hasVisibleBorder(noBorder), false);
+  assert.equal(hasVisibleBorder(bottomBorder), true);
+  assert.equal(isHeadingElement({ tagName: "H1" }), true);
+  assert.equal(isHeadingElement({ tagName: "DIV" }), false);
 });
 
-runTest("mobile detection treats iOS as mobile even when userAgentData disagrees", () => {
-  const { isMobileUA } = loadContentInternals("/dashboard");
+runTest("update review links follow the current browser", () => {
+  const { resolveReviewUrl, getUpdateToastExitDuration, UPDATE_TOAST_DURATION_MS } = loadContentInternals("/dashboard");
 
-  const iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1";
-  const ipad = "Mozilla/5.0 (iPad; CPU OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1";
-  const androidChrome = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36";
-  const firefoxAndroid = "Mozilla/5.0 (Android 14; Mobile; rv:142.0) Gecko/142.0 Firefox/142.0";
-  const desktopChrome = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
+  assert.equal(
+    resolveReviewUrl("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/140.0.0.0 Safari/537.36"),
+    "https://chromewebstore.google.com/detail/edupage-extras/ljakjcljhfkjgndmopmpaakklgnkccca/reviews",
+  );
+  assert.equal(
+    resolveReviewUrl("Mozilla/5.0 (X11; Linux x86_64; rv:142.0) Gecko/20100101 Firefox/142.0"),
+    "https://addons.mozilla.org/en-US/firefox/addon/edupage-extras/reviews/",
+  );
+  assert.equal(UPDATE_TOAST_DURATION_MS, 20_000);
+  assert.equal(getUpdateToastExitDuration(false), 220);
+  assert.equal(getUpdateToastExitDuration(true), 0);
+});
 
-  // iOS Safari exposes no userAgentData — UA sniff alone catches it.
-  assert.equal(isMobileUA(iphone, undefined), true);
-  // Chromium keeps userAgentData.mobile === false under a spoofed iOS UA
-  // string (DevTools / UA switcher); the iPhone/iPad token must still win.
-  assert.equal(isMobileUA(iphone, { mobile: false }), true);
-  assert.equal(isMobileUA(ipad, { mobile: false }), true);
-  // Real userAgentData is authoritative when the UA is not iOS.
-  assert.equal(isMobileUA(androidChrome, { mobile: true }), true);
-  assert.equal(isMobileUA(desktopChrome, { mobile: false }), false);
-  // No userAgentData (Firefox) falls back to the UA sniff.
-  assert.equal(isMobileUA(firefoxAndroid, undefined), true);
-  assert.equal(isMobileUA(desktopChrome, undefined), false);
+runTest("update toast countdown uses one smooth CSS transition", () => {
+  const source = fs.readFileSync(path.join(__dirname, "..", "scripts", "content.js"), "utf8");
+
+  assert.match(source, /"transition: transform 20s linear"/);
+  assert.doesNotMatch(source, /setInterval\(updateProgress/);
 });
 
 runTest("an active eTest player suppresses the theme only when auto-off is enabled", () => {
@@ -257,7 +257,7 @@ runTest("built-in dark themes keep secondary text readable", () => {
     ["ee-theme-ocean", "#071a1f", "#a8d0d1"],
     ["ee-theme-forest", "#11170f", "#b3c6aa"],
     ["ee-theme-emerald", "#071a12", "#a5d6bd"],
-    ["ee-theme-purple", "#171326", "#c3b9df"],
+    ["ee-theme-purple", "#180b35", "#d2c2ee"],
   ];
   const luminanceForHex = (hex) => {
     const channels = hex.slice(1).match(/../g).map((part) => Number.parseInt(part, 16) / 255);

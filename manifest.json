@@ -2,7 +2,7 @@
   "name": "__MSG_extName__",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
-  "version": "0.9.23",
+  "version": "1.0.0",
   "manifest_version": 3,
   "icons": {
     "16": "images/icon-16.png",
@@ -17,9 +17,6 @@
       "data_collection_permissions": {
         "required": ["none"]
       }
-    },
-    "gecko_android": {
-      "strict_min_version": "142.0"
     }
   },
   "permissions": ["storage", "alarms", "notifications"],
@@ -51,8 +48,11 @@
     "suggest-test-question": {
       "description": "Suggest an eTest answer"
     },
-    "toggle-mobile-responsive": {
-      "description": "Toggle mobile responsive layout"
+    "copy-test-question": {
+      "description": "Copy the current eTest question"
+    },
+    "copy-whole-test": {
+      "description": "Copy the current eTest"
     }
   },
   "action": {
@@ -73,7 +73,6 @@
       "matches": ["https://*.edupage.org/*"],
       "css": ["scripts/instant-theme.css"],
       "js": [
-        "scripts/ua-ios-bootstrap.js",
         "scripts/lib/ee-common.js",
         "scripts/diagnostics.js",
         "scripts/activity-shield-bridge.js",
@@ -99,14 +98,6 @@
       "match_about_blank": true
     },
     {
-      "matches": ["https://*.edupage.org/*"],
-      "js": ["scripts/ua-ios-fix.js"],
-      "run_at": "document_start",
-      "all_frames": true,
-      "match_about_blank": true,
-      "world": "MAIN"
-    },
-    {
       "matches": [
         "https://*.edupage.org/*",
         "https://edublurtesting.ct.ws/*"
@@ -123,12 +114,6 @@
       "run_at": "document_start",
       "all_frames": true,
       "match_about_blank": true
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": ["scripts/ua-ios-fix.js"],
-      "matches": ["https://*.edupage.org/*"]
     }
   ]
 }

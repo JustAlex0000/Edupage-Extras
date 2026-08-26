@@ -532,22 +532,25 @@
   }
 
   function writePlainText(text) {
+    const copyWithLegacyCommand = () => {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.cssText = "position:fixed;left:-9999px;top:-9999px;opacity:0;";
+      (document.body || document.documentElement).appendChild(textarea);
+      textarea.select();
+      let copied = false;
+      try {
+        copied = document.execCommand("copy");
+      } finally {
+        textarea.remove();
+      }
+      return copied ? Promise.resolve() : Promise.reject(new Error("Clipboard copy was rejected"));
+    };
     if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
-      return navigator.clipboard.writeText(text);
+      return navigator.clipboard.writeText(text).catch(copyWithLegacyCommand);
     }
-    const textarea = document.createElement("textarea");
-    textarea.value = text;
-    textarea.setAttribute("readonly", "");
-    textarea.style.cssText = "position:fixed;left:-9999px;top:-9999px;opacity:0;";
-    (document.body || document.documentElement).appendChild(textarea);
-    textarea.select();
-    let copied = false;
-    try {
-      copied = document.execCommand("copy");
-    } finally {
-      textarea.remove();
-    }
-    return copied ? Promise.resolve() : Promise.reject(new Error("Clipboard copy was rejected"));
+    return copyWithLegacyCommand();
   }
 
   function writeClipboard(payload) {
@@ -1282,6 +1285,7 @@
       renderQuestionPlain,
       renderQuestionHtml,
       renderTestPayload,
+      writePlainText,
       writeClipboard,
       resolvePreferences,
       clearAiSuggestion,
@@ -1298,9 +1302,20 @@
   }
 
   chrome.runtime.onMessage.addListener((message) => {
-    if (message?.type !== "ee-ai-suggest-current-question" || !aiHelperEnabled) return;
-    const content = getCurrentAiQuestion();
-    if (content) requestAiSuggestion(content);
+    if (message?.type === "ee-ai-suggest-current-question" && aiHelperEnabled) {
+      const content = getCurrentAiQuestion();
+      if (content) requestAiSuggestion(content);
+      return;
+    }
+    if (!etestCopyEnabled) return;
+    if (message?.type === "ee-etest-copy-current-question") {
+      const content = getCurrentAiQuestion();
+      content?.closest(".etest-question-content")?.querySelector(`.${COPY_BTN_CLASS}`)?.click();
+      return;
+    }
+    if (message?.type === "ee-etest-copy-whole-test") {
+      document.querySelector(`.${COPY_ALL_BTN_CLASS}`)?.click();
+    }
   });
 
   function init() {

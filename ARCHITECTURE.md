@@ -1,207 +1,76 @@
 # Architecture
 
-Edupage Extras is a Manifest V3 browser extension enhancing EduPage (school
-portal), Chromium-first with a Firefox port. Plain JavaScript, no bundler, no
-framework — everything under `scripts/` and `menu/` ships exactly as written.
+Edupage Extras is a plain-JavaScript Manifest V3 extension for the EduPage
+portal. There is no framework or build step during development: the files in
+`scripts/` and `menu/` are the files that ship.
 
-## Layout
+## Map
 
-| `manifest.json` | MV3 manifest, shared by Chrome and Firefox |
-| `scripts/` | Background script + all content scripts (shipped as-is) |
-| `menu/` | Toolbar popup (`menu.html`) and options page (`settings.html`), each with its own JS and a shared i18n helper |
-| `_locales/{en,sk,cs}/` | UI strings (`chrome.i18n`) |
-| `tests/` | Node built-in test runner suites (no browser needed) |
-| `scripts-dev/` | Release tooling (version sync, Chrome zip build, package verification) |
+- `manifest.json` declares permissions, script order, commands, and extension
+  pages.
+- `scripts/lib/ee-common.js` is loaded first and contains shared defaults and
+  theme data.
+- `scripts/background.js` handles browser events, commands, update checks,
+  optional AI-provider requests, notifications, and calendar exports.
+- `scripts/content.js` applies themes and shared page styling. The remaining
+  `scripts/*-enhancer.js` files are narrow, page-specific additions.
+- `scripts/grades-*.js` share `window.__eeGrades`; the bootstrap module starts
+  them after their dependencies load.
+- `scripts/etest-enhancer.js` owns eTest copying and the experimental question
+  helper UI.
+- `menu/` contains the toolbar popup and settings page. `menu/i18n.js` maps
+  strings from `_locales/{en,sk,cs}/messages.json`.
+- `tests/` runs with Node's built-in test runner. `scripts-dev/` contains
+  versioning and package checks.
 
-The Settings page presents its normal sections as one continuous searchable
-document. Its sidebar buttons scroll to sections and follow the current scroll
-position; on narrow screens the same controls become a sticky search field and
-horizontal jump bar. Experimental remains a separate, non-searchable view. Its
-warning acknowledgement is stored locally as the exact extension version so a
-new version requires acknowledgement again.
-| `.github/workflows/` | CI (`ci.yml`) and store publishing (`firefox-release.yml`) |
+## Runtime rules
 
-## Content scripts
+Content scripts run at `document_start` in every frame. Code that inserts into
+the page must wait for a body, and a feature that should run once must guard
+with `window.top === window`. Enhancers should be idempotent: use a path guard,
+a storage setting, a bounded observer, cleanup, and re-apply after EduPage
+renders new content.
 
-Declared in `manifest.json` with `run_at: document_start` and
-`all_frames: true`. Two consequences everything must respect:
+The manifest script order is deliberate. Keep shared libraries before their
+consumers, grade modules before `grades-bootstrap.js`, and page bridges before
+the script they support.
 
-- **`<body>` may not exist yet** when async callbacks (e.g.
-  `chrome.storage.local.get`) fire. Anything appending to `document.body`
-  must guard and defer to `DOMContentLoaded` (see `showUpdateToast` in
-  `scripts/content.js`).
-- **Scripts run in every frame**, including iframes and `about:blank`
-  frames. Features that should act once per page must guard with
-  `window.top === window`.
+## Themes
 
-The grades scripts share `window.__eeGrades` and load in dependency order:
-`grades-enhancer.js` provides orchestration/helpers, the focused feature
-modules attach their APIs, and `grades-bootstrap.js` starts the enhancer last.
-`grades-sort-filter.js` only operates on the primary table containing subject
-rows. It moves each subject row together with its following category rows and
-never modifies EduPage's separate floating header clone. The feature is
-default-on but independently configurable; disabling it restores original
-subject order, clears extension filtering, and leaves optional export actions
-intact. Sorting/filtering state is page-local and is reset when EduPage replaces
-or reloads the table.
+Theme settings are read from `chrome.storage.local`. Because storage is async,
+`content.js` keeps the last theme state in page `localStorage` and paints it at
+document start; `scripts/instant-theme.css` prevents a white flash while the
+real value loads. Keep that cache compatible with `EE.DEFAULT_CUSTOM_THEME`.
 
-Load order matters and is defined by the manifest `js` array:
-`ua-ios-bootstrap.js` loads first as the isolated-world fallback described
-below. `diagnostics.js` then installs early error capture (it exposes
-`window.__eeDiagnostics`, and only ever sends data in response to an explicit
-`ee-collect-page-diagnostics` message from the user-triggered "Report a
-Problem" flow; the default snapshot is structure-only redacted). Then the
-Activity Shield bridge, `content.js` (theming), and the per-page enhancers
-(`timetable-`, `grades-`, `attendance-`, `ucivo-`, `etest-enhancer.js`,
-`autologin.js`).
+Theme colors belong in `--ee-*` variables. The dark-mode normalizer observes
+newly rendered content and marks only known light surfaces. Avoid broad rules
+that invent borders or boxes around EduPage's otherwise continuous layouts.
 
-## iOS browser app compatibility
+## Grades and eTest
 
-EduPage serves `/app/main` with `AscMobileAppVersion` even in an ordinary iOS
-browser. Its app code also treats any truthy `window.webkit` as proof that
-native request handlers exist. In Orion and Safari-compatible WebExtension
-hosts this can hide the web login and route RPC/storage calls into native
-handlers that never answer.
+Grades sorting/filtering works on the real subject table and moves a subject
+with its following category rows. Never modify `#znamkyTableHeaderBg` or
+EduPage's floating header clone: EduPage keeps them in sync itself.
 
-`ua-ios-fix.js` runs directly in the MAIN world where the manifest host
-supports MV3's `world` key. Orion may ignore that key, and a dynamically loaded
-external fallback can arrive after EduPage has already selected its native
-transport. The first isolated content script, `ua-ios-bootstrap.js`, therefore
-inserts a constant inline page-world guard synchronously, then loads the
-packaged follow-up through a narrow `web_accessible_resources` entry. The fix
-is top-level, iOS, and `/app`-route only. It leaves the real iPhone
-platform/vendor visible, shadows the UA needed by EduPage's login gate, and
-keeps the generic `window.webkit` namespace hidden for that page's lifetime
-because EduPage repeats its truthiness check for every RPC and lazy appstorage
-call. A genuine EduPage message handler/native provider bypasses the browser
-compatibility behavior. DOM dataset markers expose only compatibility state
-for device-side diagnosis; they contain no account or page data.
+The eTest serializer creates a small structured question model rather than
+storing page text. It keeps snapshots in memory for the current player only;
+they are cleared when the player or route changes.
 
-The separate legacy responsive stylesheet is deliberately limited to the
-top-level authenticated home route (`/user/`). Its structural overrides were
-designed for that page and must not be applied to iframes, route-specific
-modules, login, or the already-responsive `/app/*` client. Expand coverage
-through route-specific adapters and fixtures rather than global overrides.
+Test Question Helper is experimental and WIP. It is disabled by default and
+sends data only after the student presses its question action. Credentials stay
+in extension storage, never in the page. Providers are fixed remote origins or
+loopback-only local endpoints. Suggestions never submit an answer; live
+provider and complex eTest interaction coverage still need manual testing.
 
-## FOUC prevention (theme cache)
+## Settings and storage
 
-`chrome.storage.local` is async, so a dark-themed page would flash white on
-every navigation if styling waited for storage. Instead `content.js` caches
-the last-applied theme settings in page `localStorage` (`eeThemeCacheV1`) and
-paints from that synchronously at `document_start`, then reconciles with real
-storage once it answers. `scripts/instant-theme.css` is the CSS half of this
-mechanism — its rules are gated behind the classes the early paint applies.
+Use camelCase storage keys; new keys begin with `ee`. Keep the three locale
+files on the same key set. Experimental settings stay isolated behind their
+acknowledgement view and must not appear in normal settings search.
 
-## Theming
+## Checks and releases
 
-Themes are CSS variables (`--ee-*`, e.g. `--ee-link`, `--ee-accent`) defined
-per theme in `content.js`. Enhancers inject their own `<style>` blocks that
-reference those variables. Dark mode additionally runs a DOM normalizer
-(MutationObserver-driven) that re-tags dynamically rendered light surfaces
-with the dark surface classes.
-
-## eTest copy model
-
-`etest-enhancer.js` serializes question DOM into a small internal model instead
-of copying raw `innerText`. The serializer preserves line structure, represents
-inline answer fields as `___`, expands dropdown choices, separates ABCD options,
-keeps each choice label and its text together, and marks selected choices inline.
-Non-choice responses such as typed, dropdown, matching, and ordering answers use
-a separate selected-answer section. The serializer allowlists the HTML/URL
-surface used for rich clipboard output. Clipboard writes include both
-`text/plain` and sanitized `text/html`, then fall back to a plain-text write when
-rich clipboard APIs are unavailable.
-
-The enhancer keeps in-memory snapshots of questions seen in the current test so
-the whole-test action also works as a student moves through one-question pages.
-Stable `data-cardid` identities prevent the changing question counter from
-discarding or replacing earlier snapshots. Snapshots are never persisted and
-are cleared when the player instance changes. A document-start observer handles
-question UI inserted after the enhancer loads. Route changes also clear the
-snapshot set. The `eeEtestIncludeAnswers` and `eeEtestIncludeImages` preferences
-are default-on and only affect copied output. The default-on
-`eeEtestQuestionButtonsEnabled` and `eeEtestWholeTestButtonEnabled` preferences
-independently control the two button placements without disabling serialization.
-The icon-only whole-test control reuses EduPage's action-button classes and keeps
-its accessible name in `aria-label`/`title`; the per-question icon keeps an
-explicit high-contrast dark-theme foreground.
-
-## Experimental Test Question Helper
-
-The opt-in helper reuses the eTest serializer's structured question model. A
-question action sends only the plain question text, detected interaction type,
-allowlisted choices or control structure, and any existing response in that
-question to `scripts/background.js`.
-Provider credentials stay in extension storage and never enter the EduPage
-page. The background accepts loopback-only Ollama and LM Studio addresses or
-the fixed NVIDIA and OpenRouter origins, makes one bounded request without retries, and
-validates the model's JSON before returning it to the content script.
-
-For an untouched choice, text field, dropdown, or complete one-to-one matching
-task, the page may apply the model response but never submits it. The matching
-path sends a synthetic drag sequence only while no pair is connected. Once a
-response exists, it only adds a quiet border, order number, input placeholder,
-or small inline dropdown/matching hint. A placeholder suggestion can be
-accepted with Tab. Provider host access is optional and requested from Settings
-when the user tests a connection.
-
-## Activity Shield (three pieces)
-
-- `activity-shield-main.js` runs in the **MAIN (page) world** — it patches
-  `document.visibilityState`, `hasFocus`, `requestAnimationFrame`, etc. It
-  has **no `chrome.*` access** by design.
-- `activity-shield-bridge.js` runs in the normal isolated world and mirrors
-  storage preferences onto a hidden `#ee-activity-shield-port` element's
-  `dataset`, which the MAIN-world script reads.
-- All its preferences are `eeActivityShield*` storage keys. The
-  `edublurtesting.ct.ws` host entries in the manifest are its test page.
-
-## Background script
-
-`scripts/background.js` is registered **both** as `service_worker` (Chrome)
-and as event-page `scripts` (Firefox) in the manifest — intentional; keep
-both. Firefox quirks live behind the `IS_FIREFOX` flag (e.g.
-`notifications.create` with `buttons` silently rejects on Firefox, so the
-option is omitted there).
-
-Update checks fetch `manifest.json` from `raw.githubusercontent.com` (see
-`host_permissions`) and compare versions; releases are tags plus GitHub
-Releases generated by the tag-push workflow.
-
-## Storage conventions
-
-Keys are camelCase in `chrome.storage.local`. Newer keys are prefixed `ee`
-(e.g. `eeMobileResponsiveEnabled`); legacy ones are unprefixed
-(`darkModeEnabled`) and stay that way for compatibility.
-
-School-specific grade-title overrides are nested by EduPage origin; legacy
-flat maps migrate under the current origin. Structured attendance and
-timetable caches use the same origin boundary, expire after 15 and 10 minutes
-respectively, and prune stale buckets during normal reads/writes. Settings →
-Debug can remove both reconstructible caches without touching preferences or
-user-authored grade data.
-
-## Tests
-
-`npm test` runs Node's built-in test runner over `tests/*.test.js`. Tests
-read the content-script **source text** and execute it in a `vm` sandbox with
-stubbed `chrome.*` APIs — no browser involved. Each testable script contains
-a deliberate hook: when `globalThis.__EE_TEST__` is set (tests only, never
-the real extension), it publishes its internals on
-`globalThis.__eeTestExports`. Renaming or removing an exported function fails
-loudly at the export site — keep the hook's export list in sync when
-refactoring.
-
-## Release flow
-
-See [CONTRIBUTING.md](CONTRIBUTING.md#releases). Short version: versions are
-bumped only via `npm version` (a lifecycle hook syncs `manifest.json`), every
-bump gets a `CHANGELOG.md` entry in the same commit, and pushing a matching
-`vX.Y.Z` tag triggers the workflow that tests, builds, publishes to the
-Chrome Web Store + AMO, and creates the GitHub Release.
-
-Both browser builders stage only the paths declared in
-`scripts-dev/package-policy.js`; Firefox packaging and signing never operate
-directly on the working tree. Browser-specific verification selects the exact
-current-version archive and rejects every entry outside the shared allowlist.
-Normal CI builds and verifies both packages before release time.
+Run `npm test` after code changes, then use the Firefox lint/build and package
+verification commands from [CONTRIBUTING.md](CONTRIBUTING.md). Package builders
+use an explicit allowlist, so local notes and captures cannot enter a release.
+Versioning and tagged release flow are also documented there.

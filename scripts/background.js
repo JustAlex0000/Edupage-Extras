@@ -25,8 +25,6 @@ const ROZVRH_SUBSTITUTION_COLOR_KEY = "eeRozvrhSubstitutionColor";
 const TOGGLE_ACTIVITY_SHIELD_COMMAND = "toggle-stay-active-mode";
 const TOGGLE_THEME_COMMAND = "toggle-theme-mode";
 const OPEN_SETTINGS_COMMAND = "open-settings";
-const TOGGLE_MOBILE_RESPONSIVE_COMMAND = "toggle-mobile-responsive";
-const MOBILE_RESPONSIVE_KEY = "eeMobileResponsiveEnabled";
 const AI_HELPER_ENABLED_KEY = "eeAiQuestionHelperEnabled";
 const AI_PROVIDER_KEY = "eeAiProvider";
 const AI_ENDPOINT_KEY = "eeAiEndpoint";
@@ -1017,14 +1015,6 @@ async function toggleActivityShieldEnabled() {
   return nextValue;
 }
 
-async function toggleMobileResponsiveEnabled() {
-  const result = await storageGet([MOBILE_RESPONSIVE_KEY]);
-  const enabled = result?.[MOBILE_RESPONSIVE_KEY] === true;
-  const nextValue = !enabled;
-  await storageSet({ [MOBILE_RESPONSIVE_KEY]: nextValue });
-  return nextValue;
-}
-
 async function toggleThemeEnabled() {
   const result = await storageGet([
     DARK_MODE_ENABLED_KEY,
@@ -1034,7 +1024,6 @@ async function toggleThemeEnabled() {
     HIDE_HELP_TEXT_KEY,
     ROZVRH_ROOM_CHANGE_COLOR_KEY,
     ROZVRH_SUBSTITUTION_COLOR_KEY,
-    MOBILE_RESPONSIVE_KEY,
   ]);
   const enabled = result?.[DARK_MODE_ENABLED_KEY] === true;
   const nextValue = !enabled;
@@ -1053,7 +1042,6 @@ function buildThemeUpdateMessage(settings, darkModeEnabled) {
     hideHelpTextEnabled: settings?.[HIDE_HELP_TEXT_KEY] === true,
     rozvrhRoomChangeColor: settings?.[ROZVRH_ROOM_CHANGE_COLOR_KEY],
     rozvrhSubstitutionColor: settings?.[ROZVRH_SUBSTITUTION_COLOR_KEY],
-    mobileResponsiveEnabled: settings?.[MOBILE_RESPONSIVE_KEY] === true,
   };
 }
 
@@ -2033,11 +2021,21 @@ chrome.commands.onCommand.addListener((command) => {
     return;
   }
 
-  if (command === TOGGLE_MOBILE_RESPONSIVE_COMMAND) {
-    toggleMobileResponsiveEnabled().catch((error) => {
-      console.warn("[Edupage Extras] Could not toggle mobile responsive layout.", error);
+  if (command === "copy-test-question" || command === "copy-whole-test") {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const tabId = tabs[0]?.id;
+      if (!tabId) return;
+      chrome.tabs.sendMessage(tabId, {
+        type: command === "copy-test-question"
+          ? "ee-etest-copy-current-question"
+          : "ee-etest-copy-whole-test",
+      }, () => {
+        void chrome.runtime.lastError;
+      });
     });
+    return;
   }
+
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {

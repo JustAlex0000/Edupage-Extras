@@ -40,8 +40,8 @@ store package.
 
 ## Conventions
 
-- Storage keys: camelCase, new keys prefixed `ee` (e.g.
-  `eeMobileResponsiveEnabled`); legacy unprefixed keys stay as-is.
+- Storage keys: camelCase, new keys prefixed `ee` (for example,
+  `eeFeatureEnabled`); legacy unprefixed keys stay as-is.
 - DOM ids/classes the extension injects: `ee-` prefix.
 - Theme colors: use the `--ee-*` CSS variables, never hardcoded colors.
 - Firefox-specific behavior: gate behind `IS_FIREFOX` in `background.js` /

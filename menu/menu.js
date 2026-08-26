@@ -12,7 +12,6 @@ const THEME_KEY = "themeMode";
 const CUSTOM_THEME_KEY = "customThemeColors";
 const CLEAN_UI_KEY = "cleanUiEnabled";
 const HIDE_HELP_TEXT_KEY = "hideHelpTextEnabled";
-const MOBILE_RESPONSIVE_KEY = "eeMobileResponsiveEnabled";
 const ROZVRH_ROOM_CHANGE_COLOR_KEY = "eeRozvrhRoomChangeColor";
 const ROZVRH_SUBSTITUTION_COLOR_KEY = "eeRozvrhSubstitutionColor";
 const UPDATE_STATUS_KEY = "eeUpdateStatus";
@@ -106,7 +105,7 @@ toggle.addEventListener("change", () => {
 	const enabled = toggle.checked;
 	chrome.storage.local.set({ [STORAGE_KEY]: enabled });
 
-	chrome.storage.local.get([THEME_KEY, CUSTOM_THEME_KEY, CLEAN_UI_KEY, HIDE_HELP_TEXT_KEY, MOBILE_RESPONSIVE_KEY, ROZVRH_ROOM_CHANGE_COLOR_KEY, ROZVRH_SUBSTITUTION_COLOR_KEY], (result) => {
+	chrome.storage.local.get([THEME_KEY, CUSTOM_THEME_KEY, CLEAN_UI_KEY, HIDE_HELP_TEXT_KEY, ROZVRH_ROOM_CHANGE_COLOR_KEY, ROZVRH_SUBSTITUTION_COLOR_KEY], (result) => {
 		customTheme = normalizeCustomTheme(result[CUSTOM_THEME_KEY]);
 		applyMenuTheme(result[THEME_KEY], enabled, customTheme);
 		chrome.tabs.query({ url: "https://*.edupage.org/*" }, (tabs) => {
@@ -119,7 +118,6 @@ toggle.addEventListener("change", () => {
 						customTheme,
 						cleanUiEnabled: result[CLEAN_UI_KEY] === true,
 						hideHelpTextEnabled: result[HIDE_HELP_TEXT_KEY] === true,
-						mobileResponsiveEnabled: result[MOBILE_RESPONSIVE_KEY] === true,
 						rozvrhRoomChangeColor: result[ROZVRH_ROOM_CHANGE_COLOR_KEY],
 						rozvrhSubstitutionColor: result[ROZVRH_SUBSTITUTION_COLOR_KEY],
 					}, () => {

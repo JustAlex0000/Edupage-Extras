@@ -18,9 +18,10 @@ const DEFAULT_ROZVRH_SUBSTITUTION_COLOR = "#e65100";
 const LAST_SEEN_VERSION_KEY = "eeLastSeenVersion";
 const UPDATE_REMINDER_ENABLED_KEY = "eeUpdateReminderEnabled";
 const REPO_RELEASES_URL = "https://github.com/JustAlex0000/Edupage-Extras/releases";
-const MOBILE_RESPONSIVE_KEY = "eeMobileResponsiveEnabled";
-const MOBILE_REDIRECT_KEY = "eeMobileRedirectEnabled";
-const APP_MAIN_PATH = "/app/main";
+const CHROME_STORE_REVIEW_URL = "https://chromewebstore.google.com/detail/edupage-extras/ljakjcljhfkjgndmopmpaakklgnkccca/reviews";
+const FIREFOX_ADDONS_REVIEW_URL = "https://addons.mozilla.org/en-US/firefox/addon/edupage-extras/reviews/";
+const UPDATE_TOAST_DURATION_MS = 20_000;
+const UPDATE_TOAST_EXIT_DURATION_MS = 220;
 const THEME_CACHE_KEY = "eeThemeCacheV1";
 const ETEST_AUTO_THEME_OFF_KEY = "eeEtestAutoThemeOffEnabled";
 const ACTIVITY_SHIELD_ENABLED_KEY = "eeActivityShieldEnabled";
@@ -28,47 +29,6 @@ const ACTIVITY_SHIELD_ENABLED_KEY = "eeActivityShieldEnabled";
 // cover the normal in-progress view, sideoverlay covers the results/review
 // screen reached after submitting, so all three need to be watched.
 const ETEST_PLAYER_ACTIVE_SELECTOR = ".etest-player-header, .etest-player-content, .etest-player-sideoverlay";
-
-// iPhone/iPad/iPod in the UA must win before consulting userAgentData: iOS
-// Safari never exposes navigator.userAgentData, and a spoofed UA string
-// (DevTools, a UA switcher, desktop "request mobile site") leaves
-// userAgentData.mobile === false, which would otherwise suppress the redirect
-// on iOS even though the UA clearly says iPhone.
-function isMobileUA(userAgent, userAgentData) {
-  const ua = userAgent || "";
-  if (/iP(hone|ad|od)/i.test(ua)) return true;
-  if (userAgentData && typeof userAgentData.mobile === "boolean") {
-    return userAgentData.mobile;
-  }
-  // Firefox for Android has no userAgentData — fall back to UA sniff.
-  return /Android|Mobile/i.test(ua);
-}
-
-function isMobileUserAgent() {
-  return isMobileUA(navigator.userAgent, navigator.userAgentData);
-}
-
-function shouldRedirectMobileToApp(pathname, mobile, enabled) {
-  return mobile === true
-    && enabled === true
-    && !String(pathname || "").startsWith("/app/");
-}
-
-// Runs at document_start. Extension storage remains authoritative so toggling
-// this off cannot leave a stale page-local cache redirecting future visits.
-(function maybeRedirectMobileToApp() {
-  try {
-    if (window.top !== window.self) return;
-    if (!isMobileUserAgent()) return;
-
-    chrome.storage.local.get([MOBILE_REDIRECT_KEY], (result) => {
-      const enabled = result?.[MOBILE_REDIRECT_KEY] === true;
-      if (shouldRedirectMobileToApp(location.pathname, true, enabled)) {
-        location.replace(`${location.origin}${APP_MAIN_PATH}`);
-      }
-    });
-  } catch (_) { /* best-effort only */ }
-})();
 
 // chrome.storage.local.get() is always async, so on every full-page nav the
 // page would otherwise paint once with the light-mode default before the
@@ -123,7 +83,6 @@ const LIGHT_TONED_THEMES = ["pink"];
     }
   } catch {}
 })();
-const MOBILE_STYLE_ID = "ee-mobile-responsive-style";
 const CLASS_NAME = "ee-dark";
 const THEME_CLASSES = [
   "ee-theme-dark",
@@ -216,7 +175,7 @@ function buildDarkCSS() {
       --ee-brand-dark: #080d16;
       --ee-sidebar-bg: #080d16;
       --ee-sidebar-hover: #0c1726;
-      --ee-border: rgba(255, 255, 255, 0.08);
+      --ee-border: rgba(255, 255, 255, 0.055);
       --ee-text: #e9edf4;
       --ee-text-muted: #b6c0d1;
       --ee-link: #6fa8e8;
@@ -235,7 +194,7 @@ function buildDarkCSS() {
       --ee-brand-dark: #082b33;
       --ee-sidebar-bg: #0d242b;
       --ee-sidebar-hover: #123640;
-      --ee-border: rgba(255, 255, 255, 0.08);
+      --ee-border: rgba(255, 255, 255, 0.055);
       --ee-text: #d8f3f0;
       --ee-text-muted: #a8d0d1;
       --ee-link: #4dd0e1;
@@ -253,7 +212,7 @@ function buildDarkCSS() {
       --ee-brand-dark: #15241a;
       --ee-sidebar-bg: #182015;
       --ee-sidebar-hover: #20301f;
-      --ee-border: rgba(255, 255, 255, 0.08);
+      --ee-border: rgba(255, 255, 255, 0.055);
       --ee-text: #e5f2df;
       --ee-text-muted: #b3c6aa;
       --ee-link: #81c784;
@@ -271,7 +230,7 @@ function buildDarkCSS() {
       --ee-brand-dark: #0a2c1f;
       --ee-sidebar-bg: #0d241a;
       --ee-sidebar-hover: #133c2a;
-      --ee-border: rgba(255, 255, 255, 0.08);
+      --ee-border: rgba(255, 255, 255, 0.055);
       --ee-text: #eafff3;
       --ee-text-muted: #a5d6bd;
       --ee-link: #4adfa3;
@@ -281,18 +240,18 @@ function buildDarkCSS() {
     }
 
     html.ee-theme-purple {
-      --ee-page-bg: #171326;
-      --ee-card-bg: #1f1a33;
-      --ee-card-bg-bright: #26203f;
-      --ee-card-hover: #2e274c;
-      --ee-header-bg: #4a3a8f;
-      --ee-brand-dark: #211a3d;
-      --ee-sidebar-bg: #1f1a33;
-      --ee-sidebar-hover: #2a2247;
-      --ee-border: rgba(255, 255, 255, 0.08);
-      --ee-text: #f0eaff;
-      --ee-text-muted: #c3b9df;
-      --ee-link: #b39ddb;
+      --ee-page-bg: #180b35;
+      --ee-card-bg: #25134b;
+      --ee-card-bg-bright: #30205a;
+      --ee-card-hover: #3a2870;
+      --ee-header-bg: #6844b8;
+      --ee-brand-dark: #281451;
+      --ee-sidebar-bg: #25134b;
+      --ee-sidebar-hover: #332062;
+      --ee-border: rgba(255, 255, 255, 0.055);
+      --ee-text: #f4edff;
+      --ee-text-muted: #d2c2ee;
+      --ee-link: #c29cff;
       --ee-warning: #ffb74d;
       --ee-danger: #ef5350;
       --ee-table-header-bg: #4a3a8f;
@@ -328,7 +287,7 @@ function buildDarkCSS() {
       --ee-brand-dark: var(--ee-custom-bg-muted, #11263d);
       --ee-sidebar-bg: var(--ee-custom-bg-raised, #171d28);
       --ee-sidebar-hover: var(--ee-custom-bg-elevated, #1b2738);
-      --ee-border: var(--ee-custom-border, rgba(255, 255, 255, 0.08));
+      --ee-border: var(--ee-custom-border, rgba(255, 255, 255, 0.055));
       --ee-text: var(--ee-custom-text-main, #eef2f7);
       --ee-text-muted: var(--ee-custom-text-muted, #bac3df);
       --ee-link: var(--ee-custom-accent, #4fc3f7);
@@ -468,6 +427,60 @@ function buildDarkCSS() {
       background-color: var(--ee-card-bg-bright) !important;
       box-shadow: none !important;
     }
+
+    /* eTest creator: assignment cards and the fixed results toolbar are
+       separate components, not generic page wrappers. Map their surfaces so
+       every theme keeps the same hierarchy as EduPage's normal light view. */
+    html.ee-dark .hwDetails {
+      background-color: var(--ee-card-bg) !important;
+      border-color: var(--ee-border) !important;
+      color: var(--ee-text) !important;
+    }
+
+    html.ee-dark .hwDetailsCnt,
+    html.ee-dark .hwImg,
+    html.ee-dark .hwCnt,
+    html.ee-dark .hwButtons,
+    html.ee-dark .etest-results-testAssignations {
+      background-color: transparent !important;
+      border-color: var(--ee-border) !important;
+      color: var(--ee-text) !important;
+    }
+
+    html.ee-dark .etest-meditor-search-results-toolbar {
+      background-color: var(--ee-page-bg) !important;
+      border-color: var(--ee-border) !important;
+      color: var(--ee-text) !important;
+    }
+
+    html.ee-dark .etest-meditor-tabs,
+    html.ee-dark .etest-meditor-tab {
+      background-color: transparent !important;
+      border-color: transparent !important;
+      color: var(--ee-text-muted) !important;
+    }
+
+    html.ee-dark .etest-meditor-tab.selected {
+      background-color: var(--ee-card-bg-bright) !important;
+      border-color: var(--ee-border) !important;
+      color: var(--ee-text) !important;
+    }
+
+    html.ee-dark .etest-meditor-test-list-tabs {
+      background-color: var(--ee-card-bg) !important;
+      border-color: var(--ee-border) !important;
+    }
+
+    html.ee-dark .etest-meditor-test-list-tab {
+      background-color: transparent !important;
+      border-color: transparent !important;
+    }
+
+    html.ee-dark .etest-meditor-test-list-tab.selected {
+      background-color: var(--ee-card-bg-bright) !important;
+      border-color: var(--ee-border) !important;
+    }
+
 
     html.ee-dark .hwMenuListItem .hwMenuListItemName,
     html.ee-dark .hwMenuListItem {
@@ -828,6 +841,13 @@ function buildDarkCSS() {
       filter: none !important;
     }
 
+    /* These eTest list icons are monochrome dark SVGs, unlike the colorful
+       dashboard illustrations handled by the generic image rule above. */
+    html.ee-dark .etest-meditor-test-list-tab img {
+      filter: brightness(0) invert(1) !important;
+      opacity: 0.9 !important;
+    }
+
     html.ee-dark * {
       box-shadow: none !important;
     }
@@ -872,513 +892,7 @@ function buildDarkCSS() {
   `;
 }
 
-function buildMobileResponsiveCSS() {
-  const M = "html.ee-mobile-responsive";
-  return `
-    @media (max-width: 768px) {
-      /* ── Global guards ──────────────────────────────────
-         Nothing may force the layout viewport wider than the
-         screen: hidden overflow as the last resort, fluid media,
-         and breakable long words (links, filenames, teacher
-         emails) inside content cards. */
-      ${M} body {
-        overflow-x: hidden !important;
-        -webkit-text-size-adjust: 100% !important;
-      }
-
-      ${M} img {
-        max-width: 100% !important;
-        height: auto !important;
-      }
-
-      ${M} iframe,
-      ${M} video,
-      ${M} canvas,
-      ${M} embed,
-      ${M} object {
-        max-width: 100% !important;
-      }
-
-      ${M} .userButton,
-      ${M} .userHomeWidget,
-      ${M} .userHomeOther,
-      ${M} .timeline-item,
-      ${M} .tml-item,
-      ${M} .tml-in-reply,
-      ${M} .hwItem,
-      ${M} .hw-content,
-      ${M} .notifBox {
-        overflow-wrap: anywhere !important;
-        word-break: break-word !important;
-      }
-
-      /* ── Fixed-width containers → fluid ─────────────────
-         Also strip left/right margins and floats: the desktop
-         layout reserves a gutter for the sidebar column, which
-         otherwise survives as dead space once the sidebar is
-         repositioned. */
-      ${M} .userTopDivInner,
-      ${M} .wmaxL1,
-      ${M} .userRozvrh,
-      ${M} .skinContent,
-      ${M} .skinBody,
-      ${M} .userContentInner,
-      ${M} .mainBox,
-      ${M} .bgDiv,
-      ${M} .withMargin,
-      ${M} .edubarMain,
-      ${M} .edubarMainNoSkin,
-      ${M} #eb_main_content,
-      ${M} #bar_mainDiv,
-      ${M} .hwMainListMain {
-        width: auto !important;
-        max-width: 100% !important;
-        min-width: 0 !important;
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-        float: none !important;
-        box-sizing: border-box !important;
-      }
-
-      /* ── Sidebar → horizontal chip rail ─────────────────
-         A wrapped wall of menu pills eats half a phone screen
-         before any content shows. One compact row that scrolls
-         sideways (like every mobile tab bar) keeps the menu
-         reachable and the content on top. */
-      ${M} .edubarSidebar,
-      ${M} .edubarSidemenu2 {
-        position: static !important;
-        float: none !important;
-        display: flex !important;
-        flex-wrap: nowrap !important;
-        align-items: stretch !important;
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        max-height: none !important;
-        overflow-x: auto !important;
-        overflow-y: hidden !important;
-        -webkit-overflow-scrolling: touch !important;
-        gap: 2px !important;
-        padding: 4px !important;
-        box-sizing: border-box !important;
-        scrollbar-width: thin !important;
-      }
-
-      ${M} .edubarSidebar::-webkit-scrollbar,
-      ${M} .edubarSidemenu2::-webkit-scrollbar {
-        height: 4px !important;
-      }
-
-      ${M} .edubarMenuitem {
-        flex: 0 0 auto !important;
-        width: auto !important;
-        min-width: 0 !important;
-      }
-
-      ${M} .edubarMenuitem > a {
-        display: inline-flex !important;
-        align-items: center !important;
-        min-height: 40px !important;
-        padding: 6px 12px !important;
-        font-size: 13px !important;
-        white-space: nowrap !important;
-        box-sizing: border-box !important;
-      }
-
-      /* ── Top bar compact ────────────────────────────── */
-      ${M} #edubar,
-      ${M} .edubarHeader {
-        flex-wrap: wrap !important;
-        min-height: 0 !important;
-        max-width: 100% !important;
-      }
-
-      ${M} .edubarHeaderRight {
-        flex-wrap: wrap !important;
-        gap: 4px !important;
-      }
-
-      ${M} .edubarProfilebox {
-        max-width: 100% !important;
-      }
-
-      ${M} .edubarProfilebox .display {
-        font-size: 13px !important;
-      }
-
-      ${M} #edubarStartButton {
-        padding: 6px 10px !important;
-        font-size: 13px !important;
-      }
-
-      /* ── Main content column ────────────────────────── */
-      ${M} .skinBody {
-        display: flex !important;
-        flex-direction: column !important;
-      }
-
-      ${M} .edubarMainNoSkin {
-        display: flex !important;
-        flex-direction: column !important;
-        width: 100% !important;
-      }
-
-      /* ── Dashboard widgets → stack vertically ──────── */
-      ${M} .userTopDiv {
-        flex-direction: column !important;
-      }
-
-      ${M} .userTopDivInner {
-        flex-direction: column !important;
-        flex-wrap: wrap !important;
-      }
-
-      ${M} .userButton,
-      ${M} .userHomeWidget,
-      ${M} .userHomeOther {
-        width: 100% !important;
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-        font-size: 13px !important;
-      }
-
-      ${M} .userHomeTitle {
-        font-size: 14px !important;
-      }
-
-      /* ── Timetable strip → one row, swipeable ───────── */
-      ${M} .userRozvrh {
-        flex-direction: column !important;
-      }
-
-      ${M} ul.rozvrh {
-        display: flex !important;
-        flex-wrap: nowrap !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        max-width: 100% !important;
-        padding: 0 !important;
-      }
-
-      ${M} ul.rozvrh > li {
-        flex: 0 0 auto !important;
-      }
-
-      ${M} .userStats {
-        flex-wrap: wrap !important;
-        font-size: 12px !important;
-      }
-
-      /* ── Data tables → horizontal scroll ────────────── */
-      ${M} table.znamkyTable,
-      ${M} .timetable,
-      ${M} .gotoDay,
-      ${M} table.dash_dochadzka,
-      ${M} .rozvrhTable,
-      ${M} .grid-container {
-        display: block !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        max-width: 100% !important;
-      }
-
-      ${M} table.znamkyTable td,
-      ${M} table.znamkyTable th {
-        padding: 4px 6px !important;
-        font-size: 12px !important;
-      }
-
-      /* ── Timetable cells ────────────────────────────── */
-      ${M} .rozvrhItem,
-      ${M} .rozvrhItemAlign,
-      ${M} .timetable-cell,
-      ${M} .ttItem {
-        min-width: 60px !important;
-        padding: 4px !important;
-        font-size: 11px !important;
-      }
-
-      /* ── Calendar ───────────────────────────────────── */
-      ${M} .userCal2,
-      ${M} .calendar,
-      ${M} .userCalInner {
-        width: 100% !important;
-        max-width: 100% !important;
-        overflow-x: auto !important;
-      }
-
-      /* ── Timeline / news feed ───────────────────────── */
-      ${M} .timeline-container {
-        padding: 0 !important;
-      }
-
-      ${M} .timeline-item,
-      ${M} .tml-item,
-      ${M} .tml-in-reply {
-        padding: 8px !important;
-        font-size: 13px !important;
-      }
-
-      /* ── Homework / notifications ───────────────────── */
-      ${M} .hwItem,
-      ${M} .hwItemInner,
-      ${M} .hw-content {
-        padding: 8px !important;
-      }
-
-      ${M} .notifBox {
-        padding: 8px !important;
-        font-size: 13px !important;
-      }
-
-      ${M} .substitution-item {
-        flex-wrap: wrap !important;
-        font-size: 13px !important;
-      }
-
-      /* ── Dialogs / modals → near full-screen ────────── */
-      ${M} .dialog,
-      ${M} .popup,
-      ${M} .modal-content {
-        position: fixed !important;
-        top: 4px !important;
-        left: 4px !important;
-        right: 4px !important;
-        bottom: auto !important;
-        width: auto !important;
-        max-width: calc(100vw - 8px) !important;
-        max-height: 90vh !important;
-        overflow-y: auto !important;
-        margin: 0 !important;
-        transform: none !important;
-      }
-
-      ${M} .dropDownPanel,
-      ${M} .dropDown {
-        max-width: calc(100vw - 16px) !important;
-        overflow-x: auto !important;
-      }
-
-      /* ── Forms & touch targets ──────────────────────────
-         16px text inputs stop iOS Safari from auto-zooming the
-         page on focus. The touch-size floor stays scoped to
-         real action buttons — a blanket "button {min-height:
-         44px}" inflates the small inline icon buttons EduPage
-         scatters through tables and toolbars. */
-      ${M} input[type="text"],
-      ${M} input[type="password"],
-      ${M} input[type="email"],
-      ${M} input[type="search"],
-      ${M} input[type="number"],
-      ${M} select,
-      ${M} textarea {
-        font-size: 16px !important;
-        max-width: 100% !important;
-      }
-
-      ${M} .smartb,
-      ${M} .flat-button {
-        min-height: 40px !important;
-        box-sizing: border-box !important;
-      }
-
-      /* ── Grade filter bar → wrap ────────────────────── */
-      ${M} .zsvHeader,
-      ${M} .zsvHeaderTab,
-      ${M} .zsvFilterElem,
-      ${M} .zsvActionButtonsInner {
-        flex-wrap: wrap !important;
-        gap: 4px !important;
-        max-width: 100% !important;
-      }
-
-      ${M} .zsvFilterItem select {
-        min-width: 100px !important;
-      }
-
-      /* ── Attendance grid ────────────────────────────── */
-      ${M} .attendance-box,
-      ${M} .attendanceItem {
-        min-width: 0 !important;
-        font-size: 12px !important;
-      }
-
-      /* ── Print boxes → stack ────────────────────────── */
-      ${M} .print-box {
-        width: 100% !important;
-        max-width: 100% !important;
-      }
-
-      /* ── Logo area compact ──────────────────────────── */
-      ${M} .userTopLogo {
-        padding: 8px !important;
-        font-size: 14px !important;
-      }
-
-      ${M} .userTopLogo img {
-        max-height: 32px !important;
-        width: auto !important;
-      }
-
-      /* ── Ribbon (toolbar) → wrap ────────────────────── */
-      ${M} .edubarRibbon,
-      ${M} .ribbon-section {
-        flex-wrap: wrap !important;
-        gap: 2px !important;
-      }
-
-      ${M} .ribbon-button {
-        padding: 6px 8px !important;
-        font-size: 12px !important;
-      }
-
-      /* ── Profile menu dropdown ──────────────────────── */
-      ${M} .profilemenu {
-        max-width: calc(100vw - 16px) !important;
-      }
-
-      ${M} .profilemenu li,
-      ${M} .profilemenu a {
-        padding: 10px 12px !important;
-        font-size: 14px !important;
-      }
-
-      /* ── Gadget boxes → full width ──────────────────── */
-      ${M} .gadgetBox {
-        width: 100% !important;
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-      }
-
-      /* ── Scrollbar hide on touch (thin on desktop) ──── */
-      ${M} ::-webkit-scrollbar {
-        width: 4px !important;
-        height: 4px !important;
-      }
-    }
-
-    @media (max-width: 480px) {
-      ${M} .edubarSidebar {
-        gap: 1px !important;
-        padding: 2px !important;
-      }
-
-      ${M} .edubarMenuitem > a {
-        padding: 5px 9px !important;
-        font-size: 12px !important;
-      }
-
-      ${M} .userButton,
-      ${M} .userHomeOther,
-      ${M} .timeline-item,
-      ${M} .tml-item,
-      ${M} .hwItem,
-      ${M} .notifBox {
-        padding: 6px !important;
-        font-size: 12px !important;
-      }
-
-      ${M} table.znamkyTable td,
-      ${M} table.znamkyTable th {
-        padding: 3px 4px !important;
-        font-size: 11px !important;
-      }
-
-      ${M} .rozvrhItem,
-      ${M} .timetable-cell,
-      ${M} .ttItem {
-        min-width: 50px !important;
-        font-size: 10px !important;
-      }
-    }
-  `;
-}
-
-function ensureMobileResponsiveStylesheet() {
-  const existing = document.getElementById(MOBILE_STYLE_ID);
-  if (existing) {
-    existing.textContent = buildMobileResponsiveCSS();
-    return existing;
-  }
-  const style = document.createElement("style");
-  style.id = MOBILE_STYLE_ID;
-  style.textContent = buildMobileResponsiveCSS();
-  (document.head || document.documentElement).appendChild(style);
-  return style;
-}
-
-const MOBILE_VIEWPORT_CONTENT = "width=device-width, initial-scale=1";
-
-// EduPage's own markup has no <meta name="viewport">, so mobile browsers fall
-// back to a desktop-width layout viewport (~980px) and zoom the whole page out
-// to fit the screen instead of reflowing it. That means our max-width:768px
-// media query never matches on a real phone, and even if it did the elements
-// are still laid out at desktop width underneath the zoom. Forcing a proper
-// viewport tag is what actually makes the layout viewport match the screen so
-// the responsive CSS below has something to respond to.
-function ensureMobileViewport(enabled) {
-  const runWithHead = (fn) => {
-    if (document.head) {
-      fn();
-      return;
-    }
-    const observer = new MutationObserver(() => {
-      if (document.head) {
-        observer.disconnect();
-        fn();
-      }
-    });
-    observer.observe(document.documentElement, { childList: true });
-  };
-
-  runWithHead(() => {
-    let meta = document.head.querySelector('meta[name="viewport"]');
-    if (enabled) {
-      if (!meta) {
-        meta = document.createElement("meta");
-        meta.setAttribute("name", "viewport");
-        meta.dataset.eeAdded = "true";
-        document.head.appendChild(meta);
-      } else if (meta.dataset.eeOriginalContent === undefined) {
-        meta.dataset.eeOriginalContent = meta.getAttribute("content") || "";
-      }
-      meta.setAttribute("content", MOBILE_VIEWPORT_CONTENT);
-    } else if (meta) {
-      if (meta.dataset.eeAdded === "true") {
-        meta.remove();
-      } else if (meta.dataset.eeOriginalContent !== undefined) {
-        meta.setAttribute("content", meta.dataset.eeOriginalContent);
-        delete meta.dataset.eeOriginalContent;
-      }
-    }
-  });
-}
-
-// The structural mobile stylesheet was built and visually verified against
-// the authenticated legacy home at /user/. EduPage's other modules have their
-// own unrelated layout systems, while /app/* is already the dedicated mobile
-// client. Applying the same global overrides there can replace positioning,
-// table, dialog, and overflow behavior the page depends on.
-function shouldApplyMobileResponsive(pathname, topLevel = true) {
-  return topLevel === true && /^\/user\/?$/i.test(String(pathname || ""));
-}
-
-function applyMobileResponsive(enabled) {
-  const supportedPage = shouldApplyMobileResponsive(
-    window.location.pathname,
-    window.top === window.self,
-  );
-  const active = supportedPage && Boolean(enabled);
-
-  document.documentElement.classList.toggle("ee-mobile-responsive", active);
-  if (!supportedPage) return;
-
-  ensureMobileResponsiveStylesheet();
-  ensureMobileViewport(active);
-}
-
-function ensureStylesheet() {
+ function ensureStylesheet() {
   const existing = document.getElementById(STYLE_ID);
   if (existing) {
     existing.textContent = buildDarkCSS();
@@ -1462,6 +976,24 @@ function resetElementClasses(element) {
   element.removeAttribute(NORMALIZED_ATTR);
 }
 
+function hasVisibleBorder(styles) {
+  const sides = ["Top", "Right", "Bottom", "Left"];
+  const hasBorderSide = sides.some((side) => {
+    const width = Number.parseFloat(styles[`border${side}Width`]);
+    const style = styles[`border${side}Style`];
+    return width > 0 && style !== "none" && style !== "hidden";
+  });
+  const outlineWidth = Number.parseFloat(styles.outlineWidth);
+  const hasOutline = outlineWidth > 0
+    && styles.outlineStyle !== "none"
+    && styles.outlineStyle !== "hidden";
+  return hasBorderSide || hasOutline;
+}
+
+function isHeadingElement(element) {
+  return /^H[1-6]$/.test(element.tagName);
+}
+
 function normalizeElement(element) {
   if (shouldSkipElement(element)) return;
 
@@ -1505,7 +1037,7 @@ function normalizeElement(element) {
     }
   }
 
-  if (borderColors.some((borderColor) => borderColor.a > 0.15 && luminance(borderColor) > 0.68)) {
+  if (!isHeadingElement(element) && hasVisibleBorder(styles) && borderColors.some((borderColor) => borderColor.a > 0.15 && luminance(borderColor) > 0.68)) {
     element.classList.add(BORDER_CLASS);
     touched = true;
   }
@@ -1774,7 +1306,6 @@ function initDarkMode() {
     hasBootstrappedDarkMode = true;
     const cached = readThemeCache();
     if (cached) {
-      applyMobileResponsive(cached.mobileResponsiveEnabled === true);
       applyTheme(cached);
     } else {
       applyTheme({ darkModeEnabled: false, theme: "dark", cleanEnabled: false, helpHidden: false });
@@ -1782,10 +1313,8 @@ function initDarkMode() {
   }
 
   chrome.storage.local.get(
-    [STORAGE_KEY, THEME_KEY, CUSTOM_THEME_KEY, CLEAN_UI_KEY, HIDE_HELP_TEXT_KEY, ROZVRH_ROOM_CHANGE_COLOR_KEY, ROZVRH_SUBSTITUTION_COLOR_KEY, MOBILE_RESPONSIVE_KEY, ETEST_AUTO_THEME_OFF_KEY, ACTIVITY_SHIELD_ENABLED_KEY],
+    [STORAGE_KEY, THEME_KEY, CUSTOM_THEME_KEY, CLEAN_UI_KEY, HIDE_HELP_TEXT_KEY, ROZVRH_ROOM_CHANGE_COLOR_KEY, ROZVRH_SUBSTITUTION_COLOR_KEY, ETEST_AUTO_THEME_OFF_KEY, ACTIVITY_SHIELD_ENABLED_KEY],
     (result) => {
-      const mobileResponsiveEnabled = result[MOBILE_RESPONSIVE_KEY] === true;
-      applyMobileResponsive(mobileResponsiveEnabled);
       const enabled = result[STORAGE_KEY] === true;
       const theme = normalizeTheme(result[THEME_KEY]);
       const customTheme = normalizeCustomTheme(result[CUSTOM_THEME_KEY]);
@@ -1794,7 +1323,7 @@ function initDarkMode() {
       const rozvrhRoomChangeColor = normalizeColor(result[ROZVRH_ROOM_CHANGE_COLOR_KEY], DEFAULT_ROZVRH_ROOM_CHANGE_COLOR);
       const rozvrhSubstitutionColor = normalizeColor(result[ROZVRH_SUBSTITUTION_COLOR_KEY], DEFAULT_ROZVRH_SUBSTITUTION_COLOR);
       const etestAutoThemeOff = isEtestAutoThemeOffActive(result);
-      const settings = { darkModeEnabled: enabled, theme, customTheme, cleanEnabled, helpHidden, rozvrhRoomChangeColor, rozvrhSubstitutionColor, mobileResponsiveEnabled, etestAutoThemeOff };
+      const settings = { darkModeEnabled: enabled, theme, customTheme, cleanEnabled, helpHidden, rozvrhRoomChangeColor, rozvrhSubstitutionColor, etestAutoThemeOff };
       applyTheme(settings);
       writeThemeCache(settings);
     },
@@ -1808,16 +1337,28 @@ function initDarkMode() {
 if (globalThis.__EE_TEST__) {
   globalThis.__eeTestExports = {
     normalizeTheme,
+    hasVisibleBorder,
+    isHeadingElement,
     shouldSuppressThemeForPath,
     resolveAppliedTheme,
     isEtestAutoThemeOffActive,
-    isMobileUA,
-    shouldRedirectMobileToApp,
-    shouldApplyMobileResponsive,
+    resolveReviewUrl,
+    getUpdateToastExitDuration,
+    UPDATE_TOAST_DURATION_MS,
   };
 }
 
 initDarkMode();
+
+function resolveReviewUrl(userAgent) {
+  return /\bFirefox\//.test(String(userAgent || ""))
+    ? FIREFOX_ADDONS_REVIEW_URL
+    : CHROME_STORE_REVIEW_URL;
+}
+
+function getUpdateToastExitDuration(reducedMotion) {
+  return reducedMotion ? 0 : UPDATE_TOAST_EXIT_DURATION_MS;
+}
 
 // Shows a one-time toast the first time the page loads after an update —
 // not on first install (lastSeen is unset then, so we just record the
@@ -1828,54 +1369,138 @@ function showUpdateToast(version) {
 
   const toast = document.createElement("div");
   toast.id = "ee-update-toast";
-  toast.setAttribute("role", "status");
+  toast.setAttribute("role", "dialog");
+  toast.setAttribute("aria-labelledby", "ee-update-toast-title");
+  toast.setAttribute("aria-describedby", "ee-update-toast-body");
   toast.style.cssText = [
     "position: fixed", "bottom: 20px", "right: 20px", "z-index: 2147483000",
-    "max-width: 320px", "padding: 14px 16px", "border-radius: 10px",
+    "width: min(420px, calc(100vw - 40px))", "box-sizing: border-box",
+    "padding: 22px 22px 32px", "border-radius: 12px",
     "background: #171d28", "color: #eef2f7",
-    "font: 13px/1.4 -apple-system, 'Segoe UI', Roboto, sans-serif",
+    "font: 14px/1.45 -apple-system, 'Segoe UI', Roboto, sans-serif",
     "box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35)",
-    "border: 1px solid rgba(255, 255, 255, 0.12)",
+    "border: 1px solid rgba(255, 255, 255, 0.12)", "overflow: hidden",
+    "transition: transform 220ms ease, opacity 220ms ease",
   ].join(";");
 
+  const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
+  let autoDismissTimer = null;
+  const dismissToast = () => {
+    if (toast.dataset.eeClosing === "true") return;
+    toast.dataset.eeClosing = "true";
+    if (autoDismissTimer !== null) clearTimeout(autoDismissTimer);
+
+    const exitDuration = getUpdateToastExitDuration(reducedMotion);
+    if (exitDuration === 0) {
+      toast.remove();
+      return;
+    }
+    toast.style.opacity = "0";
+    toast.style.transform = "translateX(calc(100% + 32px))";
+    setTimeout(() => toast.remove(), exitDuration);
+  };
+
+  const closeButton = document.createElement("button");
+  closeButton.type = "button";
+  closeButton.setAttribute("aria-label", chrome.i18n.getMessage("updateToastClose") || "Close update notice");
+  closeButton.style.cssText = [
+    "position: absolute", "top: 18px", "right: 18px", "width: 34px", "height: 34px",
+    "display: inline-flex", "align-items: center", "justify-content: center",
+    "padding: 0", "border: 1px solid #7f2c36", "border-radius: 50%", "background: #3a1f25",
+    "color: #ff9da5", "cursor: pointer",
+  ].join(";");
+  const closeIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  closeIcon.setAttribute("viewBox", "0 0 24 24");
+  closeIcon.setAttribute("width", "18");
+  closeIcon.setAttribute("height", "18");
+  closeIcon.setAttribute("aria-hidden", "true");
+  const closePath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  closePath.setAttribute("d", "m7 7 10 10M17 7 7 17");
+  closePath.setAttribute("fill", "none");
+  closePath.setAttribute("stroke", "currentColor");
+  closePath.setAttribute("stroke-width", "2.5");
+  closePath.setAttribute("stroke-linecap", "round");
+  closeIcon.appendChild(closePath);
+  closeButton.appendChild(closeIcon);
+  closeButton.addEventListener("click", dismissToast);
+
   const title = document.createElement("strong");
-  title.style.cssText = "display: block; margin-bottom: 4px; font-size: 13px;";
+  title.id = "ee-update-toast-title";
+  title.style.cssText = "display: block; margin: 0 42px 8px 0; font-size: 16px;";
   title.textContent = (chrome.i18n.getMessage("updateToastTitle") || "Edupage Extras updated to v{version}")
     .replace("{version}", version);
 
   const body = document.createElement("p");
-  body.style.cssText = "margin: 0 0 10px 0; color: #b9c2cf;";
+  body.id = "ee-update-toast-body";
+  body.style.cssText = "margin: 0 0 18px 0; color: #b9c2cf;";
   body.textContent = chrome.i18n.getMessage("updateToastBody") || "See what changed in this version.";
 
   const actions = document.createElement("div");
-  actions.style.cssText = "display: flex; gap: 10px; justify-content: flex-end; align-items: center;";
+  actions.style.cssText = "display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;";
+  const actionButtonStyle = [
+    "display: inline-flex", "min-height: 42px", "width: 100%", "box-sizing: border-box",
+    "align-items: center", "justify-content: center", "padding: 0 12px",
+    "border: 1px solid rgba(255, 255, 255, 0.16)", "border-radius: 7px",
+    "background: #232d3d", "color: #eef2f7", "cursor: pointer",
+    "font: 600 13px/1 -apple-system, 'Segoe UI', Roboto, sans-serif",
+    "text-decoration: none",
+  ].join(";");
 
   const viewLink = document.createElement("a");
   viewLink.href = REPO_RELEASES_URL;
   viewLink.target = "_blank";
   viewLink.rel = "noopener noreferrer";
   viewLink.textContent = chrome.i18n.getMessage("updateToastViewChanges") || "What's new";
-  viewLink.style.cssText = "color: #4fc3f7; text-decoration: none; font-weight: 600;";
+  viewLink.style.cssText = actionButtonStyle;
 
-  const dismissButton = document.createElement("button");
-  dismissButton.type = "button";
-  dismissButton.textContent = chrome.i18n.getMessage("updateToastDismiss") || "Dismiss";
-  dismissButton.style.cssText = [
-    "background: #232d3d", "color: #eef2f7", "border: 1px solid rgba(255, 255, 255, 0.12)",
-    "border-radius: 6px", "padding: 4px 10px", "cursor: pointer", "font-size: 12px",
+  const rateLink = document.createElement("a");
+  rateLink.href = resolveReviewUrl(navigator.userAgent);
+  rateLink.target = "_blank";
+  rateLink.rel = "noopener noreferrer";
+  rateLink.textContent = chrome.i18n.getMessage("updateToastRateUs") || "Rate us";
+  rateLink.style.cssText = actionButtonStyle;
+
+  const progressTrack = document.createElement("div");
+  progressTrack.setAttribute("aria-hidden", "true");
+  progressTrack.style.cssText = [
+    "position: absolute", "bottom: 12px", "left: 22px", "right: 22px", "height: 4px",
+    "border-radius: 999px", "background: rgba(255, 255, 255, 0.16)", "overflow: hidden",
   ].join(";");
-  dismissButton.addEventListener("click", () => toast.remove());
 
-  actions.append(viewLink, dismissButton);
-  toast.append(title, body, actions);
+  const progress = document.createElement("div");
+  progress.style.cssText = [
+    "width: 100%", "height: 100%", "border-radius: 999px", "background: #4fc3f7", "transform: scaleX(1)",
+    "transform-origin: left center", "transition: transform 20s linear",
+  ].join(";");
+  progressTrack.appendChild(progress);
+
+  actions.append(viewLink, rateLink);
+  toast.append(closeButton, title, body, actions, progressTrack);
+
+  const startAutoDismiss = () => {
+    if (reducedMotion) {
+      progressTrack.style.display = "none";
+      autoDismissTimer = setTimeout(dismissToast, UPDATE_TOAST_DURATION_MS);
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      if (toast.dataset.eeClosing !== "true") progress.style.transform = "scaleX(0)";
+    });
+    autoDismissTimer = setTimeout(dismissToast, UPDATE_TOAST_DURATION_MS);
+  };
 
   // Runs from a storage callback, which can resolve before <body> exists on
   // slow-loading pages (this script runs at document_start) — wait for it
   // instead of throwing.
   if (document.body) {
     document.body.appendChild(toast);
+    startAutoDismiss();
   } else {
-    document.addEventListener("DOMContentLoaded", () => document.body.appendChild(toast), { once: true });
+    document.addEventListener("DOMContentLoaded", () => {
+      document.body.appendChild(toast);
+      startAutoDismiss();
+    }, { once: true });
   }
 }
 
@@ -1905,9 +1530,6 @@ if (window.top === window) {
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
-  if (changes[MOBILE_RESPONSIVE_KEY]) {
-    applyMobileResponsive(changes[MOBILE_RESPONSIVE_KEY].newValue === true);
-  }
   if (
     !changes[STORAGE_KEY]
     && !changes[THEME_KEY]
@@ -1916,13 +1538,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
     && !changes[HIDE_HELP_TEXT_KEY]
     && !changes[ROZVRH_ROOM_CHANGE_COLOR_KEY]
     && !changes[ROZVRH_SUBSTITUTION_COLOR_KEY]
-    && !changes[MOBILE_RESPONSIVE_KEY]
     && !changes[ETEST_AUTO_THEME_OFF_KEY]
     && !changes[ACTIVITY_SHIELD_ENABLED_KEY]
   ) return;
 
   chrome.storage.local.get(
-    [STORAGE_KEY, THEME_KEY, CUSTOM_THEME_KEY, CLEAN_UI_KEY, HIDE_HELP_TEXT_KEY, ROZVRH_ROOM_CHANGE_COLOR_KEY, ROZVRH_SUBSTITUTION_COLOR_KEY, MOBILE_RESPONSIVE_KEY, ETEST_AUTO_THEME_OFF_KEY, ACTIVITY_SHIELD_ENABLED_KEY],
+    [STORAGE_KEY, THEME_KEY, CUSTOM_THEME_KEY, CLEAN_UI_KEY, HIDE_HELP_TEXT_KEY, ROZVRH_ROOM_CHANGE_COLOR_KEY, ROZVRH_SUBSTITUTION_COLOR_KEY, ETEST_AUTO_THEME_OFF_KEY, ACTIVITY_SHIELD_ENABLED_KEY],
     (result) => {
       const settings = {
         darkModeEnabled: result[STORAGE_KEY] === true,
@@ -1932,7 +1553,6 @@ chrome.storage.onChanged.addListener((changes, area) => {
         helpHidden: result[HIDE_HELP_TEXT_KEY] === true,
         rozvrhRoomChangeColor: normalizeColor(result[ROZVRH_ROOM_CHANGE_COLOR_KEY], DEFAULT_ROZVRH_ROOM_CHANGE_COLOR),
         rozvrhSubstitutionColor: normalizeColor(result[ROZVRH_SUBSTITUTION_COLOR_KEY], DEFAULT_ROZVRH_SUBSTITUTION_COLOR),
-        mobileResponsiveEnabled: result[MOBILE_RESPONSIVE_KEY] === true,
         etestAutoThemeOff: isEtestAutoThemeOffActive(result),
       };
       applyTheme(settings);
@@ -1953,7 +1573,6 @@ chrome.runtime.onMessage.addListener((message) => {
       rozvrhSubstitutionColor: message.rozvrhSubstitutionColor || currentRozvrhSubstitutionColor,
       etestAutoThemeOff: message.etestAutoThemeOff === true,
     });
-    applyMobileResponsive(message.mobileResponsiveEnabled === true);
   }
   if (message && message.type === "ee-preview-update-toast") {
     showUpdateToast(chrome.runtime.getManifest().version);

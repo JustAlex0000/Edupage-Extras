@@ -139,7 +139,6 @@ runTest("theme shortcut messages carry the complete current theme state", () => 
     hideHelpTextEnabled: true,
     eeRozvrhRoomChangeColor: "#111111",
     eeRozvrhSubstitutionColor: "#222222",
-    eeMobileResponsiveEnabled: true,
   }, true);
 
   assert.deepEqual(JSON.parse(JSON.stringify(message)), {
@@ -151,7 +150,6 @@ runTest("theme shortcut messages carry the complete current theme state", () => 
     hideHelpTextEnabled: true,
     rozvrhRoomChangeColor: "#111111",
     rozvrhSubstitutionColor: "#222222",
-    mobileResponsiveEnabled: true,
   });
 });
 

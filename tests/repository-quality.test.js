@@ -56,6 +56,14 @@ test("AI suggestion command is declared without a browser-assigned default", () 
   assert.equal(Object.hasOwn(manifest.commands["suggest-test-question"], "suggested_key"), false);
 });
 
+test("eTest copy commands are declared without browser-assigned defaults", () => {
+  const manifest = readJson("manifest.json");
+  for (const command of ["copy-test-question", "copy-whole-test"]) {
+    assert.ok(manifest.commands[command]);
+    assert.equal(Object.hasOwn(manifest.commands[command], "suggested_key"), false);
+  }
+});
+
 test("locale catalogs have aligned, non-empty messages", () => {
   const locales = Object.fromEntries(
     ["en", "sk", "cs"].map((locale) => [locale, readJson(`_locales/${locale}/messages.json`)]),
@@ -210,46 +218,4 @@ test("virtual grade popover exposes accessible semantics and viewport handling",
   assert.match(virtual, /event\.key !== "Escape"/);
   assert.match(virtual, /restoreFocus: true/);
   assert.match(virtual, /computeVirtualPopoverPosition/);
-});
-
-test("mobile redirect remains an explicit storage-backed opt-in", () => {
-  const content = fs.readFileSync(path.join(ROOT, "scripts/content.js"), "utf8");
-  const background = fs.readFileSync(path.join(ROOT, "scripts/background.js"), "utf8");
-
-  assert.doesNotMatch(content, /eeMobileRedirectEnabledCache/, "mobile redirect must not trust a stale page-local cache");
-  assert.doesNotMatch(background, /seedMobileRedirectDefault/, "Android installs must not silently enable mobile redirect");
-});
-
-test("iOS app compatibility avoids native-only browser paths", () => {
-  const compat = fs.readFileSync(path.join(ROOT, "scripts/ua-ios-fix.js"), "utf8");
-  const bootstrap = fs.readFileSync(path.join(ROOT, "scripts/ua-ios-bootstrap.js"), "utf8");
-  const manifest = readJson("manifest.json");
-  const isolatedScripts = manifest.content_scripts?.[0]?.js || [];
-  const accessibleResources = (manifest.web_accessible_resources || [])
-    .flatMap((entry) => entry.resources || []);
-
-  assert.match(compat, /shadow\(window, "webkit", undefined\)/, "iOS browsers must skip EduPage's native-only request shim");
-  assert.match(compat, /window\.iNoBounce\?\.disable\?\.\(\)/, "the obsolete iOS touch blocker must be disabled");
-  assert.match(compat, /bridge\.runFlexMethod = function/, "unsupported native URL-scheme calls must be guarded");
-  assert.match(
-    bootstrap,
-    /early\.textContent = EARLY_COMPAT_SOURCE/,
-    "the page-world transport guard must run synchronously before EduPage's parser-loaded app",
-  );
-  assert.match(
-    bootstrap,
-    /app\(\?:.*\|\$\)/,
-    "the iOS compatibility path must include both /app and nested /app routes",
-  );
-  assert.equal(
-    isolatedScripts[0],
-    "scripts/ua-ios-bootstrap.js",
-    "the Safari-compatible MAIN-world fallback must run before other page scripts",
-  );
-  assert.ok(
-    accessibleResources.includes("scripts/ua-ios-fix.js"),
-    "the MAIN-world fallback target must be loadable by the EduPage document",
-  );
-  assert.doesNotMatch(compat, /shadow\(Navigator\.prototype, "platform"/, "the real iPhone platform must remain visible");
-  assert.doesNotMatch(compat, /shadow\(Navigator\.prototype, "vendor"/, "the real WebKit vendor must remain visible");
 });
