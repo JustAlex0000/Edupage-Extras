@@ -4,6 +4,14 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## 1.0.2 — 2026-08-27
+
+- Added an early cached-theme bootstrap and direct first-paint styling for
+  late-rendered calendars, grades controls, e-learning lists, and dashboard
+  separators to reduce light flashes while EduPage builds a page.
+- Removed the homepage calendar title's stray outline and made the current
+  timetable lesson use each theme's accent, including Custom themes.
+
 ## 1.0.1 — 2026-08-27
 
 - Made access to the Stay Active testing site optional. It is now requested

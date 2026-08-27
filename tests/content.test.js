@@ -275,6 +275,35 @@ runTest("built-in dark themes keep secondary text readable", () => {
   }
 });
 
+runTest("known late-rendered widgets have direct first-paint theme coverage", () => {
+  const contentCss = fs.readFileSync(path.join(__dirname, "..", "scripts", "content.js"), "utf8");
+  const instantCss = fs.readFileSync(path.join(__dirname, "..", "scripts", "instant-theme.css"), "utf8");
+
+  for (const selector of [
+    ".hwsideElem", ".ui-datepicker-calendar", ".separator", ".zsvHeaderTitle",
+    ".fixedCell", ".znZnamka", ".akceptujBtn", ".dropDownBtn", ".dropDownPanel",
+    ".ecourse-standards-subject-item",
+  ]) {
+    assert.match(contentCss, new RegExp(selector.replace(/\./g, "\\.")));
+    assert.match(instantCss, new RegExp(selector.replace(/\./g, "\\.")));
+  }
+  assert.match(contentCss, /html\.ee-dark \.usercalendarTitle \{\s*border: none !important;/);
+  assert.match(contentCss, /--ee-current-period: color-mix\(in srgb, var\(--ee-link\) 28%, var\(--ee-card-bg\)\)/);
+  assert.match(contentCss, /--ee-current-period: color-mix\(in srgb, var\(--ee-custom-accent, #4fc3f7\) 28%, var\(--ee-custom-bg-raised, #171d28\)\)/);
+});
+
+runTest("cached theme bootstrap runs before the larger content script", () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "manifest.json"), "utf8"));
+  const scripts = manifest.content_scripts[0].js;
+  const bootstrapIndex = scripts.indexOf("scripts/theme-bootstrap.js");
+  const contentIndex = scripts.indexOf("scripts/content.js");
+  const source = fs.readFileSync(path.join(__dirname, "..", "scripts", "theme-bootstrap.js"), "utf8");
+
+  assert.ok(bootstrapIndex >= 0 && bootstrapIndex < contentIndex);
+  assert.match(source, /root\.classList\.add\("ee-dark", `ee-theme-\$\{theme\}`\)/);
+  assert.match(source, /eeThemeCacheV1/);
+});
+
 runTest("dark theme preserves native eTest copy-button styling", () => {
   const css = fs.readFileSync(path.join(__dirname, "..", "scripts", "content.js"), "utf8");
   assert.match(

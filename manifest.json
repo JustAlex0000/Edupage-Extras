@@ -2,7 +2,7 @@
   "name": "__MSG_extName__",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "manifest_version": 3,
   "icons": {
     "16": "images/icon-16.png",
@@ -74,6 +74,7 @@
       "css": ["scripts/instant-theme.css"],
       "js": [
         "scripts/lib/ee-common.js",
+        "scripts/theme-bootstrap.js",
         "scripts/diagnostics.js",
         "scripts/activity-shield-bridge.js",
         "scripts/content.js",

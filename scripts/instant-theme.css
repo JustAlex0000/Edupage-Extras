@@ -1,6 +1,10 @@
-html.ee-dark {
+html.ee-dark.ee-scheme-dark {
   color-scheme: dark !important;
   background: #0c1220 !important;
+}
+
+html.ee-dark:not(.ee-scheme-dark) {
+  color-scheme: light !important;
 }
 
 html.ee-dark body {
@@ -12,10 +16,96 @@ html.ee-dark .bgDiv,
 html.ee-dark .skinBody,
 html.ee-dark .skinContent,
 html.ee-dark .userContentInner,
+html.ee-dark .withMargin,
+html.ee-dark .userTopDivInner,
+html.ee-dark .wmaxL1,
 html.ee-dark #eb_main_content,
-html.ee-dark #bar_mainDiv {
+html.ee-dark #bar_mainDiv,
+html.ee-dark .mainBox,
+html.ee-dark .edubarMainNoSkin,
+html.ee-dark .timeline-container,
+html.ee-dark .grid-container,
+html.ee-dark .hwMainListMain {
   background: #0c1220 !important;
   color: #cdd6f4 !important;
+}
+
+html.ee-dark .userButton,
+html.ee-dark .userHomeOther,
+html.ee-dark .userHomeTitle,
+html.ee-dark .userCal2,
+html.ee-dark .calendar,
+html.ee-dark .userCalInner,
+html.ee-dark .usercalendarTitle,
+html.ee-dark .zsvHeader,
+html.ee-dark .zsvHeaderTitle,
+html.ee-dark .zsvFilterElem,
+html.ee-dark .zsvActionButtonsInner,
+html.ee-dark table.znamkyTable,
+html.ee-dark table.znamkyTable tr,
+html.ee-dark .fixedCell,
+html.ee-dark .znZnamka,
+html.ee-dark .ecourse-standards-subjects-list-outer,
+html.ee-dark .ecourse-standards-filter-outer,
+html.ee-dark .ecourse-standards-filter,
+html.ee-dark .ecourse-standards-subject-item,
+html.ee-dark .ecourse-standards-subject-itemlinks-bg,
+html.ee-dark .dropDownBtn,
+html.ee-dark .dropDownBtn > a,
+html.ee-dark .dropDown,
+html.ee-dark .dropDownPanel,
+html.ee-dark .dropDownPanel li,
+html.ee-dark .dropDownPanel li > a {
+  background: var(--ee-card-bg, #141d2e) !important;
+  color: var(--ee-text, #e9edf4) !important;
+  border-color: var(--ee-border, rgba(255, 255, 255, 0.055)) !important;
+}
+
+html.ee-dark .akceptujBtn {
+  background: var(--ee-card-hover, #202d43) !important;
+  color: var(--ee-text, #e9edf4) !important;
+  border-color: var(--ee-border, rgba(255, 255, 255, 0.055)) !important;
+}
+
+/* These widgets arrive after EduPage's shell. Keep their first frame on the
+   active theme; content.js replaces the fallbacks with the full palette. */
+html.ee-dark .hwsideElem,
+html.ee-dark .hwSideBox,
+html.ee-dark .calendarElem,
+html.ee-dark .ui-datepicker,
+html.ee-dark .ui-datepicker-header,
+html.ee-dark .ui-datepicker-calendar,
+html.ee-dark .ui-datepicker-calendar th,
+html.ee-dark .ui-datepicker-calendar td {
+  background: var(--ee-card-bg, #141d2e) !important;
+  color: var(--ee-text, #e9edf4) !important;
+  border-color: var(--ee-border, rgba(255, 255, 255, 0.055)) !important;
+}
+
+html.ee-dark .ui-datepicker-calendar td.ui-datepicker-week-end,
+html.ee-dark .ui-datepicker-calendar td.ui-datepicker-other-month {
+  background: var(--ee-brand-dark, #080d16) !important;
+}
+
+html.ee-dark .ui-datepicker-calendar .ui-state-default,
+html.ee-dark .ui-datepicker-prev,
+html.ee-dark .ui-datepicker-next {
+  background: transparent !important;
+  color: var(--ee-text-muted, #b6c0d1) !important;
+  border-color: transparent !important;
+}
+
+html.ee-dark .ui-datepicker-calendar .ui-state-highlight,
+html.ee-dark .ui-datepicker-calendar .ui-state-active {
+  background: var(--ee-card-hover, #202d43) !important;
+  color: var(--ee-text, #e9edf4) !important;
+  border-color: var(--ee-link, #6fa8e8) !important;
+}
+
+html.ee-dark .separator {
+  background: var(--ee-border, rgba(255, 255, 255, 0.055)) !important;
+  border-color: var(--ee-border, rgba(255, 255, 255, 0.055)) !important;
+  outline-color: var(--ee-border, rgba(255, 255, 255, 0.055)) !important;
 }
 
 html.ee-theme-ocean,

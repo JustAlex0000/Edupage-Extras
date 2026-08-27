@@ -69,20 +69,6 @@ function writeThemeCache(settings) {
 // those would itself be the wrong-color flash this code exists to avoid,
 // so skip the early paint and let the real light background load in.
 const LIGHT_TONED_THEMES = ["pink"];
-(function paintEarlyBackground() {
-  try {
-    const cached = readThemeCache();
-    if (
-      cached &&
-      cached.darkModeEnabled &&
-      cached.theme !== "light" &&
-      !shouldSuppressThemeForPath() &&
-      !isLightTonedTheme(cached.theme, cached.customTheme)
-    ) {
-      document.documentElement.style.backgroundColor = "#0c1220";
-    }
-  } catch {}
-})();
 const CLASS_NAME = "ee-dark";
 const THEME_CLASSES = [
   "ee-theme-dark",
@@ -179,7 +165,7 @@ function buildDarkCSS() {
       --ee-text: #e9edf4;
       --ee-text-muted: #b6c0d1;
       --ee-link: #6fa8e8;
-      --ee-current-period: #3f5b52;
+      --ee-current-period: color-mix(in srgb, var(--ee-link) 28%, var(--ee-card-bg));
       --ee-warning: #ffb74d;
       --ee-danger: #ef5350;
       --ee-table-header-bg: #2c70a3;
@@ -198,6 +184,7 @@ function buildDarkCSS() {
       --ee-text: #d8f3f0;
       --ee-text-muted: #a8d0d1;
       --ee-link: #4dd0e1;
+      --ee-current-period: color-mix(in srgb, var(--ee-link) 28%, var(--ee-card-bg));
       --ee-warning: #ffb74d;
       --ee-danger: #ef5350;
       --ee-table-header-bg: #0e6675;
@@ -216,6 +203,7 @@ function buildDarkCSS() {
       --ee-text: #e5f2df;
       --ee-text-muted: #b3c6aa;
       --ee-link: #81c784;
+      --ee-current-period: color-mix(in srgb, var(--ee-link) 28%, var(--ee-card-bg));
       --ee-warning: #ffb74d;
       --ee-danger: #ef5350;
       --ee-table-header-bg: #2e5a2e;
@@ -234,6 +222,7 @@ function buildDarkCSS() {
       --ee-text: #eafff3;
       --ee-text-muted: #a5d6bd;
       --ee-link: #4adfa3;
+      --ee-current-period: color-mix(in srgb, var(--ee-link) 28%, var(--ee-card-bg));
       --ee-warning: #ffb74d;
       --ee-danger: #ef5350;
       --ee-table-header-bg: #0f6b4a;
@@ -252,6 +241,7 @@ function buildDarkCSS() {
       --ee-text: #f4edff;
       --ee-text-muted: #d2c2ee;
       --ee-link: #c29cff;
+      --ee-current-period: color-mix(in srgb, var(--ee-link) 28%, var(--ee-card-bg));
       --ee-warning: #ffb74d;
       --ee-danger: #ef5350;
       --ee-table-header-bg: #4a3a8f;
@@ -273,6 +263,7 @@ function buildDarkCSS() {
       --ee-text: #25111b;
       --ee-text-muted: #8a6373;
       --ee-link: #e91e63;
+      --ee-current-period: color-mix(in srgb, var(--ee-link) 28%, var(--ee-card-bg));
       --ee-warning: #ed6c02;
       --ee-danger: #d32f2f;
       --ee-table-header-bg: #f48fb1;
@@ -291,6 +282,7 @@ function buildDarkCSS() {
       --ee-text: var(--ee-custom-text-main, #eef2f7);
       --ee-text-muted: var(--ee-custom-text-muted, #bac3df);
       --ee-link: var(--ee-custom-accent, #4fc3f7);
+      --ee-current-period: color-mix(in srgb, var(--ee-custom-accent, #4fc3f7) 28%, var(--ee-custom-bg-raised, #171d28));
       --ee-warning: var(--ee-custom-warning, #ffb74d);
       --ee-danger: var(--ee-custom-danger, #ef5350);
       --ee-table-header-bg: var(--ee-custom-table-header-bg, #2c70a3);
@@ -364,6 +356,7 @@ function buildDarkCSS() {
     html.ee-dark .hw-content,
     html.ee-dark .print-box,
     html.ee-dark .zsvHeader,
+    html.ee-dark .zsvHeaderTitle,
     html.ee-dark .zsvFilterElem,
     html.ee-dark #znamkyTableHeaderBg,
     html.ee-dark .zsvActionButtonsInner,
@@ -392,6 +385,36 @@ function buildDarkCSS() {
       border-width: 1px !important;
       border-style: solid !important;
       box-sizing: border-box !important;
+    }
+
+    /* Grades and e-learning render portions of their UI after the initial
+       shell. These are known page elements, so direct rules avoid a white
+       frame while the generic normalizer catches up. */
+    html.ee-dark .fixedCell,
+    html.ee-dark .znZnamka,
+    html.ee-dark .ecourse-standards-subjects-list-outer,
+    html.ee-dark .ecourse-standards-filter-outer,
+    html.ee-dark .ecourse-standards-filter,
+    html.ee-dark .ecourse-standards-subject-item,
+    html.ee-dark .ecourse-standards-subject-itemlinks-bg {
+      background-color: var(--ee-card-bg) !important;
+      color: var(--ee-text) !important;
+      border-color: var(--ee-border) !important;
+    }
+
+    html.ee-dark .akceptujBtn {
+      background-color: var(--ee-card-hover) !important;
+      color: var(--ee-text) !important;
+      border-color: var(--ee-border) !important;
+    }
+
+    html.ee-dark .dropDownBtn,
+    html.ee-dark .dropDownBtn > a,
+    html.ee-dark .dropDownPanel li,
+    html.ee-dark .dropDownPanel li > a {
+      background-color: var(--ee-card-bg) !important;
+      color: var(--ee-text) !important;
+      border-color: var(--ee-border) !important;
     }
 
     /* The message/news card reads as the "primary" card in stock too
@@ -643,6 +666,15 @@ function buildDarkCSS() {
       border: 1px solid var(--ee-border) !important;
     }
 
+    /* The homepage calendar heading inherits an outline from EduPage's
+       generic focus/border styling. It reads as a stray box, not a useful
+       section boundary, so keep the heading flat like the surrounding card. */
+    html.ee-dark .usercalendarTitle {
+      border: none !important;
+      outline: none !important;
+      box-shadow: none !important;
+    }
+
     html.ee-dark .userButton:hover {
       border-color: var(--ee-link) !important;
     }
@@ -701,11 +733,55 @@ function buildDarkCSS() {
     /* The current-lesson cell in the "Rozvrh dnes" strip — native stock
        highlights this with a translucent yellow (rgba(255, 252, 159, 0.3)
        on .rozvrhItem.selected, confirmed live 2026-07-01), distinct from
-       "today" elsewhere in the calendar. Dark mode's own accent color per
-       the "EduPage Dark Mode" design handoff. */
+       "today" elsewhere in the calendar. It derives from each theme's
+       accent, so it no longer carries dark mode's old green into every
+       palette and custom themes follow their chosen accent too. */
     html.ee-dark .rozvrhItem.selected {
-      background-color: color-mix(in srgb, var(--ee-current-period) 55%, var(--ee-card-bg)) !important;
-      border: 1px solid var(--ee-current-period) !important;
+      background-color: var(--ee-current-period) !important;
+      border: 1px solid color-mix(in srgb, var(--ee-link) 72%, var(--ee-current-period)) !important;
+    }
+
+    /* jQuery date pickers and the timeline homework rail are created after
+       the initial page shell. Style their known markup directly instead of
+       waiting for the general-purpose DOM normalizer, which otherwise lets
+       them show their white stock skin for a frame. */
+    html.ee-dark .hwsideElem,
+    html.ee-dark .hwSideBox,
+    html.ee-dark .calendarElem,
+    html.ee-dark .ui-datepicker,
+    html.ee-dark .ui-datepicker-header,
+    html.ee-dark .ui-datepicker-calendar,
+    html.ee-dark .ui-datepicker-calendar th,
+    html.ee-dark .ui-datepicker-calendar td {
+      background-color: var(--ee-card-bg) !important;
+      color: var(--ee-text) !important;
+      border-color: var(--ee-border) !important;
+    }
+
+    html.ee-dark .ui-datepicker-calendar td.ui-datepicker-week-end,
+    html.ee-dark .ui-datepicker-calendar td.ui-datepicker-other-month {
+      background-color: var(--ee-brand-dark) !important;
+    }
+
+    html.ee-dark .ui-datepicker-calendar .ui-state-default,
+    html.ee-dark .ui-datepicker-prev,
+    html.ee-dark .ui-datepicker-next {
+      background: transparent !important;
+      color: var(--ee-text-muted) !important;
+      border-color: transparent !important;
+    }
+
+    html.ee-dark .ui-datepicker-calendar .ui-state-highlight,
+    html.ee-dark .ui-datepicker-calendar .ui-state-active {
+      background-color: var(--ee-card-hover) !important;
+      color: var(--ee-text) !important;
+      border-color: var(--ee-link) !important;
+    }
+
+    html.ee-dark .separator {
+      background-color: var(--ee-border) !important;
+      border-color: var(--ee-border) !important;
+      outline-color: var(--ee-border) !important;
     }
 
     html.ee-dark .events li {
