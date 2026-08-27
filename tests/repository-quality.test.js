@@ -37,7 +37,7 @@ test("manifest version and referenced package files stay valid", () => {
   }
 });
 
-test("AI providers use optional, narrowly scoped host access", () => {
+test("optional hosts are narrowly scoped to explicit AI and test-site actions", () => {
   const manifest = readJson("manifest.json");
   const optionalHosts = manifest.optional_host_permissions || [];
   assert.deepEqual(optionalHosts.sort(), [
@@ -45,9 +45,11 @@ test("AI providers use optional, narrowly scoped host access", () => {
     "http://localhost/*",
     "https://integrate.api.nvidia.com/*",
     "https://openrouter.ai/*",
+    "https://edublurtesting.ct.ws/*",
   ].sort());
   assert.ok(!manifest.host_permissions.includes("https://integrate.api.nvidia.com/*"));
   assert.ok(!manifest.host_permissions.includes("https://openrouter.ai/*"));
+  assert.ok(!manifest.host_permissions.includes("https://edublurtesting.ct.ws/*"));
 });
 
 test("AI suggestion command is declared without a browser-assigned default", () => {

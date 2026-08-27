@@ -369,6 +369,14 @@ p {
     text-decoration: none;
 }
 
+.inline-link-button {
+    border: 0;
+    background: none;
+    cursor: pointer;
+    font: inherit;
+    padding: 0;
+}
+
 .inline-link:hover,
 .inline-link:focus-visible {
     text-decoration: underline;

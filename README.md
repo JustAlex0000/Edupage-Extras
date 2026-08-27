@@ -37,8 +37,8 @@ Install directly from the
 Install directly from the
 [AMO listing](https://addons.mozilla.org/en-US/firefox/addon/edupage-extras/).
 
-Edupage Extras is Chromium-first. If something does
-not work on your school's EduPage, make a github issue or report it on my [Discord](https://discord.gg/eNZXHesA9j).
+Edupage Extras is Chromium-first. If something does not work on your school's
+EduPage, open a GitHub issue or report it on [Discord](https://discord.gg/eNZXHesA9j).
 
 ### Load unpacked in Chrome or Edge (development)
 
@@ -73,7 +73,7 @@ not work on your school's EduPage, make a github issue or report it on my [Disco
 
 ### Attendance
 
-- **Subject attendance** shows attendance for individual subjects calculated from the Attednance page.
+- **Subject attendance** shows attendance for individual subjects calculated from the Attendance page.
 - **Halfyear absence percentage** overall absence percentage inside Edupage's existing attendance page.
 
 ### Učivo / Curriculum
@@ -131,7 +131,7 @@ Edupage Extras requests:
   Edupage pages, reads timetable/attendance data already present in Edupage,
   and lets the settings UI find and reload open Edupage tabs (no separate
   `tabs` permission is requested).
-- `https://edublurtesting.ct.ws/*` - testing purposes
+- Optional `https://edublurtesting.ct.ws/*` access is requested only after you choose to open the testing site from the experimental settings.
 - `https://raw.githubusercontent.com/JustAlex0000/Edupage-Extras/*` host access -
   reads the public project manifest for update checks.
 - Optional access to `localhost`, `127.0.0.1`, `integrate.api.nvidia.com`, or
@@ -167,8 +167,8 @@ This is a plain browser extension with an `npm`-based toolchain for the
 Firefox side (linting, packaging, and publishing). There's no build step for
 loading it unpacked in Chrome/Edge — that still works directly from source.
 
-See the [documentation index](docs/README.md), [architecture guide](ARCHITECTURE.md),
-and [contributor workflow](CONTRIBUTING.md) for development details.
+See the [architecture guide](ARCHITECTURE.md) and [contributor workflow](CONTRIBUTING.md)
+for development details.
 
 Recommended checks before publishing:
 

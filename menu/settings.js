@@ -43,6 +43,7 @@ const updateStatusText = document.getElementById("UpdateStatusText");
 const experimentalContent = document.getElementById("ExperimentalContent");
 const experimentalConfirmContinue = document.getElementById("ExperimentalConfirmContinue");
 const experimentalShortcutSettingsButton = document.getElementById("ExperimentalShortcutSettingsButton");
+const openTestingSiteButton = document.getElementById("OpenTestingSiteButton");
 const activityShieldShortcutStatus = document.getElementById("ActivityShieldShortcutStatus");
 const resetActivityShieldButton = document.getElementById("ResetActivityShieldButton");
 const reloadEdupageTabsButton = document.getElementById("ReloadEdupageTabsButton");
@@ -128,6 +129,8 @@ const AI_DEFAULT_ENDPOINTS = {
 	lmstudio: "http://127.0.0.1:1234",
 };
 const AI_CLOUD_PROVIDERS = new Set(["nvidia", "openrouter"]);
+const TESTING_SITE_URL = "https://edublurtesting.ct.ws/";
+const TESTING_SITE_PERMISSION = "https://edublurtesting.ct.ws/*";
 const activityShieldSettings = [
 	["ActivityShieldEnabled", "eeActivityShieldEnabled"],
 	["ActivityVisibilityState", "eeActivityShieldVisibilityState"],
@@ -1025,6 +1028,24 @@ function requestAiHostPermission(pattern) {
 		});
 	});
 }
+
+openTestingSiteButton?.addEventListener("click", () => {
+	openTestingSiteButton.disabled = true;
+	if (!chrome.permissions?.request) {
+		setExperimentalStatus(t("testingSitePermissionUnavailable"), true);
+		openTestingSiteButton.disabled = false;
+		return;
+	}
+	chrome.permissions.request({ origins: [TESTING_SITE_PERMISSION] }, (granted) => {
+		const error = chrome.runtime.lastError;
+		openTestingSiteButton.disabled = false;
+		if (error || !granted) {
+			setExperimentalStatus(t("testingSitePermissionDenied"), true);
+			return;
+		}
+		chrome.tabs.create({ url: TESTING_SITE_URL });
+	});
+});
 
 function updateActivityShieldDependentControls() {
 	const enabled = document.getElementById("ActivityShieldEnabled")?.checked === true;

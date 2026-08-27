@@ -92,6 +92,13 @@ runTest("Test Question Helper stays opt-in inside Experimental", () => {
   assert.match(settingsScript, /aiQuestionHelperToggle\.checked = result\[AI_HELPER_ENABLED_KEY\] === true/);
 });
 
+runTest("the Stay Active test site asks for optional access before opening", () => {
+  assert.match(html, /<button class="inline-link inline-link-button" id="OpenTestingSiteButton" type="button"/);
+  assert.match(settingsScript, /const TESTING_SITE_PERMISSION = "https:\/\/edublurtesting\.ct\.ws\/\*";/);
+  assert.match(settingsScript, /chrome\.permissions\.request\(\{ origins: \[TESTING_SITE_PERMISSION\] \}/);
+  assert.match(settingsScript, /chrome\.tabs\.create\(\{ url: TESTING_SITE_URL \}\)/);
+});
+
 runTest("optional export tools are opt-in", () => {
   assert.match(html, /id="TimetableExportCheckbox"/);
   assert.match(html, /id="TimetableExportContent" hidden/);

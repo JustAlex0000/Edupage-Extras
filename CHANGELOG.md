@@ -4,6 +4,15 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## 1.0.1 — 2026-08-27
+
+- Made access to the Stay Active testing site optional. It is now requested
+  only when someone opens the site from Experimental settings.
+- Removed the stale WIP label from Themes and added localized permission
+  feedback for the testing site.
+- Cleaned up the README's wording, broken documentation link, and attendance
+  typo.
+
 ## 1.0.0 — 2026-08-25
 
 - Marked the first stable release of Edupage Extras, with themes,

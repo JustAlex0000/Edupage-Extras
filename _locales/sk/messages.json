@@ -277,7 +277,9 @@
 
   "experimentalHeading": { "message": "Experimentálne" },
   "experimentalSubtitle": { "message": "Otestujte ochranu aktivity a viditeľnosti na stránkach Edupage." },
-  "openTestingSite": { "message": "Otvoriť testovaciu stránku" },
+  "openTestingSite": { "message": "Otvoriť testovaciu stránku režimu zostať aktívny" },
+  "testingSitePermissionUnavailable": { "message": "Tento prehliadač nemôže povoliť prístup k testovacej stránke." },
+  "testingSitePermissionDenied": { "message": "Prístup k testovacej stránke nebol povolený." },
   "samHeading": { "message": "Režim Zostať aktívny" },
   "samDesc": { "message": "Ovláda, ako Edupage vidí aktivitu karty, zameranie, pohyb myši a akcie schránky. Zmeny sa prejavia okamžite, ale najčistejší štart získate znovu načítaním otvorených kariet Edupage." },
   "samMaster": { "message": "Režim Zostať aktívny (hlavný vypínač)" },

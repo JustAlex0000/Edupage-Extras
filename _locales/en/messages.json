@@ -277,7 +277,9 @@
 
   "experimentalHeading": { "message": "Experimental" },
   "experimentalSubtitle": { "message": "Experimental settings that shouldn't be in the main settings." },
-  "openTestingSite": { "message": "Click here to open the stay active testing website" },
+  "openTestingSite": { "message": "Open the Stay Active testing site" },
+  "testingSitePermissionUnavailable": { "message": "This browser cannot grant access to the testing site." },
+  "testingSitePermissionDenied": { "message": "Access to the testing site was not granted." },
   "samHeading": { "message": "Stay Active Mode" },
   "samDesc": { "message": "Controls how Edupage sees tab activity, focus, mouse movement, and clipboard actions. Changes apply live, but reloading open Edupage is recommended." },
   "samMaster": { "message": "Stay Active Mode (Master Switch)" },
