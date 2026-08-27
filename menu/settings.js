@@ -1015,17 +1015,35 @@ function getAiPermissionPattern() {
 
 function requestAiHostPermission(pattern) {
 	return new Promise((resolve, reject) => {
-		if (!chrome.permissions?.request) {
+		if (!chrome.permissions?.contains) {
 			reject(new Error(t("aiPermissionUnavailable")));
 			return;
 		}
-		chrome.permissions.request({ origins: [pattern] }, (granted) => {
+		const requestedOrigins = { origins: [pattern] };
+		chrome.permissions.contains(requestedOrigins, (alreadyGranted) => {
 			const error = chrome.runtime.lastError;
-			if (error || !granted) {
+			if (error) {
 				reject(new Error(t("aiPermissionDenied")));
 				return;
 			}
-			resolve();
+			// Gemini is a required host permission so it is already present after
+			// installation. Only optional provider origins need a user prompt.
+			if (alreadyGranted) {
+				resolve();
+				return;
+			}
+			if (!chrome.permissions.request) {
+				reject(new Error(t("aiPermissionUnavailable")));
+				return;
+			}
+			chrome.permissions.request(requestedOrigins, (granted) => {
+				const requestError = chrome.runtime.lastError;
+				if (requestError || !granted) {
+					reject(new Error(t("aiPermissionDenied")));
+					return;
+				}
+				resolve();
+			});
 		});
 	});
 }

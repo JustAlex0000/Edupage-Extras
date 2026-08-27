@@ -59,8 +59,11 @@ they are cleared when the player or route changes.
 Test Question Helper is experimental and WIP. It is disabled by default and
 sends data only after the student presses its question action. Credentials stay
 in extension storage, never in the page. Providers are fixed remote origins or
-loopback-only local endpoints. Suggestions never submit an answer; live
-provider and complex eTest interaction coverage still need manual testing.
+loopback-only local endpoints. Gemini host access is declared up front so its
+question actions can reach the fixed API origin; other provider access remains
+optional. The settings permission flow accepts already-granted access instead
+of requesting it again. Suggestions never submit an answer; live provider and
+complex eTest interaction coverage still need manual testing.
 
 ## Settings and storage
 

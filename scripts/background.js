@@ -249,25 +249,41 @@ function extractAiMessageContent(data, provider) {
   return "";
 }
 
-function buildGeminiGenerationConfig() {
-  return {
+function buildGeminiGenerationConfig(model = "") {
+  const generationConfig = {
     temperature: 0.1,
     maxOutputTokens: 1_000,
     responseMimeType: "application/json",
-    // Gemini 3 Flash defaults to medium thinking. Question Helper requests are
-    // short structured tasks, so low thinking avoids unnecessary long waits.
-    thinkingConfig: { thinkingLevel: "LOW" },
   };
+
+  const modelId = String(model || "").replace(/^models\//, "").toLowerCase();
+  if (/^gemini-3(?:[.-]|$)/.test(modelId)) {
+    // Gemini 3 uses named thinking levels.
+    generationConfig.thinkingConfig = { thinkingLevel: "LOW" };
+  } else if (/^gemini-2\.5-flash(?:-lite)?(?:-|$)/.test(modelId)) {
+    // Gemini 2.5 rejects thinkingLevel. Flash models accept a zero token
+    // budget, which keeps these short structured requests responsive.
+    generationConfig.thinkingConfig = { thinkingBudget: 0 };
+  }
+  // Unknown models and 2.5 Pro keep their provider defaults because their
+  // supported thinking controls cannot be inferred safely from the name.
+  return generationConfig;
+}
+
+function buildGeminiModelUrl(config, operation = "") {
+  const model = config.model.replace(/^models\//, "");
+  const suffix = operation ? `:${operation}` : "";
+  const url = new URL(`${config.endpoint}/v1beta/models/${encodeURIComponent(model)}${suffix}`);
+  // Google supports API keys in either x-goog-api-key or ?key=. Chrome's MV3
+  // network stack can stall cross-origin requests carrying the custom header,
+  // while the query form avoids that extra header negotiation for both the
+  // connection check and generation request.
+  url.searchParams.set("key", config.accessToken);
+  return url.href;
 }
 
 function buildGeminiGenerateUrl(config) {
-  const model = config.model.replace(/^models\//, "");
-  const url = new URL(`${config.endpoint}/v1beta/models/${encodeURIComponent(model)}:generateContent`);
-  // Google supports API keys in either x-goog-api-key or ?key=. Chrome's MV3
-  // network stack can stall a cross-origin POST carrying the custom header,
-  // while the query form avoids that extra header negotiation.
-  url.searchParams.set("key", config.accessToken);
-  return url.href;
+  return buildGeminiModelUrl(config, "generateContent");
 }
 
 function parseAiJsonObject(content) {
@@ -455,7 +471,7 @@ async function requestAiQuestionSuggestion(questionInput) {
     url = buildGeminiGenerateUrl(config);
     body = {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: buildGeminiGenerationConfig(),
+      generationConfig: buildGeminiGenerationConfig(config.model),
     };
   } else {
     url = config.provider === "openrouter"
@@ -502,9 +518,7 @@ async function testAiProviderConnection() {
     }
     return { provider: config.provider, model: config.model };
   } else if (config.provider === "gemini") {
-    const model = config.model.replace(/^models\//, "");
-    url = `${config.endpoint}/v1beta/models/${encodeURIComponent(model)}`;
-    headers["x-goog-api-key"] = config.accessToken;
+    url = buildGeminiModelUrl(config);
   } else if (config.provider === "ollama") {
     url = `${config.endpoint}/api/tags`;
   } else {
@@ -2012,6 +2026,7 @@ if (globalThis.__EE_TEST__) {
     sanitizeAiQuestion,
     buildAiQuestionPrompt,
     buildGeminiGenerationConfig,
+    buildGeminiModelUrl,
     buildGeminiGenerateUrl,
     extractAiMessageContent,
     parseAiJsonObject,

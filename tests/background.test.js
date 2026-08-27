@@ -214,18 +214,38 @@ runTest("AI provider configuration only accepts fixed OpenRouter or loopback ser
 });
 
 runTest("Gemini response text is extracted from candidate parts", () => {
-  const { buildGeminiGenerationConfig, buildGeminiGenerateUrl, extractAiMessageContent } = loadBackgroundInternals();
-  assert.deepEqual(JSON.parse(JSON.stringify(buildGeminiGenerationConfig())), {
+  const {
+    buildGeminiGenerationConfig,
+    buildGeminiModelUrl,
+    buildGeminiGenerateUrl,
+    extractAiMessageContent,
+  } = loadBackgroundInternals();
+  assert.deepEqual(JSON.parse(JSON.stringify(buildGeminiGenerationConfig("gemini-3.7-flash"))), {
     temperature: 0.1,
     maxOutputTokens: 1000,
     responseMimeType: "application/json",
     thinkingConfig: { thinkingLevel: "LOW" },
   });
-  const requestUrl = new URL(buildGeminiGenerateUrl({
+  assert.deepEqual(JSON.parse(JSON.stringify(buildGeminiGenerationConfig("gemini-2.5-flash"))), {
+    temperature: 0.1,
+    maxOutputTokens: 1000,
+    responseMimeType: "application/json",
+    thinkingConfig: { thinkingBudget: 0 },
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(buildGeminiGenerationConfig("gemini-2.5-pro"))), {
+    temperature: 0.1,
+    maxOutputTokens: 1000,
+    responseMimeType: "application/json",
+  });
+  const config = {
     endpoint: "https://generativelanguage.googleapis.com",
     model: "models/gemini-3.7-flash",
     accessToken: "key with symbols/+",
-  }));
+  };
+  const modelUrl = new URL(buildGeminiModelUrl(config));
+  assert.equal(modelUrl.pathname, "/v1beta/models/gemini-3.7-flash");
+  assert.equal(modelUrl.searchParams.get("key"), "key with symbols/+");
+  const requestUrl = new URL(buildGeminiGenerateUrl(config));
   assert.equal(requestUrl.origin, "https://generativelanguage.googleapis.com");
   assert.equal(requestUrl.pathname, "/v1beta/models/gemini-3.7-flash:generateContent");
   assert.equal(requestUrl.searchParams.get("key"), "key with symbols/+");

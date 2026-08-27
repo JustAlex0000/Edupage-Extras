@@ -140,9 +140,11 @@ Edupage Extras requests:
 - Optional `https://edublurtesting.ct.ws/*` access is requested only after you choose to open the testing site from the experimental settings.
 - `https://raw.githubusercontent.com/JustAlex0000/Edupage-Extras/*` host access -
   reads the public project manifest for update checks.
-- Optional access to `localhost`, `127.0.0.1`, `integrate.api.nvidia.com`,
-  `openrouter.ai`, or `generativelanguage.googleapis.com` is requested
-  only when the user tests the matching AI provider connection.
+- Access to `generativelanguage.googleapis.com` lets the opt-in Question Helper
+  send user-triggered Gemini requests directly from the extension. Access to
+  `localhost`, `127.0.0.1`, `integrate.api.nvidia.com`, and `openrouter.ai`
+  remains optional and is requested only when the user tests the matching AI
+  provider connection.
 
 The extension does not request access to all websites.
 

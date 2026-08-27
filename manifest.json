@@ -25,12 +25,12 @@
     "http://localhost/*",
     "https://integrate.api.nvidia.com/*",
     "https://openrouter.ai/*",
-    "https://generativelanguage.googleapis.com/*",
     "https://edublurtesting.ct.ws/*"
   ],
   "host_permissions": [
     "https://*.edupage.org/*",
-    "https://raw.githubusercontent.com/JustAlex0000/Edupage-Extras/*"
+    "https://raw.githubusercontent.com/JustAlex0000/Edupage-Extras/*",
+    "https://generativelanguage.googleapis.com/*"
   ],
   "background": {
     "service_worker": "scripts/background.js",
