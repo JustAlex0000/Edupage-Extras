@@ -115,6 +115,13 @@ function normalizeLocalAiEndpoint(value, provider) {
   return parsed.origin;
 }
 
+/**
+ * Validates stored AI settings and resolves the fixed or loopback endpoint.
+ *
+ * @param {Object<string, unknown>} values Stored extension settings.
+ * @returns {{provider: string, model: string, accessToken: string, endpoint: string}}
+ * @throws {Error} When the model, credentials, or local endpoint is invalid.
+ */
 function resolveAiProviderConfig(values = {}) {
   const provider = AI_PROVIDERS.has(values[AI_PROVIDER_KEY]) ? values[AI_PROVIDER_KEY] : "ollama";
   const model = normalizeAiText(values[AI_MODEL_KEY], 240);
@@ -233,6 +240,13 @@ async function fetchAiJson(url, options = {}) {
   }
 }
 
+/**
+ * Extracts bounded text from the response shape used by an AI provider.
+ *
+ * @param {Object<string, unknown>} data Parsed provider response.
+ * @param {string} provider Provider identifier.
+ * @returns {string} Normalized model output, or an empty string when absent.
+ */
 function extractAiMessageContent(data, provider) {
   if (provider === "ollama") return normalizeAiText(data?.message?.content, AI_MAX_RESPONSE_LENGTH);
   if (provider === "gemini") {
@@ -249,27 +263,43 @@ function extractAiMessageContent(data, provider) {
   return "";
 }
 
+/**
+ * Builds generation settings compatible with the selected Gemini model family.
+ *
+ * @param {string} model Gemini model identifier, optionally prefixed by models/.
+ * @returns {Object<string, unknown>} Gemini generationConfig payload.
+ */
 function buildGeminiGenerationConfig(model = "") {
   const generationConfig = {
-    temperature: 0.1,
     maxOutputTokens: 1_000,
     responseMimeType: "application/json",
   };
 
   const modelId = String(model || "").replace(/^models\//, "").toLowerCase();
   if (/^gemini-3(?:[.-]|$)/.test(modelId)) {
-    // Gemini 3 uses named thinking levels.
+    // Gemini 3 uses named thinking levels and is optimized for its default
+    // temperature, so do not carry over the 0.1 override used by older models.
     generationConfig.thinkingConfig = { thinkingLevel: "LOW" };
-  } else if (/^gemini-2\.5-flash(?:-lite)?(?:-|$)/.test(modelId)) {
-    // Gemini 2.5 rejects thinkingLevel. Flash models accept a zero token
-    // budget, which keeps these short structured requests responsive.
-    generationConfig.thinkingConfig = { thinkingBudget: 0 };
+  } else {
+    generationConfig.temperature = 0.1;
+    if (/^gemini-2\.5-flash(?:-lite)?(?:-|$)/.test(modelId)) {
+      // Gemini 2.5 rejects thinkingLevel. Flash models accept a zero token
+      // budget, which keeps these short structured requests responsive.
+      generationConfig.thinkingConfig = { thinkingBudget: 0 };
+    }
   }
   // Unknown models and 2.5 Pro keep their provider defaults because their
   // supported thinking controls cannot be inferred safely from the name.
   return generationConfig;
 }
 
+/**
+ * Builds an authenticated Gemini model endpoint without a custom key header.
+ *
+ * @param {{endpoint: string, model: string, accessToken: string}} config Gemini provider configuration.
+ * @param {string} operation Optional model operation such as generateContent.
+ * @returns {string} Fully encoded Gemini API URL.
+ */
 function buildGeminiModelUrl(config, operation = "") {
   const model = config.model.replace(/^models\//, "");
   const suffix = operation ? `:${operation}` : "";
@@ -282,6 +312,12 @@ function buildGeminiModelUrl(config, operation = "") {
   return url.href;
 }
 
+/**
+ * Builds the authenticated Gemini generateContent endpoint.
+ *
+ * @param {{endpoint: string, model: string, accessToken: string}} config Gemini provider configuration.
+ * @returns {string} Gemini generateContent URL.
+ */
 function buildGeminiGenerateUrl(config) {
   return buildGeminiModelUrl(config, "generateContent");
 }
@@ -443,6 +479,12 @@ function validateAiSuggestion(raw, question) {
   return suggestion;
 }
 
+/**
+ * Sends one sanitized question to the configured provider and validates its suggestion.
+ *
+ * @param {Object<string, unknown>} questionInput Question model from the content script.
+ * @returns {Promise<Object<string, unknown>>} A bounded, normalized suggestion.
+ */
 async function requestAiQuestionSuggestion(questionInput) {
   const settings = await storageGet([
     AI_HELPER_ENABLED_KEY,
@@ -493,6 +535,11 @@ async function requestAiQuestionSuggestion(questionInput) {
   return validateAiSuggestion(parseAiJsonObject(content), question);
 }
 
+/**
+ * Verifies that the configured provider credentials can access the chosen model.
+ *
+ * @returns {Promise<{provider: string, model: string}>} The verified provider and model.
+ */
 async function testAiProviderConnection() {
   const settings = await storageGet([AI_PROVIDER_KEY, AI_ENDPOINT_KEY, AI_MODEL_KEY, AI_ACCESS_TOKEN_KEY]);
   const config = resolveAiProviderConfig(settings);

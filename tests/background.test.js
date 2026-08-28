@@ -221,7 +221,6 @@ runTest("Gemini response text is extracted from candidate parts", () => {
     extractAiMessageContent,
   } = loadBackgroundInternals();
   assert.deepEqual(JSON.parse(JSON.stringify(buildGeminiGenerationConfig("gemini-3.7-flash"))), {
-    temperature: 0.1,
     maxOutputTokens: 1000,
     responseMimeType: "application/json",
     thinkingConfig: { thinkingLevel: "LOW" },

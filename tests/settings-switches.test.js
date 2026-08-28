@@ -91,11 +91,13 @@ runTest("Test Question Helper stays opt-in inside Experimental", () => {
   assert.match(html, /id="OpenAiShortcutSettingsButton"/);
   assert.match(settingsScript, /suggest-test-question/);
   assert.match(settingsScript, /aiQuestionHelperToggle\.checked = result\[AI_HELPER_ENABLED_KEY\] === true/);
-  assert.match(
-    settingsScript,
-    /chrome\.permissions\.contains\(requestedOrigins, \(alreadyGranted\) =>[\s\S]*if \(alreadyGranted\)[\s\S]*chrome\.permissions\.request\(requestedOrigins/,
-    "already granted AI host access must not be requested again",
+  assert.match(settingsScript, /if \(provider !== "gemini"\) await requestAiHostPermission\(pattern\)/);
+  const permissionHelper = settingsScript.slice(
+    settingsScript.indexOf("function requestAiHostPermission"),
+    settingsScript.indexOf("function updateActivityShieldDependentControls"),
   );
+  assert.match(permissionHelper, /chrome\.permissions\.request\(\{ origins: \[pattern\] \}/);
+  assert.doesNotMatch(permissionHelper, /chrome\.permissions\.contains/);
 });
 
 runTest("the Stay Active test site asks for optional access before opening", () => {

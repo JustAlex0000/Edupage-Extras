@@ -996,6 +996,12 @@ function saveAiSettings(callback) {
 	chrome.storage.local.set(currentAiSettings(), callback);
 }
 
+/**
+ * Returns the narrow host-permission pattern for the selected AI provider.
+ *
+ * @returns {string} A manifest-compatible origin pattern.
+ * @throws {Error} When a local provider endpoint is invalid or non-loopback.
+ */
 function getAiPermissionPattern() {
 	const provider = aiProviderSelect?.value || "ollama";
 	if (provider === "openrouter") return "https://openrouter.ai/*";
@@ -1013,37 +1019,27 @@ function getAiPermissionPattern() {
 	return `${endpoint.protocol}//${endpoint.hostname}/*`;
 }
 
+/**
+ * Requests one optional AI host permission during the originating user gesture.
+ *
+ * @param {string} pattern A host pattern declared in optional_host_permissions.
+ * @returns {Promise<void>} Resolves when access is granted.
+ */
 function requestAiHostPermission(pattern) {
 	return new Promise((resolve, reject) => {
-		if (!chrome.permissions?.contains) {
+		if (!chrome.permissions?.request) {
 			reject(new Error(t("aiPermissionUnavailable")));
 			return;
 		}
-		const requestedOrigins = { origins: [pattern] };
-		chrome.permissions.contains(requestedOrigins, (alreadyGranted) => {
+		// Keep this as the first asynchronous browser API call: Chrome requires
+		// optional permissions to be requested inside the click gesture.
+		chrome.permissions.request({ origins: [pattern] }, (granted) => {
 			const error = chrome.runtime.lastError;
-			if (error) {
+			if (error || !granted) {
 				reject(new Error(t("aiPermissionDenied")));
 				return;
 			}
-			// Gemini is a required host permission so it is already present after
-			// installation. Only optional provider origins need a user prompt.
-			if (alreadyGranted) {
-				resolve();
-				return;
-			}
-			if (!chrome.permissions.request) {
-				reject(new Error(t("aiPermissionUnavailable")));
-				return;
-			}
-			chrome.permissions.request(requestedOrigins, (granted) => {
-				const requestError = chrome.runtime.lastError;
-				if (requestError || !granted) {
-					reject(new Error(t("aiPermissionDenied")));
-					return;
-				}
-				resolve();
-			});
+			resolve();
 		});
 	});
 }
@@ -1311,8 +1307,11 @@ aiTestConnectionButton?.addEventListener("click", async () => {
 	setAiConnectionStatus(t("aiConnectionTesting"));
 	aiTestConnectionButton.disabled = true;
 	try {
+		const provider = aiProviderSelect?.value || "ollama";
 		const pattern = getAiPermissionPattern();
-		await requestAiHostPermission(pattern);
+		// Gemini's fixed origin is required in the manifest. Every other provider
+		// is optional and must be requested directly from this click handler.
+		if (provider !== "gemini") await requestAiHostPermission(pattern);
 		await new Promise((resolve) => saveAiSettings(resolve));
 		const response = await chrome.runtime.sendMessage({ type: "ee-ai-test-connection" });
 		if (!response?.ok) throw new Error(response?.error || t("aiConnectionFailed"));
