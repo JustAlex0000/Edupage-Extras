@@ -4,6 +4,19 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## 1.0.3 — 2026-08-28
+
+- Fixed Test Question Helper suggestions for text elaborations, multi-field
+  inputs, multi-dropdown questions, ordering, and matching cards. Matching
+  now uses EduPage's own answer update path and never submits a test.
+- Made NVIDIA structured suggestions more reliable, clarified shuffled
+  matching instructions, and added an optional, off-by-default helper-message
+  switch for diagnosing suggestions.
+- Fixed the Grades sorting toolbar sometimes missing after the extension or
+  page reload, and made the Timeline message hero follow the active theme.
+- Removed unused locale strings and added regression coverage for the repaired
+  AI and Grades flows.
+
 ## 1.0.2 — 2026-08-27
 
 - Added an early cached-theme bootstrap and direct first-paint styling for

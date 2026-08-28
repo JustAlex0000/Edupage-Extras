@@ -297,6 +297,9 @@
         return currentScore > bestScore ? currentTable : bestTable;
       }, null);
     }
+    function hasUnenhancedGradesTable(tables = getGradesTables()) {
+      return tables.some((table) => !table?.previousElementSibling?.classList?.contains("ee-grades-toolbar"));
+    }
     function ensureGradesToolbar(table) {
       if (!table?.parentElement) return null;
       const previous = table.previousElementSibling;
@@ -1419,11 +1422,18 @@
       };
 
       const observer = new MutationObserver((mutations) => {
-        if (Date.now() < ignoreMutationsUntil) {
+        // EduPage can replace its initial grades-table shell shortly after
+        // our first pass. Do not let the short internal-mutation guard hide
+        // that replacement, otherwise its toolbar only appears after reload.
+        const hasUnenhancedTable = hasUnenhancedGradesTable();
+        if (Date.now() < ignoreMutationsUntil && !hasUnenhancedTable) {
           return;
         }
 
-        if (mutations.some(isGradesMutation) && document.querySelector("table.znamkyTable")) {
+        if (
+          hasUnenhancedTable
+          || (mutations.some(isGradesMutation) && document.querySelector("table.znamkyTable"))
+        ) {
           scheduleEnhance();
         }
       });
@@ -1480,6 +1490,7 @@
   GE.getGradesTables = getGradesTables;
   GE.gradeTableRowCount = gradeTableRowCount;
   GE.getPrimaryGradesTable = getPrimaryGradesTable;
+  GE.hasUnenhancedGradesTable = hasUnenhancedGradesTable;
   GE.ensureGradesToolbar = ensureGradesToolbar;
   GE.injectStyles = injectStyles;
   GE.enhanceGradesTable = enhanceGradesTable;

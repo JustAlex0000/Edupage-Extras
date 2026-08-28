@@ -140,6 +140,17 @@ runTest("grades subject search is case- and accent-insensitive", () => {
   assert.equal(normalizeGradesSearchText("ČESKÝ JAZYK"), "cesky jazyk");
 });
 
+runTest("a replacement grades table is detected while internal mutations are suppressed", () => {
+  const { hasUnenhancedGradesTable } = loadGradesEnhancerInternals();
+  const enhancedTable = {
+    previousElementSibling: { classList: { contains: (name) => name === "ee-grades-toolbar" } },
+  };
+  const replacementTable = { previousElementSibling: null };
+
+  assert.equal(hasUnenhancedGradesTable([enhancedTable]), false);
+  assert.equal(hasUnenhancedGradesTable([replacementTable]), true);
+});
+
 runTest("disabling grades sorting restores original order and clears filtering", () => {
   assert.match(gradesEnhancerSource, /gradesSortFilterEnabled = result\[GRADES_SORT_FILTER_KEY\] !== false/);
   assert.match(gradesEnhancerSource, /GE\.sortFilter\.disable\(table\)/);

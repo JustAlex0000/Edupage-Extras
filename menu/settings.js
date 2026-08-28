@@ -72,6 +72,7 @@ const etestImageExportInput = document.getElementById("EtestImageExportInput");
 const etestImageExportButton = document.getElementById("EtestImageExportButton");
 const aiQuestionHelperToggle = document.getElementById("AiQuestionHelperCheckbox");
 const aiQuestionHelperSettings = document.getElementById("AiQuestionHelperSettings");
+const aiHelperMessagesToggle = document.getElementById("AiHelperMessagesCheckbox");
 const aiProviderSelect = document.getElementById("AiProviderSelect");
 const aiEndpointRow = document.getElementById("AiEndpointRow");
 const aiEndpointInput = document.getElementById("AiEndpointInput");
@@ -120,6 +121,7 @@ const ETEST_WHOLE_TEST_BUTTON_KEY = "eeEtestWholeTestButtonEnabled";
 const ETEST_INCLUDE_ANSWERS_KEY = "eeEtestIncludeAnswers";
 const ETEST_INCLUDE_IMAGES_KEY = "eeEtestIncludeImages";
 const AI_HELPER_ENABLED_KEY = "eeAiQuestionHelperEnabled";
+const AI_HELPER_MESSAGES_KEY = "eeAiHelperMessagesEnabled";
 const AI_PROVIDER_KEY = "eeAiProvider";
 const AI_ENDPOINT_KEY = "eeAiEndpoint";
 const AI_MODEL_KEY = "eeAiModel";
@@ -985,6 +987,7 @@ function setAiConnectionStatus(message, isError = false) {
 function currentAiSettings() {
 	return {
 		[AI_HELPER_ENABLED_KEY]: aiQuestionHelperToggle?.checked === true,
+		[AI_HELPER_MESSAGES_KEY]: aiHelperMessagesToggle?.checked === true,
 		[AI_PROVIDER_KEY]: aiProviderSelect?.value || "ollama",
 		[AI_ENDPOINT_KEY]: aiEndpointInput?.value.trim() || "",
 		[AI_MODEL_KEY]: aiModelInput?.value.trim() || "",
@@ -1251,6 +1254,7 @@ if (etestIncludeImagesToggle) {
 if (aiQuestionHelperToggle) {
 	chrome.storage.local.get([
 		AI_HELPER_ENABLED_KEY,
+		AI_HELPER_MESSAGES_KEY,
 		AI_PROVIDER_KEY,
 		AI_ENDPOINT_KEY,
 		AI_MODEL_KEY,
@@ -1260,6 +1264,7 @@ if (aiQuestionHelperToggle) {
 			? result[AI_PROVIDER_KEY]
 			: "ollama";
 		aiQuestionHelperToggle.checked = result[AI_HELPER_ENABLED_KEY] === true;
+		if (aiHelperMessagesToggle) aiHelperMessagesToggle.checked = result[AI_HELPER_MESSAGES_KEY] === true;
 		if (aiProviderSelect) aiProviderSelect.value = provider;
 		if (aiEndpointInput) aiEndpointInput.value = result[AI_ENDPOINT_KEY] || AI_DEFAULT_ENDPOINTS[provider] || "";
 		if (aiModelInput) aiModelInput.value = result[AI_MODEL_KEY] || "";
@@ -1272,6 +1277,10 @@ if (aiQuestionHelperToggle) {
 		updateDependentControls();
 	});
 }
+
+aiHelperMessagesToggle?.addEventListener("change", () => {
+	saveAiSettings();
+});
 
 aiProviderSelect?.addEventListener("change", () => {
 	const provider = aiProviderSelect.value;

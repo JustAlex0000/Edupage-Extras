@@ -425,6 +425,18 @@ function buildDarkCSS() {
       background-color: var(--ee-card-bg-bright) !important;
     }
 
+    /* Timeline's message hero is a branded page heading, not a neutral card.
+       Keep its existing image, but derive its stock-blue base from the active
+       theme header token so purple, forest, and custom palettes stay coherent. */
+    html.ee-dark .hwHeroDiv.messages {
+      background-color: var(--ee-header-bg) !important;
+      color: var(--ee-text) !important;
+    }
+
+    html.ee-dark .hwHeroDiv.messages h1 {
+      color: inherit !important;
+    }
+
     /* .hwItem and its inner wrappers (homework/notification list rows) are
        natively transparent in stock — there's no card box around each row,
        just plain rows stacked on the page background. Giving them a card

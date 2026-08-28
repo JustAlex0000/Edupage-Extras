@@ -188,7 +188,8 @@ function buildAiQuestionPrompt(question) {
     "For multiple blanks, fillIns must contain one value for every blank in DOM order. For multiple dropdowns, dropdownIndexes must contain one index for every dropdown in DOM order.",
     "For code answers, return only the code needed in the input, without markdown fences or an explanation.",
     "For an elaboration answer, put the complete response in the single fillIns item.",
-    "For matching or pinning questions, use matches with one {left,right} object for each suggested connection.",
+    "For matching or pinning questions, pairs is two shuffled columns shown as temporary rows: pairs[index][0] is a left-column item and pairs[index][1] is a right-column item. The two values already on one row are not an answer and must not be preserved.",
+    "For matching, return one {left,right} object for every left index. left selects pairs[left][0]; right selects pairs[right][1]. Use every left and every right index exactly once. Example: if left item 0 belongs to right item 1, return {\"left\":0,\"right\":1}.",
     blankInstruction,
     "Use empty arrays for fields that do not apply. Keep answer under 500 characters.",
     `Question data: ${payload}`,
@@ -242,44 +243,39 @@ function extractAiMessageContent(data, provider) {
 
 function parseAiJsonObject(content) {
   const stripped = String(content || "").replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
-  const start = stripped.indexOf("{");
-  if (start < 0) throw new Error("The model did not return a usable suggestion.");
-  let depth = 0;
-  let quote = false;
-  let escaped = false;
-  let end = -1;
-  for (let index = start; index < stripped.length; index += 1) {
-    const character = stripped[index];
-    if (quote) {
-      if (escaped) escaped = false;
-      else if (character === "\\") escaped = true;
-      else if (character === '"') quote = false;
-      continue;
-    }
-    if (character === '"') quote = true;
-    else if (character === "{") depth += 1;
-    else if (character === "}") {
-      depth -= 1;
-      if (depth === 0) {
-        end = index;
-        break;
+  for (let start = stripped.indexOf("{"); start >= 0; start = stripped.indexOf("{", start + 1)) {
+    let depth = 0;
+    let quote = false;
+    let escaped = false;
+    for (let index = start; index < stripped.length; index += 1) {
+      const character = stripped[index];
+      if (quote) {
+        if (escaped) escaped = false;
+        else if (character === "\\") escaped = true;
+        else if (character === '"') quote = false;
+        continue;
+      }
+      if (character === '"') quote = true;
+      else if (character === "{") depth += 1;
+      else if (character === "}") {
+        depth -= 1;
+        if (depth !== 0) continue;
+        try {
+          const objectText = stripped.slice(start, index + 1);
+          let parsed;
+          try {
+            parsed = JSON.parse(objectText);
+          } catch (_) {
+            parsed = JSON.parse(objectText.replace(/,\s*([}\]])/g, "$1"));
+          }
+          if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+        } catch (_) {
+          break;
+        }
       }
     }
   }
-  if (end < 0) throw new Error("The model did not return a usable suggestion.");
-  try {
-    const objectText = stripped.slice(start, end + 1);
-    let parsed;
-    try {
-      parsed = JSON.parse(objectText);
-    } catch (_) {
-      parsed = JSON.parse(objectText.replace(/,\s*([}\]])/g, "$1"));
-    }
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error();
-    return parsed;
-  } catch (_) {
-    throw new Error("The model did not return a usable suggestion.");
-  }
+  throw new Error("The model did not return a usable suggestion.");
 }
 
 function normalizeAiList(value) {
@@ -430,15 +426,27 @@ async function requestAiQuestionSuggestion(questionInput) {
       model: config.model,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.1,
-      max_tokens: 500,
+      max_tokens: 1_000,
       stream: false,
     };
     body.response_format = { type: "json_object" };
+    if (config.provider === "nvidia") {
+      // Nemotron 3 Ultra reasons by default. The helper needs its final JSON,
+      // not a truncated reasoning trace, so disable thinking for this short,
+      // structured request.
+      body.reasoning_effort = "none";
+      body.chat_template_kwargs = { enable_thinking: false };
+    }
   }
   const data = await fetchAiJson(url, { method: "POST", headers, body: JSON.stringify(body) });
   const content = extractAiMessageContent(data, config.provider);
   if (!content) throw new Error("The model returned an empty response.");
-  return validateAiSuggestion(parseAiJsonObject(content), question);
+  try {
+    return validateAiSuggestion(parseAiJsonObject(content), question);
+  } catch (error) {
+    error.aiResponse = content;
+    throw error;
+  }
 }
 
 async function testAiProviderConnection() {
@@ -2096,6 +2104,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch((error) => sendResponse({
         ok: false,
         error: error?.message || "Could not get a suggestion.",
+        debugResponse: typeof error?.aiResponse === "string" ? normalizeAiText(error.aiResponse, 8_000) : "",
       }));
     return true;
   }

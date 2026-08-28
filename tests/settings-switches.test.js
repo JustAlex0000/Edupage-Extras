@@ -88,8 +88,10 @@ runTest("Test Question Helper stays opt-in inside Experimental", () => {
   assert.match(html, /value="nvidia"/);
   assert.match(html, /value="openrouter"/);
   assert.match(html, /id="OpenAiShortcutSettingsButton"/);
+  assert.match(html, /id="AiHelperMessagesCheckbox"/);
   assert.match(settingsScript, /suggest-test-question/);
   assert.match(settingsScript, /aiQuestionHelperToggle\.checked = result\[AI_HELPER_ENABLED_KEY\] === true/);
+  assert.match(settingsScript, /aiHelperMessagesToggle\.checked = result\[AI_HELPER_MESSAGES_KEY\] === true/);
 });
 
 runTest("the Stay Active test site asks for optional access before opening", () => {

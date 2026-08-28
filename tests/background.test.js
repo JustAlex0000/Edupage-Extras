@@ -233,6 +233,19 @@ runTest("AI question and model responses are bounded before reaching the page", 
   );
 });
 
+runTest("AI matching prompts distinguish shuffled rows from answer connections", () => {
+  const { buildAiQuestionPrompt } = loadBackgroundInternals();
+  const prompt = buildAiQuestionPrompt({
+    plainBody: "Match the terms.",
+    type: "matching",
+    interactionData: { pairs: [["left one", "right one"], ["left two", "right two"]] },
+    currentAnswers: [],
+  });
+  assert.match(prompt, /temporary rows/);
+  assert.match(prompt, /must not be preserved/);
+  assert.match(prompt, /Use every left and every right index exactly once/);
+});
+
 runTest("AI suggestions preserve ordered multi-field answers and dropdown labels", () => {
   const { validateAiSuggestion } = loadBackgroundInternals();
   const question = {
@@ -334,6 +347,24 @@ runTest("AI parsing keeps the first complete JSON object from a model response",
     JSON.parse(JSON.stringify(parseAiJsonObject('{"fillIns":["first","second",],}'))),
     { fillIns: ["first", "second"] },
   );
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(parseAiJsonObject('I considered {an example} before {"fillIns":["first","second"]}'))),
+    { fillIns: ["first", "second"] },
+  );
+});
+
+runTest("AI failed-response diagnostics stay bounded", () => {
+  const source = fs.readFileSync(path.join(__dirname, "..", "scripts", "background.js"), "utf8");
+  assert.match(source, /debugResponse: typeof error\?\.aiResponse === "string" \? normalizeAiText\(error\.aiResponse, 8_000\) : ""/);
+  assert.match(source, /error\.aiResponse = content/);
+});
+
+runTest("NVIDIA reasoning is disabled for short structured suggestions", () => {
+  const source = fs.readFileSync(path.join(__dirname, "..", "scripts", "background.js"), "utf8");
+  assert.match(source, /if \(config\.provider === "nvidia"\) \{/);
+  assert.match(source, /body\.reasoning_effort = "none"/);
+  assert.match(source, /body\.chat_template_kwargs = \{ enable_thinking: false \}/);
+  assert.match(source, /max_tokens: 1_000/);
 });
 
 runTest("AI access keys are excluded from diagnostics settings", () => {

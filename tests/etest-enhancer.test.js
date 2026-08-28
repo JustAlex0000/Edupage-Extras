@@ -199,6 +199,7 @@ test("test copying is opt-in while its child preferences default on", () => {
       selectedAnswers: true,
       wholeTestImages: true,
       aiHelper: false,
+      aiHelperMessages: false,
     },
   );
   assert.deepEqual(
@@ -213,10 +214,12 @@ test("test copying is opt-in while its child preferences default on", () => {
       selectedAnswers: true,
       wholeTestImages: true,
       aiHelper: false,
+      aiHelperMessages: false,
     },
   );
   assert.equal(resolvePreferences({ eeEtestCopyEnabled: true }).copyEnabled, true);
   assert.equal(resolvePreferences({ eeAiQuestionHelperEnabled: true }).aiHelper, true);
+  assert.equal(resolvePreferences({ eeAiHelperMessagesEnabled: true }).aiHelperMessages, true);
 });
 
 test("mixed question interaction data keeps every supported control type", () => {
@@ -242,6 +245,24 @@ test("mixed question interaction data keeps every supported control type", () =>
     JSON.parse(JSON.stringify(getQuestionInteractionData(content, "mixed"))),
     { options: ["A) First"], dropdowns: [["One"]], blanks: 1 },
   );
+});
+
+test("AI treats textarea elaborations as one fill-in field", () => {
+  const { isBlankControl, getQuestionInteractionData, getBlankControls } = loadInternals().exports;
+  const elaboration = { tagName: "TEXTAREA", type: "textarea" };
+  const content = {
+    querySelectorAll(selector) {
+      return selector === "textarea, input" ? [elaboration] : [];
+    },
+  };
+
+  assert.equal(isBlankControl(elaboration), true);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(getQuestionInteractionData(content, "fill-in"))),
+    { blanks: 1 },
+  );
+  assert.equal(getBlankControls(content).length, 1);
+  assert.equal(getBlankControls(content)[0], elaboration);
 });
 
 test("AI fills every untouched multi-field control and Tab accepts a fallback hint", () => {
@@ -310,6 +331,46 @@ test("AI updates EduPage's visible dropdown label after selecting an answer", ()
   assert.equal(label.textContent, "Correct answer");
 });
 
+test("AI syncs a jQuery UI dropdown through its generated button", () => {
+  const { syncDropdownDisplay } = loadInternals().exports;
+  const label = { textContent: "-- choose --" };
+  const button = { querySelector(selector) { return selector === ".ui-selectmenu-text" ? label : null; } };
+  const select = {
+    id: "answer-1",
+    ownerDocument: { getElementById(id) { return id === "answer-1-button" ? button : null; } },
+    closest() { return null; },
+  };
+  syncDropdownDisplay(select, { textContent: "Correct answer" });
+  assert.equal(label.textContent, "Correct answer");
+});
+
+test("AI failures can show a local-only model response for diagnosis", () => {
+  const source = fs.readFileSync(path.join(__dirname, "..", "scripts", "etest-enhancer.js"), "utf8");
+  assert.match(source, /function appendAiDebugResponse\(content, responseText\)/);
+  assert.match(source, /appendAiDebugResponse\(content, response\?\.debugResponse\)/);
+  assert.match(source, /Model response \(local only\)/);
+});
+
+test("AI only auto-orders untouched sortable questions", () => {
+  const { hasOrderingAnswer, canApplyAiAnswer } = loadInternals().exports;
+  const makeRow = (index) => ({ dataset: { ind: String(index) } });
+  const untouchedRows = [makeRow(0), makeRow(1), makeRow(2)];
+  const movedRows = [makeRow(1), makeRow(0), makeRow(2)];
+  const content = (rows) => ({
+    querySelectorAll(selector) {
+      if (selector === ".etest-alist-answer") return rows;
+      if (selector === ".etest-alist-ordering .etest-alist-answer") return rows;
+      return [];
+    },
+  });
+  const suggestion = { choiceIndexes: [], fillIns: [], dropdownIndexes: [], matches: [], ordering: [0, 2, 1] };
+
+  assert.equal(hasOrderingAnswer(content(untouchedRows)), false);
+  assert.equal(canApplyAiAnswer(content(untouchedRows), suggestion), true);
+  assert.equal(hasOrderingAnswer(content(movedRows)), true);
+  assert.equal(canApplyAiAnswer(content(movedRows), suggestion), false);
+});
+
 test("AI drags a complete matching suggestion only when nothing is connected", () => {
   const dispatched = [];
   const MouseEvent = class { constructor(type) { this.type = type; } };
@@ -324,6 +385,7 @@ test("AI drags a complete matching suggestion only when nothing is connected", (
     return {
       sourceEvents,
       classList: { contains() { return false; } },
+      getBoundingClientRect() { return { left: 40, top: 40, width: 20, height: 20 }; },
       querySelector(selector) { return selector === ".pair-r" ? source : target; },
     };
   };
@@ -341,7 +403,15 @@ test("AI drags a complete matching suggestion only when nothing is connected", (
   assert.equal(applyAiAnswer(content, suggestion), 2);
   assert.deepEqual(first.sourceEvents, ["mousedown"]);
   assert.deepEqual(second.sourceEvents, ["mousedown"]);
-  assert.deepEqual(dispatched, ["mousemove", "mousemove", "mouseup", "mousemove", "mousemove", "mouseup"]);
+  assert.deepEqual(dispatched, ["mousemove", "mousemove", "mousemove", "mouseup", "mousemove", "mousemove", "mousemove", "mouseup"]);
+});
+
+test("AI matching uses EduPage's own drop callback outside the test harness", () => {
+  const source = fs.readFileSync(path.join(__dirname, "..", "scripts", "etest-enhancer.js"), "utf8");
+  const bridge = fs.readFileSync(path.join(__dirname, "..", "scripts", "etest-answer-bridge.js"), "utf8");
+  assert.match(source, /if \(!IS_TEST\) return applyAiMatchesThroughPage\(content, matches\);/);
+  assert.match(bridge, /drop\.call\(target, jq\.Event\("drop", \{ target \}\), \{ helper: jq\(source\) \}\);/);
+  assert.match(bridge, /initialRows\.some\(\(row\) => row\.classList\.contains\("isConnected"\)\)/);
 });
 
 test("the test page keeps image export out of its action bar", () => {

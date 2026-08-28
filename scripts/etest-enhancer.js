@@ -11,6 +11,7 @@
   const ETEST_INCLUDE_ANSWERS_KEY = "eeEtestIncludeAnswers";
   const ETEST_INCLUDE_IMAGES_KEY = "eeEtestIncludeImages";
   const AI_HELPER_ENABLED_KEY = "eeAiQuestionHelperEnabled";
+  const AI_HELPER_MESSAGES_KEY = "eeAiHelperMessagesEnabled";
   const COPY_BTN_CLASS = "ee-etest-question-copy-btn";
   const COPY_ALL_BTN_CLASS = "ee-etest-copyall-btn";
   const AI_BTN_CLASS = "ee-etest-ai-btn";
@@ -18,6 +19,8 @@
   const AI_HINT_CLASS = "ee-etest-ai-hint";
   const AI_NOTE_CLASS = "ee-etest-ai-note";
   const AI_SUGGESTED_CLASS = "ee-etest-ai-suggested";
+  const AI_MATCH_PORT_ID = "ee-etest-ai-match-port";
+  const AI_MATCH_EVENT = "ee-etest-ai-apply-matches";
   const STYLE_ID = "ee-etest-copy-style";
   const BLANK_MARKER = "___";
   const SELECTED_MARKER_TOKEN = "\ue000ee-selected\ue001";
@@ -57,6 +60,8 @@
   let includeSelectedAnswers = true;
   let includeWholeTestImages = true;
   let aiHelperEnabled = false;
+  let aiHelperMessagesEnabled = false;
+  let aiMatchRequestSequence = 0;
   let observerTimer = null;
   let snapshotTimer = null;
   let seenSequence = 0;
@@ -428,6 +433,11 @@
     return "question";
   }
 
+  function isBlankControl(control) {
+    if (String(control?.tagName || "").toUpperCase() === "TEXTAREA") return true;
+    return BLANK_INPUT_TYPES.has(String(control?.type || "").toLowerCase());
+  }
+
   function getQuestionInteractionData(content, type) {
     if (!content || typeof content.querySelectorAll !== "function") return {};
     const interactionData = {};
@@ -443,7 +453,7 @@
     }
     if (type === "fill-in" || type === "mixed") {
       interactionData.blanks = Array.from(content.querySelectorAll("textarea, input"))
-        .filter((control) => BLANK_INPUT_TYPES.has(String(control.type || "").toLowerCase()))
+        .filter(isBlankControl)
         .length;
     }
     if (type === "matching") {
@@ -658,7 +668,7 @@
   function getBlankControls(content) {
     if (!content || typeof content.querySelectorAll !== "function") return [];
     return Array.from(content.querySelectorAll("textarea, input"))
-      .filter((control) => BLANK_INPUT_TYPES.has(String(control.type || "").toLowerCase()));
+      .filter(isBlankControl);
   }
 
   function getDropdownOption(select, answerIndex) {
@@ -675,9 +685,13 @@
   function syncDropdownDisplay(select, option) {
     if (!select || !option || typeof select.closest !== "function") return;
     const host = select.closest(".etest-answer-input-field-outer");
-    const label = host && typeof host.querySelector === "function"
-      ? host.querySelector(".ui-selectmenu-text")
+    const buttonId = select.id ? `${select.id}-button` : "";
+    const button = buttonId && typeof select.ownerDocument?.getElementById === "function"
+      ? select.ownerDocument.getElementById(buttonId)
       : null;
+    const label = button?.querySelector?.(".ui-selectmenu-text")
+      || host?.querySelector?.(".ui-selectmenu-text")
+      || select.parentElement?.querySelector?.(".ui-selectmenu-text");
     if (!label) return;
     label.textContent = getOptionText(option);
     if (label.classList && typeof label.classList.add === "function") {
@@ -689,11 +703,19 @@
     return Array.from(content.querySelectorAll(".etest-pair-item"));
   }
 
+  function getOrderingRows(content) {
+    return Array.from(content.querySelectorAll(".etest-alist-ordering .etest-alist-answer"));
+  }
+
+  function hasOrderingAnswer(content) {
+    return getOrderingRows(content).some((row, index) => Number.parseInt(row.dataset?.ind, 10) !== index);
+  }
+
   function hasMatchingAnswer(content) {
     return getMatchingRows(content).some((row) => hasClass(row, "isConnected"));
   }
 
-  function dispatchMouseDrag(source, target) {
+  function dispatchMouseDrag(source, target, { before = false } = {}) {
     if (!source || !target || typeof source.getBoundingClientRect !== "function") return false;
     const sourceBox = source.getBoundingClientRect();
     const targetBox = target.getBoundingClientRect();
@@ -701,14 +723,32 @@
     const startX = sourceBox.left + (sourceBox.width / 2);
     const startY = sourceBox.top + (sourceBox.height / 2);
     const endX = targetBox.left + (targetBox.width / 2);
-    const endY = targetBox.top + (targetBox.height / 2);
+    const endY = targetBox.top + (targetBox.height * (before ? 0.2 : 0.5));
     const mouse = (type, x, y, buttons) => new MouseEvent(type, {
-      bubbles: true, cancelable: true, clientX: x, clientY: y, buttons,
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      buttons,
+      clientX: x,
+      clientY: y,
+      screenX: x,
+      screenY: y,
     });
-    source.dispatchEvent(mouse("mousedown", startX, startY, 1));
-    document.dispatchEvent(mouse("mousemove", startX + ((endX - startX) / 2), startY + ((endY - startY) / 2), 1));
-    document.dispatchEvent(mouse("mousemove", endX, endY, 1));
-    document.dispatchEvent(mouse("mouseup", endX, endY, 0));
+    const dispatch = (targetNode, type, x, y, buttons) => {
+      const event = mouse(type, x, y, buttons);
+      try {
+        Object.defineProperty(event, "which", { value: buttons ? 1 : 0 });
+      } catch (_) {
+        // Browsers with a non-configurable MouseEvent.which derive it from button.
+      }
+      targetNode.dispatchEvent(event);
+    };
+    dispatch(source, "mousedown", startX, startY, 1);
+    dispatch(document, "mousemove", startX + Math.sign(endX - startX || 1) * 6, startY + Math.sign(endY - startY || 1) * 6, 1);
+    dispatch(document, "mousemove", startX + ((endX - startX) / 2), startY + ((endY - startY) / 2), 1);
+    const endTarget = typeof target.dispatchEvent === "function" ? target : document;
+    dispatch(endTarget, "mousemove", endX, endY, 1);
+    dispatch(endTarget, "mouseup", endX, endY, 0);
     return true;
   }
 
@@ -720,11 +760,57 @@
       && match.left >= 0 && match.left < rows.length && match.right >= 0 && match.right < rows.length);
     if (!validMatches || new Set(matches.map((match) => match.left)).size !== rows.length
       || new Set(matches.map((match) => match.right)).size !== rows.length) return 0;
+    if (!IS_TEST) return applyAiMatchesThroughPage(content, matches);
     return matches.reduce((applied, match) => {
       const source = rows[match.right].querySelector(".pair-r");
-      const target = rows[match.left].querySelector(".pair-l");
+      const target = rows[match.left];
       return dispatchMouseDrag(source, target) ? applied + 1 : applied;
     }, 0);
+  }
+
+  function applyAiMatchesThroughPage(content, matches) {
+    if (!content || !document.documentElement) return 0;
+    let port = document.getElementById(AI_MATCH_PORT_ID);
+    if (!port) {
+      port = document.createElement("div");
+      port.id = AI_MATCH_PORT_ID;
+      port.hidden = true;
+      document.documentElement.appendChild(port);
+    }
+    const requestId = String(++aiMatchRequestSequence);
+    content.dataset.eeAiMatchRequest = requestId;
+    port.dataset.request = JSON.stringify({ id: requestId, matches });
+    delete port.dataset.response;
+    window.dispatchEvent(new Event(AI_MATCH_EVENT));
+    delete content.dataset.eeAiMatchRequest;
+    try {
+      const response = JSON.parse(port.dataset.response || "");
+      return response.id === requestId && Number.isInteger(response.applied) ? response.applied : 0;
+    } catch (_) {
+      return 0;
+    } finally {
+      delete port.dataset.request;
+      delete port.dataset.response;
+    }
+  }
+
+  function applyAiOrdering(content, ordering) {
+    const originalRows = getOrderingRows(content);
+    if (!originalRows.length || ordering.length !== originalRows.length || hasOrderingAnswer(content)) return 0;
+    const intendedRows = ordering.map((index) => originalRows[index]);
+    if (intendedRows.some((row) => !row)) return 0;
+
+    let applied = 0;
+    for (let index = 0; index < intendedRows.length; index += 1) {
+      const source = intendedRows[index];
+      const currentRows = getOrderingRows(content);
+      if (currentRows[index] === source) continue;
+      const target = currentRows[index];
+      if (!dispatchMouseDrag(source, target, { before: true })) return 0;
+      if (getOrderingRows(content)[index] !== source) return 0;
+      applied += 1;
+    }
+    return applied;
   }
 
   function clearAiControlSuggestion(control) {
@@ -751,23 +837,31 @@
     const hasInput = getBlankControls(content).some((control) => String(control.value || "").trim());
     if (hasInput) return true;
     if (Array.from(content.querySelectorAll("select")).some((select) => selectedOptionLabels(select).length)) return true;
+    if (hasOrderingAnswer(content)) return true;
     return hasMatchingAnswer(content);
   }
 
   function canApplyAiAnswer(content, suggestion) {
+    const choiceIndexes = suggestion.choiceIndexes || [];
+    const fillIns = suggestion.fillIns || [];
+    const dropdownIndexes = suggestion.dropdownIndexes || [];
+    const matches = suggestion.matches || [];
+    const ordering = suggestion.ordering || [];
     const optionRows = Array.from(content.querySelectorAll(".etest-alist-answer"));
     const blankControls = getBlankControls(content);
     const dropdowns = Array.from(content.querySelectorAll("select"));
     const matchingRows = getMatchingRows(content);
-    if (optionRows.length && !suggestion.choiceIndexes.length) return false;
-    if (blankControls.length && (suggestion.fillIns.length !== blankControls.length || !suggestion.fillIns.every(Boolean))) {
+    const isOrdering = ordering.length === optionRows.length && optionRows.length > 0;
+    if (optionRows.length && !choiceIndexes.length && !isOrdering) return false;
+    if (isOrdering && hasOrderingAnswer(content)) return false;
+    if (blankControls.length && (fillIns.length !== blankControls.length || !fillIns.every(Boolean))) {
       return false;
     }
-    if (dropdowns.length && (suggestion.dropdownIndexes.length !== dropdowns.length
-      || !suggestion.dropdownIndexes.every(Number.isInteger))) return false;
-    if (matchingRows.length && (suggestion.matches.length !== matchingRows.length
-      || new Set(suggestion.matches.map((match) => match.left)).size !== matchingRows.length
-      || new Set(suggestion.matches.map((match) => match.right)).size !== matchingRows.length)) return false;
+    if (dropdowns.length && (dropdownIndexes.length !== dropdowns.length
+      || !dropdownIndexes.every(Number.isInteger))) return false;
+    if (matchingRows.length && (matches.length !== matchingRows.length
+      || new Set(matches.map((match) => match.left)).size !== matchingRows.length
+      || new Set(matches.map((match) => match.right)).size !== matchingRows.length)) return false;
     return Boolean(optionRows.length || blankControls.length || dropdowns.length || matchingRows.length);
   }
 
@@ -782,6 +876,8 @@
       else row.click();
       if (isSelectedChoice(row) || control?.checked) applied += 1;
     });
+
+    applied += applyAiOrdering(content, suggestion.ordering || []);
 
     const blankControls = getBlankControls(content);
     if (blankControls.length && suggestion.fillIns.length === blankControls.length && suggestion.fillIns.every(Boolean)) {
@@ -822,7 +918,7 @@
   }
 
   function appendAiNote(content, text, isError = false) {
-    if (!text) return;
+    if (!aiHelperMessagesEnabled || !text) return;
     const note = document.createElement("div");
     note.className = AI_NOTE_CLASS;
     note.dataset.state = isError ? "error" : "suggestion";
@@ -831,7 +927,20 @@
     content.appendChild(note);
   }
 
-  function applyAiSuggestion(content, suggestion) {
+  function appendAiDebugResponse(content, responseText) {
+    if (!aiHelperMessagesEnabled || !content || !String(responseText || "").trim()) return;
+    const details = document.createElement("details");
+    details.className = `${AI_NOTE_CLASS} ee-etest-ai-debug-response`;
+    details.dataset.state = "error";
+    const summary = document.createElement("summary");
+    summary.textContent = getMessage("aiSuggestionResponse", "Model response (local only)");
+    const response = document.createElement("pre");
+    response.textContent = responseText;
+    details.append(summary, response);
+    content.appendChild(details);
+  }
+
+  function applyAiSuggestion(content, suggestion, { showOrderingHint = true } = {}) {
     clearAiSuggestion(content);
     let visualCueCount = 0;
     const optionRows = Array.from(content.querySelectorAll(".etest-alist-answer"));
@@ -842,11 +951,10 @@
       visualCueCount += 1;
     });
 
-    if (suggestion.ordering.length === optionRows.length && optionRows.length) {
+    if (showOrderingHint && suggestion.ordering.length === optionRows.length && optionRows.length) {
       suggestion.ordering.forEach((originalIndex, rank) => {
         const row = optionRows[originalIndex];
         if (!row) return;
-        row.classList.add(AI_SUGGESTED_CLASS);
         row.insertBefore(makeAiBadge(
           String(rank + 1),
           getMessage("aiSuggestedPosition", `Suggested position ${rank + 1}`, [String(rank + 1)]),
@@ -887,6 +995,7 @@
   function requestAiSuggestion(content, buttonState) {
     if (!content || content.dataset.eeAiRequestPending === "true") return;
     const model = buildQuestionModel(content);
+    const hadOrderingAnswer = hasOrderingAnswer(content);
     if (!model.plainBody) return;
     lastAiQuestionContent = content;
     clearAiSuggestion(content);
@@ -922,11 +1031,12 @@
           response?.error || getMessage("aiSuggestionFailed", "Could not get a suggestion. Check AI settings and try again."),
           true,
         );
+        appendAiDebugResponse(content, response?.debugResponse);
         return;
       }
       if (!questionHasAnswer(content) && canApplyAiAnswer(content, response.suggestion)
-        && applyAiAnswer(content, response.suggestion)) return;
-      applyAiSuggestion(content, response.suggestion);
+        && applyAiAnswer(content, response.suggestion) && questionHasAnswer(content)) return;
+      applyAiSuggestion(content, response.suggestion, { showOrderingHint: hadOrderingAnswer });
     });
   }
 
@@ -1062,6 +1172,14 @@
         padding: 2px 5px;
         vertical-align: middle;
       }
+      .etest-alist-ordering .etest-alist-answer { position: relative; }
+      .etest-alist-ordering .${AI_BADGE_CLASS} {
+        margin: 0;
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+      }
       .${AI_HINT_CLASS} {
         color: var(--ee-text-muted, #667085);
         display: inline-block;
@@ -1080,6 +1198,14 @@
       .${AI_NOTE_CLASS}[data-state="error"] {
         border-left-color: #b42318;
         color: #b42318;
+      }
+      .ee-etest-ai-debug-response summary {
+        cursor: pointer;
+      }
+      .ee-etest-ai-debug-response pre {
+        margin: 6px 0 0;
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
       }
       .ee-etest-copy-status {
         clip: rect(0 0 0 0);
@@ -1228,6 +1354,7 @@
       selectedAnswers: values[ETEST_INCLUDE_ANSWERS_KEY] !== false,
       wholeTestImages: values[ETEST_INCLUDE_IMAGES_KEY] !== false,
       aiHelper: values[AI_HELPER_ENABLED_KEY] === true,
+      aiHelperMessages: values[AI_HELPER_MESSAGES_KEY] === true,
     };
   }
 
@@ -1239,6 +1366,7 @@
       ETEST_INCLUDE_ANSWERS_KEY,
       ETEST_INCLUDE_IMAGES_KEY,
       AI_HELPER_ENABLED_KEY,
+      AI_HELPER_MESSAGES_KEY,
     ];
     chrome.storage.local.get(keys, (result) => {
       const preferences = resolvePreferences(result);
@@ -1248,6 +1376,7 @@
       includeSelectedAnswers = preferences.selectedAnswers;
       includeWholeTestImages = preferences.wholeTestImages;
       aiHelperEnabled = preferences.aiHelper;
+      aiHelperMessagesEnabled = preferences.aiHelperMessages;
       ensureButtons();
     });
 
@@ -1263,6 +1392,7 @@
       if (changes[ETEST_INCLUDE_ANSWERS_KEY]) includeSelectedAnswers = changes[ETEST_INCLUDE_ANSWERS_KEY].newValue !== false;
       if (changes[ETEST_INCLUDE_IMAGES_KEY]) includeWholeTestImages = changes[ETEST_INCLUDE_IMAGES_KEY].newValue !== false;
       if (changes[AI_HELPER_ENABLED_KEY]) aiHelperEnabled = changes[AI_HELPER_ENABLED_KEY].newValue === true;
+      if (changes[AI_HELPER_MESSAGES_KEY]) aiHelperMessagesEnabled = changes[AI_HELPER_MESSAGES_KEY].newValue === true;
       if (keys.some((key) => changes[key])) ensureButtons();
     });
   }
@@ -1279,6 +1409,7 @@
       collectSelectedAnswers,
       getQuestionIdentity,
       getQuestionType,
+      isBlankControl,
       getQuestionInteractionData,
       buildQuestionModel,
       getSeenQuestionModels,
@@ -1290,8 +1421,12 @@
       resolvePreferences,
       clearAiSuggestion,
       questionHasAnswer,
+      getBlankControls,
+      getOrderingRows,
+      hasOrderingAnswer,
       canApplyAiAnswer,
       applyAiAnswer,
+      applyAiOrdering,
       syncDropdownDisplay,
       acceptAiSuggestionWithTab,
       getCurrentAiQuestion,

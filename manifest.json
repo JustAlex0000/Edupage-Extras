@@ -2,7 +2,7 @@
   "name": "__MSG_extName__",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "manifest_version": 3,
   "icons": {
     "16": "images/icon-16.png",
@@ -104,6 +104,14 @@
         "https://edublurtesting.ct.ws/*"
       ],
       "js": ["scripts/activity-shield-main.js"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://*.edupage.org/*"],
+      "js": ["scripts/etest-answer-bridge.js"],
       "run_at": "document_start",
       "all_frames": true,
       "match_about_blank": true,
