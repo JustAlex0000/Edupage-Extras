@@ -15,13 +15,7 @@ const UPDATE_STATUS_KEY = "eeUpdateStatus";
 const UPDATE_REMINDER_ENABLED_KEY = "eeUpdateReminderEnabled";
 const UPDATE_LAST_NOTIFIED_KEY = "eeUpdateLastNotifiedVersion";
 const ACTIVITY_SHIELD_ENABLED_KEY = "eeActivityShieldEnabled";
-const DARK_MODE_ENABLED_KEY = "darkModeEnabled";
-const THEME_KEY = "themeMode";
-const CUSTOM_THEME_KEY = "customThemeColors";
-const CLEAN_UI_KEY = "cleanUiEnabled";
-const HIDE_HELP_TEXT_KEY = "hideHelpTextEnabled";
-const ROZVRH_ROOM_CHANGE_COLOR_KEY = "eeRozvrhRoomChangeColor";
-const ROZVRH_SUBSTITUTION_COLOR_KEY = "eeRozvrhSubstitutionColor";
+const THEME_STORAGE_KEYS = EE.THEME_STORAGE_KEYS;
 const TOGGLE_ACTIVITY_SHIELD_COMMAND = "toggle-stay-active-mode";
 const TOGGLE_THEME_COMMAND = "toggle-theme-mode";
 const OPEN_SETTINGS_COMMAND = "open-settings";
@@ -1024,33 +1018,16 @@ async function toggleActivityShieldEnabled() {
 }
 
 async function toggleThemeEnabled() {
-  const result = await storageGet([
-    DARK_MODE_ENABLED_KEY,
-    THEME_KEY,
-    CUSTOM_THEME_KEY,
-    CLEAN_UI_KEY,
-    HIDE_HELP_TEXT_KEY,
-    ROZVRH_ROOM_CHANGE_COLOR_KEY,
-    ROZVRH_SUBSTITUTION_COLOR_KEY,
-  ]);
-  const enabled = result?.[DARK_MODE_ENABLED_KEY] === true;
+  const result = await storageGet(EE.THEME_STORAGE_KEY_LIST);
+  const enabled = result?.[THEME_STORAGE_KEYS.darkModeEnabled] === true;
   const nextValue = !enabled;
-  await storageSet({ [DARK_MODE_ENABLED_KEY]: nextValue });
+  await storageSet({ [THEME_STORAGE_KEYS.darkModeEnabled]: nextValue });
   notifyOpenEdupageTabs(buildThemeUpdateMessage(result, nextValue));
   return nextValue;
 }
 
 function buildThemeUpdateMessage(settings, darkModeEnabled) {
-  return {
-    type: "ee-set-theme",
-    darkModeEnabled,
-    theme: settings?.[THEME_KEY],
-    customTheme: settings?.[CUSTOM_THEME_KEY],
-    cleanUiEnabled: settings?.[CLEAN_UI_KEY] === true,
-    hideHelpTextEnabled: settings?.[HIDE_HELP_TEXT_KEY] === true,
-    rozvrhRoomChangeColor: settings?.[ROZVRH_ROOM_CHANGE_COLOR_KEY],
-    rozvrhSubstitutionColor: settings?.[ROZVRH_SUBSTITUTION_COLOR_KEY],
-  };
+  return EE.createThemeMessage(EE.readThemeSettings(settings), { darkModeEnabled });
 }
 
 // Storage events normally repaint the page, but content scripts that were

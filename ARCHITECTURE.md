@@ -38,9 +38,13 @@ the script they support.
 ## Themes
 
 Theme settings are read from `chrome.storage.local`. Because storage is async,
-`content.js` keeps the last theme state in page `localStorage` and paints it at
-document start; `scripts/instant-theme.css` prevents a white flash while the
-real value loads. Keep that cache compatible with `EE.DEFAULT_CUSTOM_THEME`.
+`content.js` keeps the last theme state in page `localStorage`; the early
+`theme-bootstrap.js` applies its class at document start. Both
+`scripts/instant-theme.css` and `scripts/theme-static.css` are manifest-loaded
+before page DOM/scripts, so stable page, card, and text rules are ready for the
+first paint. `content.js` only applies custom properties and normalizes newly
+rendered unknown surfaces. Keep the cache compatible with
+`EE.DEFAULT_CUSTOM_THEME`.
 
 Theme colors belong in `--ee-*` variables. The dark-mode normalizer observes
 newly rendered content and marks only known light surfaces. Avoid broad rules

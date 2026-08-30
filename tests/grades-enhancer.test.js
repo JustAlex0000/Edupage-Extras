@@ -90,6 +90,45 @@ runTest("percentage averages keep their actual percentage fill and good-grade co
   assert.equal(gradeColor(average), "#558b2f");
 });
 
+runTest("grades bootstrap detects a table inserted after a client-side route change", () => {
+  const { nodeContainsGradesTable } = loadGradesEnhancerInternals();
+  const table = { matches: (selector) => selector === "table.znamkyTable" };
+  const wrapper = {
+    matches: () => false,
+    querySelector: (selector) => (selector === "table.znamkyTable" ? table : null),
+  };
+
+  assert.equal(nodeContainsGradesTable(table), true);
+  assert.equal(nodeContainsGradesTable(wrapper), true);
+  assert.equal(nodeContainsGradesTable({ matches: () => false, querySelector: () => null }), false);
+});
+
+runTest("attendance headers mirror EduPage's sticky scroll transform only", () => {
+  const { syncAttendanceHeaderTransform } = loadGradesEnhancerInternals();
+  const extensionHeader = { style: { transform: "" } };
+  const nativeHeader = { style: { transform: "translateY(50.5px)" } };
+
+  syncAttendanceHeaderTransform(extensionHeader, nativeHeader);
+  assert.equal(extensionHeader.style.transform, "translateY(50.5px)");
+
+  nativeHeader.style.transform = "";
+  syncAttendanceHeaderTransform(extensionHeader, nativeHeader);
+  assert.equal(extensionHeader.style.transform, "");
+});
+
+runTest("certificate columns are recognised in every supported grades language", () => {
+  const { isCertificateHeader } = loadGradesEnhancerInternals();
+  const cell = (text, attendance = false) => ({
+    textContent: text,
+    classList: { contains: (name) => attendance && name === "ee-attendance-header" },
+  });
+
+  assert.equal(isCertificateHeader(cell("Vysvedčenie")), true);
+  assert.equal(isCertificateHeader(cell("Vysvědčení")), true);
+  assert.equal(isCertificateHeader(cell("Certificate")), true);
+  assert.equal(isCertificateHeader(cell("Certificate", true)), false);
+});
+
 runTest("virtual grade expansion stops after the first dispatched candidate", () => {
   const { dispatchFirstGradeExpansionClick } = loadGradesEnhancerInternals();
   const calls = [];
@@ -183,6 +222,38 @@ runTest("grades sorting supports name, grade count, average quality, and origina
     Array.from(sortSubjectEntries(entries, "original", "sk"), (entry) => entry.name),
     ["Matematika", "Anglický jazyk", "Fyzika"],
   );
+});
+
+runTest("grades sorting leaves EduPage's pre-header rows in their native position", () => {
+  const { collectSubjectGroups } = loadGradesEnhancerInternals();
+  const parent = {};
+  const makeRow = (name, className, hasHeaderCell = false) => ({
+    parentNode: parent,
+    dataset: { predmetid: name },
+    classList: { contains: (value) => value === className },
+    querySelector: (selector) => {
+      if (selector === ".znPriemerCell") return null;
+      if (selector === "th") return hasHeaderCell ? {} : null;
+      return { textContent: name };
+    },
+    querySelectorAll: () => [],
+  });
+  const firstSubject = makeRow("First", "predmetRow");
+  const nativeHeader = makeRow("", "", true);
+  const secondSubject = makeRow("Second", "predmetRow");
+  const thirdSubject = makeRow("Third", "predmetRow");
+
+  const groups = collectSubjectGroups({ rows: [firstSubject, nativeHeader, secondSubject, thirdSubject] });
+  assert.deepEqual(Array.from(groups, (group) => group.name), ["Second", "Third"]);
+  assert.equal(groups[0].sortableRegion, groups[1].sortableRegion);
+});
+
+runTest("grades controls leave EduPage's header transform under EduPage control", () => {
+  assert.doesNotMatch(gradesSortFilterSource, /compensateHeaderForToolbar/);
+  assert.doesNotMatch(gradesSortFilterSource, /style\.transform/);
+  const toolbarRule = gradesEnhancerSource.match(/\.ee-grades-toolbar \{([\s\S]*?)\n        \}/)?.[1] || "";
+  assert.match(toolbarRule, /margin: 8px 0;/);
+  assert.doesNotMatch(toolbarRule, /position: fixed;/);
 });
 
 runTest("percentage averages sort higher values as better", () => {

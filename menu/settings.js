@@ -4,6 +4,8 @@ const openShortcutSettingsButton = document.getElementById("OpenShortcutSettings
 const themeShortcutStatus = document.getElementById("ThemeShortcutStatus");
 const cleanUiToggle = document.getElementById("CleanUiCheckbox");
 const hideHelpTextToggle = document.getElementById("HideHelpTextCheckbox");
+const hidePageHeroesToggle = document.getElementById("HidePageHeroesCheckbox");
+const hidePersonalInfoToggle = document.getElementById("HidePersonalInfoCheckbox");
 const timetableHighlightsToggle = document.getElementById("TimetableHighlightsCheckbox");
 const gradeBadgesToggle = document.getElementById("GradeBadgesCheckbox");
 const gradesAttendanceToggle = document.getElementById("GradesAttendanceCheckbox");
@@ -84,14 +86,20 @@ const aiConnectionStatus = document.getElementById("AiConnectionStatus");
 const openAiShortcutSettingsButton = document.getElementById("OpenAiShortcutSettingsButton");
 const aiShortcutStatus = document.getElementById("AiShortcutStatus");
 const previewUpdateToastButton = document.getElementById("PreviewUpdateToastButton");
-const STORAGE_KEY = "darkModeEnabled";
-const THEME_KEY = "themeMode";
-const CUSTOM_THEME_KEY = "customThemeColors";
-const CLEAN_UI_KEY = "cleanUiEnabled";
-const HIDE_HELP_TEXT_KEY = "hideHelpTextEnabled";
+const startPageStyleInspectorButton = document.getElementById("StartPageStyleInspectorButton");
+const pageStyleInspectorStatus = document.getElementById("PageStyleInspectorStatus");
+const {
+	darkModeEnabled: STORAGE_KEY,
+	theme: THEME_KEY,
+	customTheme: CUSTOM_THEME_KEY,
+	cleanUiEnabled: CLEAN_UI_KEY,
+	hideHelpTextEnabled: HIDE_HELP_TEXT_KEY,
+	hidePageHeroesEnabled: HIDE_PAGE_HEROES_KEY,
+	hidePersonalInfoEnabled: HIDE_PERSONAL_INFO_KEY,
+	rozvrhRoomChangeColor: ROZVRH_ROOM_CHANGE_COLOR_KEY,
+	rozvrhSubstitutionColor: ROZVRH_SUBSTITUTION_COLOR_KEY,
+} = EE.THEME_STORAGE_KEYS;
 const TIMETABLE_HIGHLIGHTS_KEY = "timetableHighlightsEnabled";
-const ROZVRH_ROOM_CHANGE_COLOR_KEY = "eeRozvrhRoomChangeColor";
-const ROZVRH_SUBSTITUTION_COLOR_KEY = "eeRozvrhSubstitutionColor";
 const DEFAULT_ROZVRH_ROOM_CHANGE_COLOR = "#1565c0";
 const DEFAULT_ROZVRH_SUBSTITUTION_COLOR = "#e65100";
 const GRADE_BADGES_KEY = "gradeBadgesEnabled";
@@ -331,27 +339,24 @@ function updateTimetableExportVisibility() {
 }
 
 function notifyEdupageTabs() {
-	const darkModeEnabled = toggle.checked;
-	const theme = themeSelect.value;
-	const cleanUiEnabled = cleanUiToggle.checked;
-	const hideHelpTextEnabled = hideHelpTextToggle.checked;
 	const activityShieldEnabled = document.getElementById("ActivityShieldEnabled")?.checked === true;
 	const etestAutoThemeOff = activityShieldEnabled && etestAutoThemeOffToggle?.checked === true;
+	const message = EE.createThemeMessage({
+		darkModeEnabled: toggle.checked,
+		theme: themeSelect.value,
+		customTheme,
+		cleanUiEnabled: cleanUiToggle.checked,
+		hideHelpTextEnabled: hideHelpTextToggle.checked,
+		hidePageHeroesEnabled: hidePageHeroesToggle.checked,
+		hidePersonalInfoEnabled: hidePersonalInfoToggle.checked,
+		rozvrhRoomChangeColor,
+		rozvrhSubstitutionColor,
+	}, { etestAutoThemeOff });
 
 	chrome.tabs.query({ url: "https://*.edupage.org/*" }, (tabs) => {
 		tabs.forEach((tab) => {
 			if (tab.id) {
-				chrome.tabs.sendMessage(tab.id, {
-					type: "ee-set-theme",
-					darkModeEnabled,
-					theme,
-					customTheme,
-					cleanUiEnabled,
-					hideHelpTextEnabled,
-					rozvrhRoomChangeColor,
-					rozvrhSubstitutionColor,
-					etestAutoThemeOff,
-				}, () => {
+				chrome.tabs.sendMessage(tab.id, message, () => {
 					void chrome.runtime.lastError;
 				});
 			}
@@ -517,6 +522,8 @@ chrome.storage.local.get(
 		CUSTOM_THEME_KEY,
 		CLEAN_UI_KEY,
 		HIDE_HELP_TEXT_KEY,
+		HIDE_PAGE_HEROES_KEY,
+		HIDE_PERSONAL_INFO_KEY,
 		TIMETABLE_HIGHLIGHTS_KEY,
 		ROZVRH_ROOM_CHANGE_COLOR_KEY,
 		ROZVRH_SUBSTITUTION_COLOR_KEY,
@@ -537,6 +544,8 @@ chrome.storage.local.get(
 		themeSelect.value = theme;
 		cleanUiToggle.checked = result[CLEAN_UI_KEY] === true;
 		hideHelpTextToggle.checked = result[HIDE_HELP_TEXT_KEY] === true;
+		hidePageHeroesToggle.checked = result[HIDE_PAGE_HEROES_KEY] === true;
+		hidePersonalInfoToggle.checked = result[HIDE_PERSONAL_INFO_KEY] === true;
 		timetableHighlightsToggle.checked = result[TIMETABLE_HIGHLIGHTS_KEY] !== false;
 		rozvrhRoomChangeColor = normalizeColor(result[ROZVRH_ROOM_CHANGE_COLOR_KEY], DEFAULT_ROZVRH_ROOM_CHANGE_COLOR);
 		rozvrhSubstitutionColor = normalizeColor(result[ROZVRH_SUBSTITUTION_COLOR_KEY], DEFAULT_ROZVRH_SUBSTITUTION_COLOR);
@@ -623,15 +632,17 @@ resetCustomThemeButton.addEventListener("click", () => {
 	setCustomThemeStatus(t("customThemeReset"));
 });
 
-cleanUiToggle.addEventListener("change", () => {
-	chrome.storage.local.set({ [CLEAN_UI_KEY]: cleanUiToggle.checked });
-	notifyEdupageTabs();
-});
+function bindThemeToggle(element, storageKey) {
+	element.addEventListener("change", () => {
+		chrome.storage.local.set({ [storageKey]: element.checked });
+		notifyEdupageTabs();
+	});
+}
 
-hideHelpTextToggle.addEventListener("change", () => {
-	chrome.storage.local.set({ [HIDE_HELP_TEXT_KEY]: hideHelpTextToggle.checked });
-	notifyEdupageTabs();
-});
+bindThemeToggle(cleanUiToggle, CLEAN_UI_KEY);
+bindThemeToggle(hideHelpTextToggle, HIDE_HELP_TEXT_KEY);
+bindThemeToggle(hidePageHeroesToggle, HIDE_PAGE_HEROES_KEY);
+bindThemeToggle(hidePersonalInfoToggle, HIDE_PERSONAL_INFO_KEY);
 
 timetableHighlightsToggle.addEventListener("change", () => {
 	chrome.storage.local.set({ [TIMETABLE_HIGHLIGHTS_KEY]: timetableHighlightsToggle.checked });
@@ -1339,6 +1350,28 @@ if (previewUpdateToastButton) {
 			}
 			tabs.forEach((tab) => {
 				if (tab.id) chrome.tabs.sendMessage(tab.id, { type: "ee-preview-update-toast" });
+			});
+		});
+	});
+}
+
+if (startPageStyleInspectorButton) {
+	startPageStyleInspectorButton.addEventListener("click", () => {
+		startPageStyleInspectorButton.disabled = true;
+		chrome.tabs.query({ url: "https://*.edupage.org/*" }, (tabs) => {
+			const tab = (tabs || []).sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))[0];
+			if (!tab?.id) {
+				if (pageStyleInspectorStatus) pageStyleInspectorStatus.textContent = t("pageStyleInspectorNoTab");
+				startPageStyleInspectorButton.disabled = false;
+				return;
+			}
+			chrome.tabs.sendMessage(tab.id, { type: "ee-toggle-page-style-inspector", enabled: true }, (response) => {
+				if (pageStyleInspectorStatus) {
+					pageStyleInspectorStatus.textContent = chrome.runtime.lastError || !response?.ok
+						? t("pageStyleInspectorUnavailable")
+						: t("pageStyleInspectorStarted");
+				}
+				startPageStyleInspectorButton.disabled = false;
 			});
 		});
 	});

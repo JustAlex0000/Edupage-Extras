@@ -137,6 +137,8 @@ runTest("theme shortcut messages carry the complete current theme state", () => 
     customThemeColors: { bgBase: "#123456" },
     cleanUiEnabled: true,
     hideHelpTextEnabled: true,
+    eeHidePageHeroesEnabled: true,
+    eeHidePersonalInfoEnabled: true,
     eeRozvrhRoomChangeColor: "#111111",
     eeRozvrhSubstitutionColor: "#222222",
   }, true);
@@ -148,6 +150,8 @@ runTest("theme shortcut messages carry the complete current theme state", () => 
     customTheme: { bgBase: "#123456" },
     cleanUiEnabled: true,
     hideHelpTextEnabled: true,
+    hidePageHeroesEnabled: true,
+    hidePersonalInfoEnabled: true,
     rozvrhRoomChangeColor: "#111111",
     rozvrhSubstitutionColor: "#222222",
   });

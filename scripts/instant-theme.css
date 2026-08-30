@@ -45,11 +45,20 @@ html.ee-dark table.znamkyTable,
 html.ee-dark table.znamkyTable tr,
 html.ee-dark .fixedCell,
 html.ee-dark .znZnamka,
+html.ee-dark .ecourse-standards-hero,
+html.ee-dark .ecourse-standards-hero-inner,
+html.ee-dark .ecourse-standards-hero-flex,
 html.ee-dark .ecourse-standards-subjects-list-outer,
 html.ee-dark .ecourse-standards-filter-outer,
 html.ee-dark .ecourse-standards-filter,
 html.ee-dark .ecourse-standards-subject-item,
 html.ee-dark .ecourse-standards-subject-itemlinks-bg,
+html.ee-dark table.dash_dochadzka,
+html.ee-dark table.dash_dochadzka tbody,
+html.ee-dark table.dash_dochadzka tr,
+html.ee-dark table.dash_dochadzka td,
+html.ee-dark table.dash_dochadzka th,
+html.ee-dark table.dash_dochadzka .grid,
 html.ee-dark .dropDownBtn,
 html.ee-dark .dropDownBtn > a,
 html.ee-dark .dropDown,
@@ -108,6 +117,116 @@ html.ee-dark .separator {
   outline-color: var(--ee-border, rgba(255, 255, 255, 0.055)) !important;
 }
 
+html.ee-hide-page-heroes .hwHeroDiv.messages,
+html.ee-hide-page-heroes .hwHeroDiv.works,
+html.ee-hide-page-heroes .hwHeroDiv.ucivo,
+html.ee-hide-page-heroes .hwHeroDiv.results {
+  display: none !important;
+}
+
+html.ee-hide-personal-info .edubarProfilebox a.display > span,
+html.ee-hide-personal-info .edubarProfilebox .profilemenu .userName,
+html.ee-hide-personal-info .edubarProfilebox .profilemenu .userLogin,
+html.ee-hide-personal-info .edubarProfilebox .profilemenu h1 {
+  color: transparent !important;
+  text-shadow: none !important;
+}
+
+html.ee-hide-personal-info .edubarProfilebox a.display > span::after,
+html.ee-hide-personal-info .edubarProfilebox .profilemenu .userName::after,
+html.ee-hide-personal-info .edubarProfilebox .profilemenu .userLogin::after,
+html.ee-hide-personal-info .edubarProfilebox .profilemenu h1::after {
+  color: var(--ee-text) !important;
+  content: "---";
+}
+
+html.ee-hide-personal-info form.zteFilterForm .zsvHeaderTitle > h1 {
+  color: transparent !important;
+  text-shadow: none !important;
+}
+
+html.ee-hide-personal-info form.zteFilterForm .zsvHeaderTitle > h1::before {
+  color: var(--ee-text) !important;
+  content: "---, ";
+}
+
+html.ee-hide-personal-info form.zteFilterForm .zsvHeaderTitle > h1 > span {
+  color: var(--ee-text) !important;
+}
+
+/* Keep the compact document_start stylesheet on the same surface palette as
+   content.js. Without these tokens, late-loading cards briefly use dark's
+   fallback values before the full theme stylesheet is inserted. */
+html.ee-dark {
+  --ee-card-bg: #141d2e;
+  --ee-card-hover: #202d43;
+  --ee-brand-dark: #080d16;
+  --ee-border: rgba(255, 255, 255, 0.055);
+  --ee-text: #e9edf4;
+  --ee-text-muted: #b6c0d1;
+  --ee-link: #6fa8e8;
+}
+
+html.ee-theme-ocean {
+  --ee-card-bg: #0d242b;
+  --ee-card-hover: #173b46;
+  --ee-brand-dark: #082b33;
+  --ee-border: rgba(255, 255, 255, 0.055);
+  --ee-text: #d8f3f0;
+  --ee-text-muted: #a8d0d1;
+  --ee-link: #4dd0e1;
+}
+
+html.ee-theme-forest {
+  --ee-card-bg: #182015;
+  --ee-card-hover: #243321;
+  --ee-brand-dark: #15241a;
+  --ee-border: rgba(255, 255, 255, 0.055);
+  --ee-text: #e5f2df;
+  --ee-text-muted: #b3c6aa;
+  --ee-link: #81c784;
+}
+
+html.ee-theme-emerald {
+  --ee-card-bg: #0d241a;
+  --ee-card-hover: #173d29;
+  --ee-brand-dark: #0a2c1f;
+  --ee-border: rgba(255, 255, 255, 0.055);
+  --ee-text: #eafff3;
+  --ee-text-muted: #a5d6bd;
+  --ee-link: #4adfa3;
+}
+
+html.ee-theme-pink {
+  --ee-card-bg: #ffffff;
+  --ee-card-hover: #ffe4ef;
+  --ee-brand-dark: #f8c1d8;
+  --ee-border: rgba(0, 0, 0, 0.08);
+  --ee-text: #25111b;
+  --ee-text-muted: #8a6373;
+  --ee-link: #e91e63;
+}
+
+html.ee-theme-purple {
+  --ee-card-bg: #25134b;
+  --ee-card-hover: #3a2870;
+  --ee-brand-dark: #281451;
+  --ee-border: rgba(255, 255, 255, 0.055);
+  --ee-text: #f4edff;
+  --ee-text-muted: #d2c2ee;
+  --ee-link: #c29cff;
+}
+
+html.ee-theme-custom {
+  --ee-card-bg: var(--ee-custom-bg-raised, #181825);
+  --ee-card-hover: var(--ee-custom-bg-muted, #2a2b3d);
+  --ee-brand-dark: var(--ee-custom-bg-muted, #2a2b3d);
+  --ee-border: var(--ee-custom-border, #313244);
+  --ee-text: var(--ee-custom-text-main, #cdd6f4);
+  --ee-text-muted: var(--ee-custom-text-muted, #bac3df);
+  --ee-link: var(--ee-custom-accent, #89b4fa);
+}
+
 html.ee-theme-ocean,
 html.ee-theme-ocean body,
 html.ee-theme-ocean .bgDiv,
@@ -164,8 +283,8 @@ html.ee-theme-purple .skinContent,
 html.ee-theme-purple .userContentInner,
 html.ee-theme-purple #eb_main_content,
 html.ee-theme-purple #bar_mainDiv {
-  background: #171326 !important;
-  color: #f0eaff !important;
+  background: #180b35 !important;
+  color: #f4edff !important;
 }
 
 html.ee-theme-custom,

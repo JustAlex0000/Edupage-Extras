@@ -172,6 +172,13 @@ runTest("normal settings form one continuous searchable document", () => {
   assert.match(settingsScript, /row\.closest\("\[hidden\]"\)/, "search must respect dependent hidden controls");
 });
 
+runTest("Cleanup keeps the page-hero toggle beside its other opt-in decluttering controls", () => {
+  const cleanupPanel = html.match(/<section[^>]*id="panel-cleanup"[\s\S]*?<\/section>/)?.[0] || "";
+  assert.match(cleanupPanel, /for="HidePageHeroesCheckbox"/);
+  assert.match(cleanupPanel, /data-i18n="hidePageHeroes"/);
+  assert.match(cleanupPanel, /for="HidePersonalInfoCheckbox"/);
+});
+
 runTest("Experimental stays isolated and acknowledgement expires on extension updates", () => {
   assert.match(html, /id="panel-experimental"[^>]*hidden/);
   assert.match(html, /data-i18n="experimentalConfirmContinue">I understand the risks</);

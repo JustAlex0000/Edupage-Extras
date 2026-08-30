@@ -34,3 +34,25 @@ test("shared HTML escaping protects text interpolated into extension markup", ()
     "&lt;img src=x onerror=&#39;alert(1)&#39;&gt;&amp;",
   );
 });
+
+test("theme storage contract keeps every live page preference together", () => {
+  const { THEME_STORAGE_KEY_LIST, readThemeSettings, createThemeMessage } = loadCommon();
+  const values = {
+    darkModeEnabled: true,
+    themeMode: "purple",
+    cleanUiEnabled: true,
+    hideHelpTextEnabled: true,
+    eeHidePageHeroesEnabled: true,
+    eeHidePersonalInfoEnabled: true,
+  };
+
+  assert.equal(THEME_STORAGE_KEY_LIST.length, 9);
+  const message = createThemeMessage(readThemeSettings(values));
+  assert.equal(message.type, "ee-set-theme");
+  assert.equal(message.theme, "purple");
+  assert.equal(message.darkModeEnabled, true);
+  assert.equal(message.cleanUiEnabled, true);
+  assert.equal(message.hideHelpTextEnabled, true);
+  assert.equal(message.hidePageHeroesEnabled, true);
+  assert.equal(message.hidePersonalInfoEnabled, true);
+});

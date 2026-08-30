@@ -104,12 +104,47 @@
     return nodes;
   }
 
+  function isNativeHeaderRow(row) {
+    return row.classList.contains("ee-overall-row")
+      || row.classList.contains("header")
+      || Boolean(row.querySelector?.("th"));
+  }
+
   function collectSubjectGroups(table) {
     const state = getTableState(table);
     const groups = [];
     let current = null;
+    let currentParent = null;
+    let sortableRegion = {};
+    const rows = Array.from(table.rows || []);
+    const hasNativeHeader = rows.some(isNativeHeaderRow);
+    let reachedNativeHeader = !hasNativeHeader;
 
-    Array.from(table.rows || []).forEach((row) => {
+    rows.forEach((row) => {
+      if (row.parentNode !== currentParent) {
+        if (current) groups.push(current);
+        current = null;
+        currentParent = row.parentNode;
+        sortableRegion = {};
+      }
+
+      if (isNativeHeaderRow(row)) {
+        if (current) groups.push(current);
+        current = null;
+        reachedNativeHeader = true;
+        // EduPage keeps its native table header inside the table body. It
+        // must split sort regions, otherwise a reordered subject can cross it
+        // and leave the header stranded halfway down the grade list.
+        sortableRegion = {};
+        return;
+      }
+
+      // EduPage places special summary/behaviour rows before its grades
+      // header. They are part of the page chrome, not the sortable list;
+      // moving them changes the header's native sticky position. Leave that
+      // prefix exactly as EduPage rendered it.
+      if (!reachedNativeHeader) return;
+
       if (row.classList.contains("predmetRow")) {
         if (current) groups.push(current);
         if (!state.originalIndices.has(row)) {
@@ -125,20 +160,13 @@
           subjectRow: row,
           rows: [row],
           parent: row.parentNode,
+          sortableRegion,
           originalIndex: state.originalIndices.get(row),
         };
         return;
       }
 
       if (!current) return;
-      const isBoundary = row.classList.contains("ee-overall-row")
-        || row.classList.contains("header")
-        || row.parentNode !== current.parent;
-      if (isBoundary) {
-        groups.push(current);
-        current = null;
-        return;
-      }
       current.rows.push(row);
     });
     if (current) groups.push(current);
@@ -159,18 +187,22 @@
     });
   }
 
-  function groupByParent(entries) {
+  function groupBySortableRegion(entries) {
     const groups = new Map();
     entries.forEach((entry) => {
-      if (!groups.has(entry.parent)) groups.set(entry.parent, []);
-      groups.get(entry.parent).push(entry);
+      if (!groups.has(entry.parent)) groups.set(entry.parent, new Map());
+      const regions = groups.get(entry.parent);
+      if (!regions.has(entry.sortableRegion)) regions.set(entry.sortableRegion, []);
+      regions.get(entry.sortableRegion).push(entry);
     });
-    return groups;
+    return Array.from(groups.values(), (regions) => Array.from(regions.values())).flat();
   }
 
   function reorderGroups(entries, mode) {
     let mutated = false;
-    groupByParent(entries).forEach((parentEntries, parent) => {
+    groupBySortableRegion(entries).forEach((parentEntries) => {
+      const parent = parentEntries[0]?.parent;
+      if (!parent) return;
       const sorted = sortSubjectEntries(parentEntries, mode, document.documentElement.lang);
       const current = parentEntries.map((entry) => entry.subjectRow);
       const changed = sorted.some((entry, index) => entry.subjectRow !== current[index]);
@@ -325,7 +357,6 @@
     state.sortMode = "original";
     state.query = "";
     state.hideEmpty = false;
-
     const entries = collectSubjectGroups(table);
     const reordered = entries.length > 0 && reorderGroups(entries, "original");
     const filtered = entries.length > 0

@@ -20,6 +20,17 @@
     return /^\/znamky(?:\/|$)/i.test(window.location?.pathname || "");
   }
 
+  function nodeContainsGradesTable(node) {
+    const element = node?.matches || node?.querySelector
+      ? node
+      : node?.parentElement;
+
+    return Boolean(
+      element?.matches?.("table.znamkyTable")
+      || element?.querySelector?.("table.znamkyTable"),
+    );
+  }
+
   // Deliberate test hook — see tests/grades-enhancer.test.js.
   if (globalThis.__EE_TEST__) {
     globalThis.__eeTestExports = {
@@ -46,6 +57,7 @@
       buildAttendancePlaceholderState: GE.attendance.buildAttendancePlaceholderState,
       shouldRenderPredictedAttendance: GE.attendance.shouldRenderPredictedAttendance,
       findAttendanceHeaderRow: GE.attendance.findAttendanceHeaderRow,
+      isCertificateHeader: GE.attendance.isCertificateHeader,
       computeSummaryColumnLayout: GE.summary.computeSummaryColumnLayout,
       calcWeightedAvg: GE.virtual.calcWeightedAvg,
       projectAverageWithVirtualGrades: GE.virtual.projectAverageWithVirtualGrades,
@@ -65,15 +77,60 @@
       pruneAttendanceCache: GE.attendance.pruneAttendanceCache,
       normalizeGradesSearchText: GE.sortFilter.normalizeSearchText,
       sortSubjectEntries: GE.sortFilter.sortSubjectEntries,
+      collectSubjectGroups: GE.sortFilter.collectSubjectGroups,
       isGradesPage,
+      nodeContainsGradesTable,
+      syncAttendanceHeaderTransform: GE.attendance.syncAttendanceHeaderTransform,
     };
+    return;
   }
 
-  if (!isGradesPage()) return;
+  let waitingObserver = null;
+  let domReadyHandler = null;
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", GE.init, { once: true });
-  } else {
+  function stopWaitingForGradesTable() {
+    waitingObserver?.disconnect();
+    waitingObserver = null;
+
+    if (domReadyHandler) {
+      document.removeEventListener("DOMContentLoaded", domReadyHandler);
+      domReadyHandler = null;
+    }
+  }
+
+  function startGradesEnhancer() {
+    stopWaitingForGradesTable();
+
+    if (document.readyState === "loading") {
+      domReadyHandler = () => {
+        domReadyHandler = null;
+        GE.init();
+      };
+      document.addEventListener("DOMContentLoaded", domReadyHandler, { once: true });
+      return;
+    }
+
     GE.init();
+  }
+
+  function waitForGradesTable() {
+    if (waitingObserver) return;
+
+    waitingObserver = new MutationObserver((mutations) => {
+      if (mutations.some((mutation) => Array.from(mutation.addedNodes || []).some(nodeContainsGradesTable))) {
+        startGradesEnhancer();
+      }
+    });
+
+    waitingObserver.observe(document.documentElement, { childList: true, subtree: true });
+  }
+
+  if (isGradesPage() || document.querySelector("table.znamkyTable")) {
+    startGradesEnhancer();
+  } else {
+    // EduPage changes many dashboard routes without a document navigation.
+    // Wait only until its grades table is inserted, then disconnect before
+    // the heavier grades enhancer begins observing table rerenders.
+    waitForGradesTable();
   }
 })();

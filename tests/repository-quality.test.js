@@ -202,14 +202,30 @@ test("Activity Shield avoids permanent high-frequency polling and cancels synthe
   assert.doesNotMatch(main, /active\("animationFrame"\) && readNativeHidden\(\) && syntheticFrames\.has\(id\)/);
 });
 
-test("route-specific and short-lived enhancers do not leave unrelated observers running", () => {
+test("route-specific enhancers wait only until their target appears", () => {
   const bootstrap = fs.readFileSync(path.join(ROOT, "scripts/grades-bootstrap.js"), "utf8");
   const autologin = fs.readFileSync(path.join(ROOT, "scripts/autologin.js"), "utf8");
 
   assert.match(bootstrap, /\^\\\/znamky\(\?:\\\/\|\$\)/);
-  assert.match(bootstrap, /if \(!isGradesPage\(\)\) return;/);
-  assert.match(autologin, /observer\?\.disconnect\(\)/);
+  assert.match(bootstrap, /function waitForGradesTable\(\)/);
+  assert.match(bootstrap, /waitingObserver\?\.disconnect\(\)/);
+  assert.match(bootstrap, /nodeContainsGradesTable/);
+  assert.match(autologin, /watcherObserver\?\.disconnect\(\)/);
   assert.match(autologin, /attempts >= maxAttempts/);
+  assert.match(autologin, /document\.removeEventListener\("keydown", watchManualTyping, true\)/);
+  assert.match(autologin, /chrome\.storage\.onChanged\.addListener/);
+  assert.match(autologin, /if \(!autoLoginEnabled\) \{\s*stopWatching\(\);/);
+});
+
+test("the page style inspector remains session-only and omits route data", () => {
+  const diagnostics = fs.readFileSync(path.join(ROOT, "scripts/diagnostics.js"), "utf8");
+  const inspector = diagnostics.slice(diagnostics.indexOf("// ---- On-demand page style inspector"));
+
+  assert.match(inspector, /sessionStorage\.setItem/);
+  assert.match(inspector, /sessionStorage\.getItem/);
+  assert.match(inspector, /No page text, IDs, attribute values, screenshots, or URLs are included\./);
+  assert.doesNotMatch(inspector, /location\.pathname/);
+  assert.doesNotMatch(inspector, /page:\s*\{\s*path:/);
 });
 
 test("virtual grade popover exposes accessible semantics and viewport handling", () => {

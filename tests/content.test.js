@@ -251,7 +251,7 @@ runTest("custom theme pre-paint fallback matches the shared default background",
 });
 
 runTest("built-in dark themes keep secondary text readable", () => {
-  const css = fs.readFileSync(path.join(__dirname, "..", "scripts", "content.js"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "..", "scripts", "theme-static.css"), "utf8");
   const rules = [
     ["ee-dark", "#0c1220", "#b6c0d1"],
     ["ee-theme-ocean", "#071a1f", "#a8d0d1"],
@@ -275,37 +275,66 @@ runTest("built-in dark themes keep secondary text readable", () => {
   }
 });
 
-runTest("known late-rendered widgets have direct first-paint theme coverage", () => {
-  const contentCss = fs.readFileSync(path.join(__dirname, "..", "scripts", "content.js"), "utf8");
+runTest("known late-rendered widgets have static first-paint theme coverage", () => {
+  const themeCss = fs.readFileSync(path.join(__dirname, "..", "scripts", "theme-static.css"), "utf8");
   const instantCss = fs.readFileSync(path.join(__dirname, "..", "scripts", "instant-theme.css"), "utf8");
 
   for (const selector of [
     ".hwsideElem", ".ui-datepicker-calendar", ".separator", ".zsvHeaderTitle",
     ".fixedCell", ".znZnamka", ".akceptujBtn", ".dropDownBtn", ".dropDownPanel",
-    ".ecourse-standards-subject-item",
+    ".ecourse-standards-subject-item", ".ecourse-standards-hero", ".dash_dochadzka",
   ]) {
-    assert.match(contentCss, new RegExp(selector.replace(/\./g, "\\.")));
+    assert.match(themeCss, new RegExp(selector.replace(/\./g, "\\.")));
     assert.match(instantCss, new RegExp(selector.replace(/\./g, "\\.")));
   }
-  assert.match(contentCss, /html\.ee-dark \.usercalendarTitle \{\s*border: none !important;/);
-  assert.match(contentCss, /--ee-current-period: color-mix\(in srgb, var\(--ee-link\) 28%, var\(--ee-card-bg\)\)/);
-  assert.match(contentCss, /--ee-current-period: color-mix\(in srgb, var\(--ee-custom-accent, #4fc3f7\) 28%, var\(--ee-custom-bg-raised, #171d28\)\)/);
+  assert.match(themeCss, /html\.ee-dark \.usercalendarTitle \{\s*border: none !important;/);
+  assert.match(themeCss, /html\.ee-hide-page-heroes \.hwHeroDiv\.messages/);
+  assert.match(themeCss, /\.hwHeroDiv\.ucivo/);
+  assert.match(themeCss, /\.hwHeroDiv\.results/);
+  assert.match(themeCss, /html\.ee-dark \.ribbon-button\.sel/);
+  assert.match(themeCss, /html\.ee-hide-personal-info \.edubarProfilebox \.profilemenu \.userName/);
+  assert.match(themeCss, /html\.ee-hide-personal-info form\.zteFilterForm \.zsvHeaderTitle > h1::before/);
+  assert.match(themeCss, /content: "---, ";/);
+  assert.doesNotMatch(themeCss, /border-width: 1px !important;/);
+  assert.match(themeCss, /--ee-current-period: color-mix\(in srgb, var\(--ee-link\) 28%, var\(--ee-card-bg\)\)/);
+  assert.match(themeCss, /--ee-current-period: color-mix\(in srgb, var\(--ee-custom-accent, #4fc3f7\) 28%, var\(--ee-custom-bg-raised, #171d28\)\)/);
+});
+
+runTest("first-paint palette matches the final theme surfaces", () => {
+  const css = fs.readFileSync(path.join(__dirname, "..", "scripts", "instant-theme.css"), "utf8");
+  const expected = {
+    ocean: ["#071a1f", "#0d242b", "#d8f3f0"],
+    forest: ["#11170f", "#182015", "#e5f2df"],
+    emerald: ["#071a12", "#0d241a", "#eafff3"],
+    pink: ["#fff5fa", "#ffffff", "#25111b"],
+    purple: ["#180b35", "#25134b", "#f4edff"],
+  };
+
+  for (const [theme, [page, card, text]] of Object.entries(expected)) {
+    const tokenRule = css.match(new RegExp(`html\\.ee-theme-${theme} \\{([\\s\\S]*?)\\n\\}`))?.[1] || "";
+    assert.match(tokenRule, new RegExp(`--ee-card-bg: ${card}`));
+    assert.match(tokenRule, new RegExp(`--ee-text: ${text}`));
+    assert.match(css, new RegExp(`html\\.ee-theme-${theme},[\\s\\S]*?background: ${page} !important`));
+  }
 });
 
 runTest("cached theme bootstrap runs before the larger content script", () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "manifest.json"), "utf8"));
   const scripts = manifest.content_scripts[0].js;
+  const styles = manifest.content_scripts[0].css;
   const bootstrapIndex = scripts.indexOf("scripts/theme-bootstrap.js");
   const contentIndex = scripts.indexOf("scripts/content.js");
   const source = fs.readFileSync(path.join(__dirname, "..", "scripts", "theme-bootstrap.js"), "utf8");
 
   assert.ok(bootstrapIndex >= 0 && bootstrapIndex < contentIndex);
+  assert.deepEqual(styles, ["scripts/instant-theme.css", "scripts/theme-static.css"]);
   assert.match(source, /root\.classList\.add\("ee-dark", `ee-theme-\$\{theme\}`\)/);
   assert.match(source, /eeThemeCacheV1/);
+  assert.match(source, /--ee-custom-table-header-bg/);
 });
 
 runTest("dark theme preserves native eTest copy-button styling", () => {
-  const css = fs.readFileSync(path.join(__dirname, "..", "scripts", "content.js"), "utf8");
+  const css = fs.readFileSync(path.join(__dirname, "..", "scripts", "theme-static.css"), "utf8");
   assert.match(
     css,
     /html\.ee-dark button:not\(\.ee-etest-copyall-btn\):not\(\.ee-etest-question-copy-btn\)/,

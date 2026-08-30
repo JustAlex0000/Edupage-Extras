@@ -4,6 +4,21 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## 1.0.4 — 2026-08-29
+
+- Added opt-in Cleanup controls for hiding selected oversized page heroes and
+  locally masking the profile name/login in EduPage's profile menu.
+- Added a session-only Page Style Inspector and expanded privacy-safe problem
+  reports to help diagnose school-specific layout issues without capturing
+  page text, identifiers, URLs, images, grades, or credentials.
+- Unified theme and Cleanup settings across first paint, live settings changes,
+  and the theme shortcut. Moved stable theme rules to a stylesheet that loads
+  before EduPage, removing the late style-injection reload flash; also refined
+  dark-theme borders and late-rendered widgets.
+- Made Auto-login stop its observer, timer, and credential listener immediately
+  when disabled, and improved Grades attendance reapplication after a table
+  replacement.
+
 ## 1.0.3 — 2026-08-28
 
 - Fixed Test Question Helper suggestions for text elaborations, multi-field

@@ -17,6 +17,9 @@
   let usernameSubmitted = false;
   let submitted = false;
   let userTyped = false;
+  let watcherTimer = null;
+  let watcherObserver = null;
+  let watcherDomReadyHandler = null;
 
   function injectStyles() {
     if (document.getElementById(STYLE_ID)) return;
@@ -153,43 +156,42 @@
     }
   }
 
-  function watchManualTyping() {
+  function watchManualTyping(event) {
     // A keystroke in any credential field hands control back to the user —
     // never auto-submit a half-typed password.
-    document.addEventListener(
-      "keydown",
-      (event) => {
-        const target = event.target;
-        if (!target || target.tagName !== "INPUT") return;
-        if (
-          target.type === "password" ||
-          target.id === "usernamefield" ||
-          /username|current-password/.test(target.autocomplete || "")
-        ) {
-          userTyped = true;
-        }
-      },
-      true
-    );
+    const target = event.target;
+    if (!target || target.tagName !== "INPUT") return;
+    if (
+      target.type === "password" ||
+      target.id === "usernamefield" ||
+      /username|current-password/.test(target.autocomplete || "")
+    ) {
+      userTyped = true;
+      stopWatching();
+    }
+  }
+
+  function stopWatching() {
+    window.clearInterval(watcherTimer);
+    watcherTimer = null;
+    watcherObserver?.disconnect();
+    watcherObserver = null;
+    if (watcherDomReadyHandler) {
+      document.removeEventListener("DOMContentLoaded", watcherDomReadyHandler);
+      watcherDomReadyHandler = null;
+    }
+    document.removeEventListener("keydown", watchManualTyping, true);
   }
 
   function startWatching() {
-    watchManualTyping();
+    stopWatching();
+    if (!autoLoginEnabled || userTyped || submitted) return;
+    document.addEventListener("keydown", watchManualTyping, true);
 
     let attempts = 0;
     const maxAttempts = 40;
     const interval = 250;
-    let observer = null;
-    let stopped = false;
-
-    const stopWatching = () => {
-      if (stopped) return;
-      stopped = true;
-      clearInterval(timer);
-      observer?.disconnect();
-    };
-
-    const timer = setInterval(() => {
+    watcherTimer = window.setInterval(() => {
       attempts += 1;
       if (submitted || userTyped || attempts >= maxAttempts) {
         stopWatching();
@@ -199,7 +201,7 @@
       if (submitted || userTyped) stopWatching();
     }, interval);
 
-    observer = new MutationObserver(() => {
+    watcherObserver = new MutationObserver(() => {
       if (submitted || userTyped || attempts >= maxAttempts) {
         stopWatching();
         return;
@@ -209,13 +211,15 @@
     });
 
     if (document.body) {
-      observer.observe(document.body, { childList: true, subtree: true });
+      watcherObserver.observe(document.body, { childList: true, subtree: true });
     } else {
-      document.addEventListener("DOMContentLoaded", () => {
-        if (!stopped && document.body) {
-          observer.observe(document.body, { childList: true, subtree: true });
+      watcherDomReadyHandler = () => {
+        watcherDomReadyHandler = null;
+        if (watcherObserver && document.body) {
+          watcherObserver.observe(document.body, { childList: true, subtree: true });
         }
-      }, { once: true });
+      };
+      document.addEventListener("DOMContentLoaded", watcherDomReadyHandler, { once: true });
     }
   }
 
@@ -227,6 +231,20 @@
       startWatching();
     });
   }
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local") return;
+    if (changes[AUTOLOGIN_PREFERRED_ACCOUNT_KEY]) {
+      preferredAccount = String(changes[AUTOLOGIN_PREFERRED_ACCOUNT_KEY].newValue || "").trim();
+    }
+    if (!changes[AUTOLOGIN_KEY]) return;
+    autoLoginEnabled = changes[AUTOLOGIN_KEY].newValue === true;
+    if (!autoLoginEnabled) {
+      stopWatching();
+      return;
+    }
+    startWatching();
+  });
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init, { once: true });

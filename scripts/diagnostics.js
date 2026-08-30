@@ -370,6 +370,259 @@
     };
   }
 
+  // ---- On-demand page style inspector -----------------------------------
+  // This is deliberately session-only. It helps turn a visual mismatch into a
+  // useful, privacy-safe report without collecting any page text or identifiers.
+  const INSPECTOR_ATTR = "data-ee-page-style-inspector";
+  const INSPECTOR_HIGHLIGHT = "ee-page-style-inspector-target";
+  const INSPECTOR_STORAGE_KEY = "eePageStyleInspector";
+  const MAX_INSPECTOR_ITEMS = 100;
+  const inspector = { enabled: false, mode: "theme", items: [], highlighted: null, root: null, status: null };
+
+  function inspectorText(key, fallback) {
+    try { return chrome.i18n?.getMessage(key) || fallback; } catch (_) { return fallback; }
+  }
+
+  function safeClassNames(element, limit = 8) {
+    return Array.from(element?.classList || [])
+      .filter((name) => !name.startsWith("ee-") && name.length <= 80)
+      .slice(0, limit);
+  }
+
+  function persistInspector() {
+    try {
+      sessionStorage.setItem(INSPECTOR_STORAGE_KEY, JSON.stringify({
+        version: 1,
+        active: inspector.enabled,
+        mode: inspector.mode,
+        items: inspector.items.slice(-MAX_INSPECTOR_ITEMS),
+      }));
+    } catch (_) { /* session storage is optional */ }
+  }
+
+  function restoreInspector() {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(INSPECTOR_STORAGE_KEY) || "null");
+      if (!saved || saved.version !== 1 || !Array.isArray(saved.items)) return false;
+      inspector.items = saved.items.slice(-MAX_INSPECTOR_ITEMS);
+      inspector.mode = ["theme", "redesign", "cleanup"].includes(saved.mode) ? saved.mode : "theme";
+      return saved.active === true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function clearInspectorItems() {
+    inspector.items = [];
+    persistInspector();
+    if (inspector.status) {
+      inspector.status.textContent = inspectorText("pageStyleInspectorCleared", "Report cleared.");
+    }
+  }
+
+  function selectorPart(element) {
+    const tag = String(element?.tagName || "div").toLowerCase();
+    const classNames = safeClassNames(element, 4)
+      .filter((name) => /^[A-Za-z_][A-Za-z0-9_-]*$/.test(name));
+    return `${tag}${classNames.map((name) => `.${name}`).join("")}`;
+  }
+
+  function describeElement(element) {
+    const styles = getComputedStyle(element);
+    const border = (side) => ({
+      color: styles.getPropertyValue(`border-${side}-color`),
+      width: styles.getPropertyValue(`border-${side}-width`),
+      style: styles.getPropertyValue(`border-${side}-style`),
+    });
+    const ancestors = [];
+    let current = element;
+    for (let depth = 0; current && depth < 3; depth += 1, current = current.parentElement) {
+      ancestors.push({ tag: String(current.tagName || "div").toLowerCase(), classes: safeClassNames(current) });
+    }
+    const rect = element.getBoundingClientRect();
+    return {
+      selector: ancestors.map(selectorPart).reverse().join(" > "),
+      tag: String(element.tagName || "div").toLowerCase(),
+      classes: safeClassNames(element, 16),
+      ancestors,
+      size: { width: Math.round(rect.width), height: Math.round(rect.height) },
+      computed: {
+        display: styles.display,
+        visibility: styles.visibility,
+        position: styles.position,
+        opacity: styles.opacity,
+        color: styles.color,
+        backgroundColor: styles.backgroundColor,
+        backgroundImage: styles.backgroundImage && styles.backgroundImage !== "none" ? "present" : "none",
+        border: { top: border("top"), right: border("right"), bottom: border("bottom"), left: border("left") },
+        boxShadow: styles.boxShadow && styles.boxShadow !== "none" ? "present" : "none",
+        outline: styles.outline,
+        fontSize: styles.fontSize,
+        fontWeight: styles.fontWeight,
+      },
+    };
+  }
+
+  function inspectorReport() {
+    const rootStyles = getComputedStyle(document.documentElement);
+    const themeVariables = ["--ee-page-bg", "--ee-card-bg", "--ee-header-bg", "--ee-text", "--ee-muted-text", "--ee-border", "--ee-link", "--ee-current-period"]
+      .reduce((values, name) => {
+        const value = rootStyles.getPropertyValue(name).trim();
+        if (value) values[name] = value;
+        return values;
+      }, {});
+    return {
+      schema: "ee-page-style-inspector/v1",
+      theme: {
+        darkMode: document.documentElement.classList.contains("ee-dark"),
+        documentClasses: safeClassNames(document.documentElement, 24),
+        variables: themeVariables,
+      },
+      items: inspector.items,
+      privacy: "No page text, IDs, attribute values, screenshots, or URLs are included.",
+    };
+  }
+
+  async function copyInspectorReport() {
+    const report = JSON.stringify(inspectorReport(), null, 2);
+    try {
+      await navigator.clipboard.writeText(report);
+      inspector.status.textContent = inspectorText("pageStyleInspectorCopied", "Report copied.");
+    } catch (_) {
+      const fallback = document.createElement("textarea");
+      fallback.value = report;
+      fallback.setAttribute("readonly", "");
+      fallback.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+      document.body.appendChild(fallback);
+      fallback.select();
+      const copied = document.execCommand("copy");
+      fallback.remove();
+      inspector.status.textContent = copied
+        ? inspectorText("pageStyleInspectorCopied", "Report copied.")
+        : inspectorText("pageStyleInspectorCopyFailed", "Could not copy the report automatically.");
+    }
+  }
+
+  function setInspectorMode(mode) {
+    inspector.mode = mode;
+    inspector.root?.querySelectorAll("button[data-ee-inspector-mode]").forEach((button) => {
+      const active = button.dataset.eeInspectorMode === mode;
+      button.dataset.active = String(active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    persistInspector();
+    if (inspector.status) {
+      const labels = {
+        theme: inspectorText("pageStyleInspectorTheme", "Theme mapping"),
+        redesign: inspectorText("pageStyleInspectorRedesign", "Redesign"),
+        cleanup: inspectorText("pageStyleInspectorCleanup", "Cleanup"),
+      };
+      inspector.status.textContent = `${inspectorText("pageStyleInspectorSelected", "Selected:")} ${labels[mode]}.`;
+    }
+  }
+
+  function clearInspectorHighlight() {
+    inspector.highlighted?.classList.remove(INSPECTOR_HIGHLIGHT);
+    inspector.highlighted = null;
+  }
+
+  function disableInspector() {
+    clearInspectorHighlight();
+    inspector.root?.remove();
+    inspector.root = null;
+    inspector.status = null;
+    inspector.enabled = false;
+    persistInspector();
+    document.removeEventListener("pointermove", onInspectorPointerMove, true);
+    document.removeEventListener("click", onInspectorClick, true);
+  }
+
+  function buildInspector() {
+    if (inspector.root?.isConnected || !document.documentElement) return;
+    inspector.root = null;
+    const root = document.createElement("div");
+    root.setAttribute(INSPECTOR_ATTR, "");
+    const hint = document.createElement("span");
+    hint.textContent = inspectorText("pageStyleInspectorHint", "Cmd/Ctrl+Shift-click an element");
+    root.appendChild(hint);
+    const addButton = (label, attribute, value) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.setAttribute(attribute, value || "");
+      button.textContent = label;
+      root.appendChild(button);
+      return button;
+    };
+    const themeButton = addButton(inspectorText("pageStyleInspectorTheme", "Theme"), "data-ee-inspector-mode", "theme");
+    const redesignButton = addButton(inspectorText("pageStyleInspectorRedesign", "Redesign"), "data-ee-inspector-mode", "redesign");
+    const cleanupButton = addButton(inspectorText("pageStyleInspectorCleanup", "Cleanup"), "data-ee-inspector-mode", "cleanup");
+    const copyButton = addButton(inspectorText("pageStyleInspectorCopy", "Copy report"), "data-ee-inspector-copy");
+    const clearButton = addButton(inspectorText("pageStyleInspectorClear", "Clear"), "data-ee-inspector-clear");
+    const doneButton = addButton(inspectorText("pageStyleInspectorDone", "Done"), "data-ee-inspector-done");
+    const status = document.createElement("span");
+    status.setAttribute("data-ee-inspector-status", "");
+    status.setAttribute("aria-live", "polite");
+    root.appendChild(status);
+    const style = document.createElement("style");
+    style.textContent = `
+      [${INSPECTOR_ATTR}] { position: fixed !important; z-index: 2147483647 !important; right: 12px !important; bottom: 12px !important; display: flex !important; align-items: center !important; gap: 6px !important; max-width: calc(100vw - 24px) !important; padding: 8px !important; border: 1px solid #6b7280 !important; border-radius: 6px !important; background: #111827 !important; color: #f9fafb !important; font: 13px/1.2 system-ui, sans-serif !important; box-shadow: 0 3px 12px rgba(0,0,0,.35) !important; pointer-events: auto !important; }
+      [${INSPECTOR_ATTR}], [${INSPECTOR_ATTR}] * { pointer-events: auto !important; box-sizing: border-box !important; }
+      [${INSPECTOR_ATTR}] button { min-height: 30px !important; border: 1px solid #6b7280 !important; border-radius: 4px !important; background: #1f2937 !important; color: inherit !important; cursor: pointer !important; padding: 4px 7px !important; font: inherit !important; }
+      [${INSPECTOR_ATTR}] button[data-active="true"] { background: #0369a1 !important; border-color: #bae6fd !important; color: #fff !important; }
+      [${INSPECTOR_ATTR}] button:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
+      .${INSPECTOR_HIGHLIGHT} { outline: 2px solid #f59e0b !important; outline-offset: 2px !important; }
+      @media (max-width: 720px) { [${INSPECTOR_ATTR}] { left: 8px; right: 8px; bottom: 8px; flex-wrap: wrap; } }
+    `;
+    root.appendChild(style);
+    // EduPage sometimes replaces body during client-side navigation. Keeping
+    // this debug-only toolbar directly under html lets the active session
+    // survive that replacement without a broad observer.
+    document.documentElement.appendChild(root);
+    inspector.root = root;
+    inspector.status = status;
+    [themeButton, redesignButton, cleanupButton].forEach((button) => {
+      button.addEventListener("click", () => setInspectorMode(button.dataset.eeInspectorMode));
+    });
+    copyButton.addEventListener("click", copyInspectorReport);
+    clearButton.addEventListener("click", clearInspectorItems);
+    doneButton.addEventListener("click", disableInspector);
+    setInspectorMode(inspector.mode);
+  }
+
+  function onInspectorPointerMove(event) {
+    if (!inspector.enabled) return;
+    const element = event.target instanceof Element ? event.target : null;
+    if (!element || element.closest(`[${INSPECTOR_ATTR}]`)) return;
+    if (inspector.highlighted === element) return;
+    clearInspectorHighlight();
+    element.classList.add(INSPECTOR_HIGHLIGHT);
+    inspector.highlighted = element;
+  }
+
+  function onInspectorClick(event) {
+    if (!inspector.enabled || !(event.metaKey || event.ctrlKey) || !event.shiftKey) return;
+    const element = event.target instanceof Element ? event.target : null;
+    if (!element || element.closest(`[${INSPECTOR_ATTR}]`)) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    inspector.items.push({ kind: inspector.mode, ...describeElement(element) });
+    if (inspector.items.length > MAX_INSPECTOR_ITEMS) inspector.items.shift();
+    persistInspector();
+    clearInspectorHighlight();
+    inspector.status.textContent = inspectorText("pageStyleInspectorCaptured", "Captured") + ` (${inspector.items.length})`;
+  }
+
+  function enableInspector() {
+    if (inspector.enabled) return;
+    inspector.enabled = true;
+    persistInspector();
+    document.addEventListener("pointermove", onInspectorPointerMove, true);
+    document.addEventListener("click", onInspectorClick, true);
+    buildInspector();
+  }
+
+  if (window.top === window.self && restoreInspector()) enableInspector();
+
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message?.type === "ee-collect-page-diagnostics") {
       // The collect request is broadcast to every frame in the tab (EduPage
@@ -395,6 +648,12 @@
         });
       } catch (_) { /* background may be asleep; ignore */ }
       // Also answer the direct call so a caller can detect the frame responded.
+      try { sendResponse({ ok: true }); } catch (_) { /* ignore */ }
+      return false;
+    }
+    if (message?.type === "ee-toggle-page-style-inspector") {
+      if (message.enabled) enableInspector();
+      else disableInspector();
       try { sendResponse({ ok: true }); } catch (_) { /* ignore */ }
       return false;
     }

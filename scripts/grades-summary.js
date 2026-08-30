@@ -35,7 +35,7 @@
       return `${averageSignature}|attendance:${summary.absent}:${summary.total}:${unmatched.absent}:${unmatched.total}|predicted:${predicted.absent}:${predicted.total}|prediction:${predictionState}`;
     }
     function tableColumnCount(table) {
-      const headerRow = table.querySelector("thead tr");
+      const headerRow = GE.attendance.findAttendanceHeaderRow(table);
       if (headerRow) {
         return Array.from(headerRow.cells).reduce(
           (sum, cell) => sum + (Number.parseInt(cell.colSpan, 10) || 1),
@@ -65,11 +65,9 @@
     // (by text) but each row's value is read structurally as ".znPriemerCell"'s
     // next sibling, same as GE.attendance.tagVysvedcenieColumn.
     function readVysvedcenieColumn(table) {
-      const headerRow = table.querySelector("thead tr");
+      const headerRow = GE.attendance.findAttendanceHeaderRow(table);
       if (!headerRow) return { present: false, average: null };
-      const headerCell = Array.from(headerRow.cells).find((cell) =>
-        !cell.classList.contains("ee-attendance-header")
-        && GE.attendance.normalizeText(cell.textContent) === "vysvedcenie");
+      const headerCell = Array.from(headerRow.cells).find(GE.attendance.isCertificateHeader);
       if (!headerCell) return { present: false, average: null };
 
       const values = [];
@@ -275,6 +273,7 @@
             { largeValue: true, scale: averageScale },
           ));
         }
+        vysvedCell.title = GE.t("gradesCertificateAverage");
         summaryRow.appendChild(vysvedCell);
       }
       summaryRow.appendChild(percentCell);

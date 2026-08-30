@@ -215,6 +215,30 @@
             </label>
           </div>
 
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="hidePageHeroes">Hide Page Heroes</h3>
+              <p data-i18n="hidePageHeroesDesc">Remove the oversized hero blocks from Messages, Assignments, Materials, and Results.</p>
+            </div>
+            <label class="switch switch-compact" for="HidePageHeroesCheckbox">
+              <input type="checkbox" id="HidePageHeroesCheckbox">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="togglePageHeroes">Toggle page heroes</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="hidePersonalInfo">Hide My Name and Login</h3>
+              <p data-i18n="hidePersonalInfoDesc">Hide your account name and login in EduPage's profile menu on this screen. It does not remove them from EduPage or change your account.</p>
+            </div>
+            <label class="switch switch-compact" for="HidePersonalInfoCheckbox">
+              <input type="checkbox" id="HidePersonalInfoCheckbox">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="togglePersonalInfo">Toggle hiding personal information</span>
+            </label>
+          </div>
+
         </div>
       </section>
 
@@ -475,6 +499,17 @@
               <span class="switch-track" aria-hidden="true"></span>
               <span class="sr-only" data-i18n="toggleGradesDebug">Toggle grades attendance debug</span>
             </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="pageStyleInspector">Page Style Inspector</h3>
+              <p data-i18n="pageStyleInspectorDesc">Open the affected EduPage page, then start the inspector here. Mark each element as Theme mapping, Redesign, or Cleanup. It captures only safe structure and computed styles — never page text, IDs, screenshots, or URLs.</p>
+            </div>
+            <div class="cache-maintenance-controls">
+              <button class="secondary-button" id="StartPageStyleInspectorButton" type="button" data-i18n="startPageStyleInspector">Start Inspector</button>
+              <span class="save-status" id="PageStyleInspectorStatus" role="status" aria-live="polite"></span>
+            </div>
           </div>
 
           <div class="setting-row">

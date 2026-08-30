@@ -50,6 +50,56 @@
     );
   };
 
+  // Theme state crosses the popup, settings, background worker, cache and
+  // content script. Keep the storage names and the message shape in one place
+  // so a new appearance/cleanup preference cannot update only some of them.
+  EE.THEME_STORAGE_KEYS = Object.freeze({
+    darkModeEnabled: "darkModeEnabled",
+    theme: "themeMode",
+    customTheme: "customThemeColors",
+    cleanUiEnabled: "cleanUiEnabled",
+    hideHelpTextEnabled: "hideHelpTextEnabled",
+    hidePageHeroesEnabled: "eeHidePageHeroesEnabled",
+    hidePersonalInfoEnabled: "eeHidePersonalInfoEnabled",
+    rozvrhRoomChangeColor: "eeRozvrhRoomChangeColor",
+    rozvrhSubstitutionColor: "eeRozvrhSubstitutionColor",
+  });
+  EE.THEME_STORAGE_KEY_LIST = Object.freeze(Object.values(EE.THEME_STORAGE_KEYS));
+
+  EE.readThemeSettings = function readThemeSettings(values = {}) {
+    const keys = EE.THEME_STORAGE_KEYS;
+    return {
+      darkModeEnabled: values[keys.darkModeEnabled] === true,
+      theme: EE.normalizeTheme(values[keys.theme]),
+      // Preserve the stored shape here. Consumers normalize it when applying
+      // colors; the live update message must not silently expand a partial
+      // custom-theme object while a user is editing it.
+      customTheme: values[keys.customTheme],
+      cleanUiEnabled: values[keys.cleanUiEnabled] === true,
+      hideHelpTextEnabled: values[keys.hideHelpTextEnabled] === true,
+      hidePageHeroesEnabled: values[keys.hidePageHeroesEnabled] === true,
+      hidePersonalInfoEnabled: values[keys.hidePersonalInfoEnabled] === true,
+      rozvrhRoomChangeColor: values[keys.rozvrhRoomChangeColor],
+      rozvrhSubstitutionColor: values[keys.rozvrhSubstitutionColor],
+    };
+  };
+
+  EE.createThemeMessage = function createThemeMessage(settings = {}, extras = {}) {
+    return {
+      type: "ee-set-theme",
+      darkModeEnabled: settings.darkModeEnabled === true,
+      theme: EE.normalizeTheme(settings.theme),
+      customTheme: settings.customTheme,
+      cleanUiEnabled: settings.cleanUiEnabled === true,
+      hideHelpTextEnabled: settings.hideHelpTextEnabled === true,
+      hidePageHeroesEnabled: settings.hidePageHeroesEnabled === true,
+      hidePersonalInfoEnabled: settings.hidePersonalInfoEnabled === true,
+      rozvrhRoomChangeColor: settings.rozvrhRoomChangeColor,
+      rozvrhSubstitutionColor: settings.rozvrhSubstitutionColor,
+      ...extras,
+    };
+  };
+
   // Strict "YYYY-MM-DD" → local-midnight Date, null for anything else
   // (including real-looking but invalid dates like 2024-02-31).
   EE.parseDateOnly = function parseDateOnly(value) {

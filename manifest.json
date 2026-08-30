@@ -2,7 +2,7 @@
   "name": "__MSG_extName__",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "manifest_version": 3,
   "icons": {
     "16": "images/icon-16.png",
@@ -71,7 +71,7 @@
   "content_scripts": [
     {
       "matches": ["https://*.edupage.org/*"],
-      "css": ["scripts/instant-theme.css"],
+      "css": ["scripts/instant-theme.css", "scripts/theme-static.css"],
       "js": [
         "scripts/lib/ee-common.js",
         "scripts/theme-bootstrap.js",

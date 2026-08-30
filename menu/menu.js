@@ -7,13 +7,7 @@ if (menuVersion) {
 const updateNotice = document.getElementById("UpdateNotice");
 const updateNoticeText = document.getElementById("UpdateNoticeText");
 const openUpdateButton = document.getElementById("OpenUpdateButton");
-const STORAGE_KEY = "darkModeEnabled";
-const THEME_KEY = "themeMode";
-const CUSTOM_THEME_KEY = "customThemeColors";
-const CLEAN_UI_KEY = "cleanUiEnabled";
-const HIDE_HELP_TEXT_KEY = "hideHelpTextEnabled";
-const ROZVRH_ROOM_CHANGE_COLOR_KEY = "eeRozvrhRoomChangeColor";
-const ROZVRH_SUBSTITUTION_COLOR_KEY = "eeRozvrhSubstitutionColor";
+const THEME_STORAGE_KEYS = EE.THEME_STORAGE_KEYS;
 const UPDATE_STATUS_KEY = "eeUpdateStatus";
 const REPO_URL = "https://github.com/JustAlex0000/Edupage-Extras";
 const DEFAULT_CUSTOM_THEME = EE.DEFAULT_CUSTOM_THEME;
@@ -81,11 +75,11 @@ function renderUpdateNotice(status) {
 }
 
 function initializeMenu() {
-	chrome.storage.local.get([STORAGE_KEY, THEME_KEY, CUSTOM_THEME_KEY, UPDATE_STATUS_KEY], (result) => {
-		const enabled = result[STORAGE_KEY] === true;
-		customTheme = normalizeCustomTheme(result[CUSTOM_THEME_KEY]);
-		toggle.checked = enabled;
-		applyMenuTheme(result[THEME_KEY], enabled, customTheme);
+	chrome.storage.local.get([...EE.THEME_STORAGE_KEY_LIST, UPDATE_STATUS_KEY], (result) => {
+		const settings = EE.readThemeSettings(result);
+		customTheme = settings.customTheme;
+		toggle.checked = settings.darkModeEnabled;
+		applyMenuTheme(settings.theme, settings.darkModeEnabled, customTheme);
 		renderUpdateNotice(result[UPDATE_STATUS_KEY]);
 	});
 }
@@ -103,24 +97,17 @@ if (chrome.management && typeof chrome.management.getSelf === "function") {
 
 toggle.addEventListener("change", () => {
 	const enabled = toggle.checked;
-	chrome.storage.local.set({ [STORAGE_KEY]: enabled });
+	chrome.storage.local.set({ [THEME_STORAGE_KEYS.darkModeEnabled]: enabled });
 
-	chrome.storage.local.get([THEME_KEY, CUSTOM_THEME_KEY, CLEAN_UI_KEY, HIDE_HELP_TEXT_KEY, ROZVRH_ROOM_CHANGE_COLOR_KEY, ROZVRH_SUBSTITUTION_COLOR_KEY], (result) => {
-		customTheme = normalizeCustomTheme(result[CUSTOM_THEME_KEY]);
-		applyMenuTheme(result[THEME_KEY], enabled, customTheme);
+	chrome.storage.local.get(EE.THEME_STORAGE_KEY_LIST, (result) => {
+		const settings = EE.readThemeSettings(result);
+		customTheme = settings.customTheme;
+		applyMenuTheme(settings.theme, enabled, customTheme);
+		const message = EE.createThemeMessage(settings, { darkModeEnabled: enabled });
 		chrome.tabs.query({ url: "https://*.edupage.org/*" }, (tabs) => {
 			tabs.forEach((tab) => {
 				if (tab.id) {
-					chrome.tabs.sendMessage(tab.id, {
-						type: "ee-set-theme",
-						darkModeEnabled: enabled,
-						theme: result[THEME_KEY] || "dark",
-						customTheme,
-						cleanUiEnabled: result[CLEAN_UI_KEY] === true,
-						hideHelpTextEnabled: result[HIDE_HELP_TEXT_KEY] === true,
-						rozvrhRoomChangeColor: result[ROZVRH_ROOM_CHANGE_COLOR_KEY],
-						rozvrhSubstitutionColor: result[ROZVRH_SUBSTITUTION_COLOR_KEY],
-					}, () => {
+					chrome.tabs.sendMessage(tab.id, message, () => {
 						void chrome.runtime.lastError;
 					});
 				}
@@ -142,10 +129,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
 	if (changes[UPDATE_STATUS_KEY]) {
 		renderUpdateNotice(changes[UPDATE_STATUS_KEY].newValue);
 	}
-	if (changes[CUSTOM_THEME_KEY] || changes[THEME_KEY] || changes[STORAGE_KEY]) {
-		chrome.storage.local.get([STORAGE_KEY, THEME_KEY, CUSTOM_THEME_KEY], (result) => {
-			customTheme = normalizeCustomTheme(result[CUSTOM_THEME_KEY]);
-			applyMenuTheme(result[THEME_KEY], result[STORAGE_KEY] === true, customTheme);
+	if (EE.THEME_STORAGE_KEY_LIST.some((key) => changes[key])) {
+		chrome.storage.local.get(EE.THEME_STORAGE_KEY_LIST, (result) => {
+			const settings = EE.readThemeSettings(result);
+			customTheme = settings.customTheme;
+			applyMenuTheme(settings.theme, settings.darkModeEnabled, customTheme);
 		});
 	}
 });

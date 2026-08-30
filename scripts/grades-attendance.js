@@ -21,6 +21,8 @@
   const ATTENDANCE_RENDER_SIGNATURE_ATTR = "data-ee-attendance-render-signature";
   let attendanceBaseStatsPromise = null;
   let attendanceStatsPromise = null;
+  let headerTransformObserver = null;
+  let observedHeaderReference = null;
 
     function currentGradesViewSignature() {
       return GE.state.gradesView?.signature || "current:current";
@@ -995,6 +997,12 @@
       return cell;
     }
     const AVERAGE_HEADER_LABELS = new Set(["priemer", "prumer", "average"]);
+    const CERTIFICATE_HEADER_LABELS = new Set(["vysvedcenie", "vysvedceni", "certificate"]);
+
+    function isCertificateHeader(cell) {
+      return !cell?.classList?.contains("ee-attendance-header")
+        && CERTIFICATE_HEADER_LABELS.has(normalizeText(cell.textContent));
+    }
 
     function findAverageHeaderCell(headerRow) {
       if (!headerRow) return null;
@@ -1045,9 +1053,7 @@
       if (headerRow.querySelector(".ee-vysvedcenie-header")) return; // already tagged
 
       const headerCells = Array.from(headerRow.cells);
-      const headerCell = headerCells.find((cell) =>
-        !cell.classList.contains("ee-attendance-header")
-        && normalizeText(cell.textContent) === "vysvedcenie");
+      const headerCell = headerCells.find(isCertificateHeader);
       if (!headerCell) return; // column absent → robust no-op
 
       headerCell.classList.add("ee-vysvedcenie-header");
@@ -1097,14 +1103,40 @@
       const existingTextAlign = cell.style.textAlign;
       const existingWhiteSpace = cell.style.whiteSpace;
 
-      // Do not clone cssText here. EduPage writes sticky positioning, offsets,
-      // and stacking order into native header cells at runtime. Copying those
-      // values gives our cells a different sticky layer from the rest of the
-      // table, making them detach at the top of the page while native headers
-      // remain in their own row. The table's normal <th> rules provide the
-      // visual styling; only retain the safe text-layout choices below.
+      // EduPage shifts its native headers with an inline translateY while the
+      // table scrolls. Copy only that transform: position, offsets, and z-index
+      // remain native so the extension columns stay in the same sticky layer.
       cell.style.textAlign = existingTextAlign || "center";
       cell.style.whiteSpace = existingWhiteSpace || "nowrap";
+      syncAttendanceHeaderTransform(cell, referenceCell);
+    }
+    function syncAttendanceHeaderTransform(cell, referenceCell) {
+      if (!cell?.style || !referenceCell?.style) return;
+      cell.style.transform = referenceCell.style.transform || "";
+    }
+    function stopObservingAttendanceHeaderTransform() {
+      headerTransformObserver?.disconnect();
+      headerTransformObserver = null;
+      observedHeaderReference = null;
+    }
+    function observeAttendanceHeaderTransform(table) {
+      const headerRow = findAttendanceHeaderRow(table);
+      const referenceCell = findAverageHeaderCell(headerRow);
+      if (!(referenceCell instanceof HTMLTableCellElement)) {
+        stopObservingAttendanceHeaderTransform();
+        return;
+      }
+
+      if (observedHeaderReference === referenceCell) return;
+      stopObservingAttendanceHeaderTransform();
+
+      observedHeaderReference = referenceCell;
+      headerTransformObserver = new MutationObserver(() => {
+        if (referenceCell.isConnected) {
+          syncAttendanceHeaderLayout(table);
+        }
+      });
+      headerTransformObserver.observe(referenceCell, { attributes: true, attributeFilter: ["style"] });
     }
     function syncAttendanceHeaderLayout(table) {
       const headerRow = findAttendanceHeaderRow(table);
@@ -1187,6 +1219,7 @@
           predictedPercentHeader,
         );
         syncAttendanceHeaderLayout(table);
+        observeAttendanceHeaderTransform(table);
       }
 
       Array.from(table.querySelectorAll("tr.predmetRow")).forEach((row) => {
@@ -1216,6 +1249,7 @@
       });
     }
     function clearSubjectAttendance(table) {
+      stopObservingAttendanceHeaderTransform();
       table.querySelectorAll(".ee-subject-attendance").forEach((element) => element.remove());
       table.querySelectorAll(".ee-attendance-header").forEach((element) => element.remove());
       table.querySelectorAll("tr.predmetRow .ee-attendance-cell").forEach((element) => element.remove());
@@ -2270,7 +2304,7 @@
           window.__eeGradesAttendanceDebug = debug;
           GE.debug.syncAttendanceDebug(debug);
           GE.debug.log("Final attendance stats", debug);
-          if (attendanceSummary.total < 100 || debug.mergedDateCount <= embeddedDateCount) {
+          if (GE.state.gradesAttendanceDebugEnabled && (attendanceSummary.total < 100 || debug.mergedDateCount <= embeddedDateCount)) {
             console.warn("[Edupage Extras] Grades attendance diagnostic", debug);
           }
           if (attendanceSummary.total >= 100) {
@@ -2289,7 +2323,6 @@
         .catch((error) => {
           if (String(error?.message).includes("Extension context invalidated")) return;
           GE.debug.warn("Could not load grades attendance stats.", error);
-          console.warn("[Edupage Extras] Could not load grades attendance stats.", error);
           throw error;
         })
         .finally(() => {
@@ -2335,6 +2368,7 @@
     clearSubjectAttendance,
     populateAttendancePlaceholders,
     syncAttendanceHeaderLayout,
+    syncAttendanceHeaderTransform,
     renderSubjectAttendance,
     loadBaseSubjectAttendanceStats,
     loadSubjectAttendanceStats,
@@ -2357,5 +2391,6 @@
     attendanceTone,
     findAttendanceHeaderRow,
     tagVysvedcenieColumn,
+    isCertificateHeader,
   };
 })();
