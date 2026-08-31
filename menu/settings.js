@@ -4,8 +4,17 @@ const openShortcutSettingsButton = document.getElementById("OpenShortcutSettings
 const themeShortcutStatus = document.getElementById("ThemeShortcutStatus");
 const cleanUiToggle = document.getElementById("CleanUiCheckbox");
 const hideHelpTextToggle = document.getElementById("HideHelpTextCheckbox");
+const hideEdupageHelpToggle = document.getElementById("HideEdupageHelpCheckbox");
+const hideEducationalGamesToggle = document.getElementById("HideEducationalGamesCheckbox");
+const hideTestYourselfToggle = document.getElementById("HideTestYourselfCheckbox");
+const hideInteractiveBlackboardsToggle = document.getElementById("HideInteractiveBlackboardsCheckbox");
+const hidePhotosToggle = document.getElementById("HidePhotosCheckbox");
+const hideRegistrationSurveysToggle = document.getElementById("HideRegistrationSurveysCheckbox");
+const hideAllCleanupButton = document.getElementById("HideAllCleanupButton");
+const showAllCleanupButton = document.getElementById("ShowAllCleanupButton");
 const hidePageHeroesToggle = document.getElementById("HidePageHeroesCheckbox");
 const hidePersonalInfoToggle = document.getElementById("HidePersonalInfoCheckbox");
+const hideLikesToggle = document.getElementById("HideLikesCheckbox");
 const timetableHighlightsToggle = document.getElementById("TimetableHighlightsCheckbox");
 const gradeBadgesToggle = document.getElementById("GradeBadgesCheckbox");
 const gradesAttendanceToggle = document.getElementById("GradesAttendanceCheckbox");
@@ -96,6 +105,13 @@ const {
 	hideHelpTextEnabled: HIDE_HELP_TEXT_KEY,
 	hidePageHeroesEnabled: HIDE_PAGE_HEROES_KEY,
 	hidePersonalInfoEnabled: HIDE_PERSONAL_INFO_KEY,
+	hideLikesEnabled: HIDE_LIKES_KEY,
+	hideEdupageHelpEnabled: HIDE_EDUPAGE_HELP_KEY,
+	hideEducationalGamesEnabled: HIDE_EDUCATIONAL_GAMES_KEY,
+	hideTestYourselfEnabled: HIDE_TEST_YOURSELF_KEY,
+	hideInteractiveBlackboardsEnabled: HIDE_INTERACTIVE_BLACKBOARDS_KEY,
+	hidePhotosEnabled: HIDE_PHOTOS_KEY,
+	hideRegistrationSurveysEnabled: HIDE_REGISTRATION_SURVEYS_KEY,
 	rozvrhRoomChangeColor: ROZVRH_ROOM_CHANGE_COLOR_KEY,
 	rozvrhSubstitutionColor: ROZVRH_SUBSTITUTION_COLOR_KEY,
 } = EE.THEME_STORAGE_KEYS;
@@ -349,6 +365,13 @@ function notifyEdupageTabs() {
 		hideHelpTextEnabled: hideHelpTextToggle.checked,
 		hidePageHeroesEnabled: hidePageHeroesToggle.checked,
 		hidePersonalInfoEnabled: hidePersonalInfoToggle.checked,
+		hideLikesEnabled: hideLikesToggle.checked,
+		hideEdupageHelpEnabled: hideEdupageHelpToggle.checked,
+		hideEducationalGamesEnabled: hideEducationalGamesToggle.checked,
+		hideTestYourselfEnabled: hideTestYourselfToggle.checked,
+		hideInteractiveBlackboardsEnabled: hideInteractiveBlackboardsToggle.checked,
+		hidePhotosEnabled: hidePhotosToggle.checked,
+		hideRegistrationSurveysEnabled: hideRegistrationSurveysToggle.checked,
 		rozvrhRoomChangeColor,
 		rozvrhSubstitutionColor,
 	}, { etestAutoThemeOff });
@@ -524,6 +547,13 @@ chrome.storage.local.get(
 		HIDE_HELP_TEXT_KEY,
 		HIDE_PAGE_HEROES_KEY,
 		HIDE_PERSONAL_INFO_KEY,
+		HIDE_LIKES_KEY,
+		HIDE_EDUPAGE_HELP_KEY,
+		HIDE_EDUCATIONAL_GAMES_KEY,
+		HIDE_TEST_YOURSELF_KEY,
+		HIDE_INTERACTIVE_BLACKBOARDS_KEY,
+		HIDE_PHOTOS_KEY,
+		HIDE_REGISTRATION_SURVEYS_KEY,
 		TIMETABLE_HIGHLIGHTS_KEY,
 		ROZVRH_ROOM_CHANGE_COLOR_KEY,
 		ROZVRH_SUBSTITUTION_COLOR_KEY,
@@ -546,6 +576,13 @@ chrome.storage.local.get(
 		hideHelpTextToggle.checked = result[HIDE_HELP_TEXT_KEY] === true;
 		hidePageHeroesToggle.checked = result[HIDE_PAGE_HEROES_KEY] === true;
 		hidePersonalInfoToggle.checked = result[HIDE_PERSONAL_INFO_KEY] === true;
+		hideLikesToggle.checked = result[HIDE_LIKES_KEY] === true;
+		hideEdupageHelpToggle.checked = result[HIDE_EDUPAGE_HELP_KEY] === true;
+		hideEducationalGamesToggle.checked = result[HIDE_EDUCATIONAL_GAMES_KEY] === true;
+		hideTestYourselfToggle.checked = result[HIDE_TEST_YOURSELF_KEY] === true;
+		hideInteractiveBlackboardsToggle.checked = result[HIDE_INTERACTIVE_BLACKBOARDS_KEY] === true;
+		hidePhotosToggle.checked = result[HIDE_PHOTOS_KEY] === true;
+		hideRegistrationSurveysToggle.checked = result[HIDE_REGISTRATION_SURVEYS_KEY] === true;
 		timetableHighlightsToggle.checked = result[TIMETABLE_HIGHLIGHTS_KEY] !== false;
 		rozvrhRoomChangeColor = normalizeColor(result[ROZVRH_ROOM_CHANGE_COLOR_KEY], DEFAULT_ROZVRH_ROOM_CHANGE_COLOR);
 		rozvrhSubstitutionColor = normalizeColor(result[ROZVRH_SUBSTITUTION_COLOR_KEY], DEFAULT_ROZVRH_SUBSTITUTION_COLOR);
@@ -643,6 +680,36 @@ bindThemeToggle(cleanUiToggle, CLEAN_UI_KEY);
 bindThemeToggle(hideHelpTextToggle, HIDE_HELP_TEXT_KEY);
 bindThemeToggle(hidePageHeroesToggle, HIDE_PAGE_HEROES_KEY);
 bindThemeToggle(hidePersonalInfoToggle, HIDE_PERSONAL_INFO_KEY);
+bindThemeToggle(hideLikesToggle, HIDE_LIKES_KEY);
+bindThemeToggle(hideEdupageHelpToggle, HIDE_EDUPAGE_HELP_KEY);
+bindThemeToggle(hideEducationalGamesToggle, HIDE_EDUCATIONAL_GAMES_KEY);
+bindThemeToggle(hideTestYourselfToggle, HIDE_TEST_YOURSELF_KEY);
+bindThemeToggle(hideInteractiveBlackboardsToggle, HIDE_INTERACTIVE_BLACKBOARDS_KEY);
+bindThemeToggle(hidePhotosToggle, HIDE_PHOTOS_KEY);
+bindThemeToggle(hideRegistrationSurveysToggle, HIDE_REGISTRATION_SURVEYS_KEY);
+
+const cleanupVisibilitySettings = [
+	[hideHelpTextToggle, HIDE_HELP_TEXT_KEY],
+	[hideEdupageHelpToggle, HIDE_EDUPAGE_HELP_KEY],
+	[hidePageHeroesToggle, HIDE_PAGE_HEROES_KEY],
+	[hidePersonalInfoToggle, HIDE_PERSONAL_INFO_KEY],
+	[hideLikesToggle, HIDE_LIKES_KEY],
+	[hideEducationalGamesToggle, HIDE_EDUCATIONAL_GAMES_KEY],
+	[hideTestYourselfToggle, HIDE_TEST_YOURSELF_KEY],
+	[hideInteractiveBlackboardsToggle, HIDE_INTERACTIVE_BLACKBOARDS_KEY],
+	[hidePhotosToggle, HIDE_PHOTOS_KEY],
+	[hideRegistrationSurveysToggle, HIDE_REGISTRATION_SURVEYS_KEY],
+];
+
+function setAllCleanupHidden(hidden) {
+	const updates = Object.fromEntries(cleanupVisibilitySettings.map(([, key]) => [key, hidden]));
+	cleanupVisibilitySettings.forEach(([element]) => { element.checked = hidden; });
+	chrome.storage.local.set(updates);
+	notifyEdupageTabs();
+}
+
+hideAllCleanupButton.addEventListener("click", () => setAllCleanupHidden(true));
+showAllCleanupButton.addEventListener("click", () => setAllCleanupHidden(false));
 
 timetableHighlightsToggle.addEventListener("change", () => {
 	chrome.storage.local.set({ [TIMETABLE_HIGHLIGHTS_KEY]: timetableHighlightsToggle.checked });
@@ -1415,6 +1482,10 @@ if (chrome.management && typeof chrome.management.getSelf === "function") {
 		renderUpdateStatus(null);
 	});
 }
+
+const cleanupSection = document.getElementById("panel-cleanup");
+const debugSection = document.getElementById("panel-debug");
+if (cleanupSection && debugSection) debugSection.before(cleanupSection);
 
 const settingsNavItems = Array.from(document.querySelectorAll(".settings-nav-item"));
 const standardNavItems = settingsNavItems.filter((item) => item.dataset.target !== "experimental");

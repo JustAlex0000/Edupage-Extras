@@ -23,6 +23,21 @@ function createPackageStaging(prefix) {
   }
 }
 
+function createFirefoxPackageStaging(prefix) {
+  const staging = createPackageStaging(prefix);
+  try {
+    const manifestPath = path.join(staging, "manifest.json");
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    delete manifest.background.service_worker;
+    manifest.background.scripts = ["scripts/lib/ee-common.js", "scripts/background.js"];
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
+    return staging;
+  } catch (error) {
+    fs.rmSync(staging, { recursive: true, force: true });
+    throw error;
+  }
+}
+
 function isShippableEntry(entry) {
   const normalized = String(entry || "").replace(/\\/g, "/").replace(/\/+$/, "");
   if (!normalized || EXCLUDED_ENTRIES.has(normalized)) return false;
@@ -35,5 +50,6 @@ module.exports = {
   SHIP_ROOTS,
   EXCLUDED_ENTRIES,
   createPackageStaging,
+  createFirefoxPackageStaging,
   isShippableEntry,
 };

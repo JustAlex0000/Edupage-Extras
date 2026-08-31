@@ -44,9 +44,16 @@ test("theme storage contract keeps every live page preference together", () => {
     hideHelpTextEnabled: true,
     eeHidePageHeroesEnabled: true,
     eeHidePersonalInfoEnabled: true,
+    eeHideLikesEnabled: true,
+    eeHideEdupageHelpEnabled: true,
+    eeHideEducationalGamesEnabled: true,
+    eeHideTestYourselfEnabled: true,
+    eeHideInteractiveBlackboardsEnabled: true,
+    eeHidePhotosEnabled: true,
+    eeHideRegistrationSurveysEnabled: true,
   };
 
-  assert.equal(THEME_STORAGE_KEY_LIST.length, 9);
+  assert.equal(THEME_STORAGE_KEY_LIST.length, 16);
   const message = createThemeMessage(readThemeSettings(values));
   assert.equal(message.type, "ee-set-theme");
   assert.equal(message.theme, "purple");
@@ -55,4 +62,11 @@ test("theme storage contract keeps every live page preference together", () => {
   assert.equal(message.hideHelpTextEnabled, true);
   assert.equal(message.hidePageHeroesEnabled, true);
   assert.equal(message.hidePersonalInfoEnabled, true);
+  assert.equal(message.hideLikesEnabled, true);
+  assert.equal(message.hideEdupageHelpEnabled, true);
+  assert.equal(message.hideEducationalGamesEnabled, true);
+  assert.equal(message.hideTestYourselfEnabled, true);
+  assert.equal(message.hideInteractiveBlackboardsEnabled, true);
+  assert.equal(message.hidePhotosEnabled, true);
+  assert.equal(message.hideRegistrationSurveysEnabled, true);
 });

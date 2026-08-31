@@ -306,7 +306,12 @@ html.ee-dark .etest-standards-hero-rozvrh .casy {
 /* Attendance is rendered into this table asynchronously by the dashboard
    route. Give its table and summary grid a static surface before that render
    can reveal EduPage's stock white backgrounds. */
+html.ee-dark div[style*="padding: 10px"]:has(.dash_dochadzka.asc-dt.ziak),
+html.ee-dark .dash_dochadzka.asc-dt.ziak,
 html.ee-dark table.dash_dochadzka,
+html.ee-dark table.dash_dochadzka thead,
+html.ee-dark table.dash_dochadzka thead tr.fixed,
+html.ee-dark table.dash_dochadzka th.head,
 html.ee-dark table.dash_dochadzka tbody,
 html.ee-dark table.dash_dochadzka tr,
 html.ee-dark table.dash_dochadzka td,
@@ -316,6 +321,50 @@ html.ee-dark table.dash_dochadzka .grid {
   background-image: none !important;
   color: var(--ee-text) !important;
   border-color: var(--ee-border) !important;
+}
+
+/* Full-day absence blocks use a stock light border and a small outer margin.
+   Neither is needed inside the themed attendance grid and both create a pale,
+   misaligned seam around the block. */
+html.ee-dark .dash_dochadzka .p2td {
+  margin: 0 !important;
+  border: none !important;
+}
+
+/* Absence colors carry meaning. These values retain EduPage's green/blue
+   distinction, but use enough contrast against a dark theme. Light-toned
+   themes keep the original pastel palette. */
+html.ee-dark.ee-scheme-dark {
+  --ee-attendance-excused-bg: #246b46;
+  --ee-attendance-representation-bg: #315c7a;
+  --ee-attendance-unexcused-bg: #7d3743;
+}
+
+html.ee-dark:not(.ee-scheme-dark) {
+  --ee-attendance-excused-bg: #caeed7;
+  --ee-attendance-representation-bg: #cedae2;
+  --ee-attendance-unexcused-bg: #e2abb3;
+}
+
+html.ee-dark table.dash_dochadzka [style*="background-color: rgb(202, 238, 215)"],
+html.ee-dark .attendance-box [style*="background-color: rgb(202, 238, 215)"] {
+  background-color: var(--ee-attendance-excused-bg) !important;
+  color: var(--ee-text) !important;
+  opacity: 1 !important;
+}
+
+html.ee-dark table.dash_dochadzka [style*="background-color: rgb(206, 218, 226)"],
+html.ee-dark .attendance-box [style*="background-color: rgb(206, 218, 226)"] {
+  background-color: var(--ee-attendance-representation-bg) !important;
+  color: var(--ee-text) !important;
+  opacity: 1 !important;
+}
+
+html.ee-dark table.dash_dochadzka [style*="background-color: rgb(226, 171, 179)"],
+html.ee-dark .attendance-box [style*="background-color: rgb(226, 171, 179)"] {
+  background-color: var(--ee-attendance-unexcused-bg) !important;
+  color: var(--ee-text) !important;
+  opacity: 1 !important;
 }
 
 html.ee-dark .akceptujBtn {
@@ -539,6 +588,61 @@ html.ee-dark .ribbon-section .dropDownBtn > .ribbon-button .fa {
   opacity: 1 !important;
 }
 
+/* Attendance uses a separate, fixed `asc-ribbon` instead of the dashboard
+   ribbon above. It appears before the route's DOM settles, so it needs a
+   document-start surface rather than waiting for runtime normalization. */
+html.ee-dark .asc-ribbon {
+  background-color: var(--ee-header-bg) !important;
+  color: var(--ee-text) !important;
+  border-color: var(--ee-border) !important;
+}
+
+html.ee-dark .asc-ribbon-button {
+  background-color: transparent !important;
+  color: var(--ee-text) !important;
+  border-color: var(--ee-border) !important;
+}
+
+html.ee-dark .asc-ribbon-button.selected,
+html.ee-dark .asc-ribbon-button.active,
+html.ee-dark .asc-ribbon-button[aria-pressed="true"] {
+  background-color: color-mix(in srgb, var(--ee-link) 32%, var(--ee-header-bg)) !important;
+  color: var(--ee-text) !important;
+}
+
+/* eTest/e-learning builds these side panes after its page shell. Theme their
+   stable containers up front instead of waiting for runtime normalization. */
+html.ee-dark .etest-meditor-searchdiv,
+html.ee-dark .etest-studentVysledkyElem,
+html.ee-dark .etest-studentVysledky-inner,
+html.ee-dark .etest-studentVysledky-inner1,
+html.ee-dark .etest-studentVysledky-znamkaPridelenie-znamka,
+html.ee-dark .etest-studentVysledky-row,
+html.ee-dark .hwAkcie,
+html.ee-dark .akcieList,
+html.ee-dark .akciaGroupTitle,
+html.ee-dark .akciaItem,
+html.ee-dark .akciaBtn,
+html.ee-dark .hwPoznamka,
+html.ee-dark .hwPoznamkaCnt,
+html.ee-dark .hwPoznamkaText {
+  background-color: var(--ee-card-bg) !important;
+  background-image: none !important;
+  color: var(--ee-text) !important;
+  border-color: var(--ee-border) !important;
+}
+
+html.ee-dark .etest-meditor-test-item,
+html.ee-dark .etest-meditor-test-list-month {
+  background-color: var(--ee-card-bg) !important;
+  color: var(--ee-text) !important;
+  border-color: var(--ee-border) !important;
+}
+
+html.ee-dark .etest-meditor-test-item.selected {
+  background-color: var(--ee-brand-dark) !important;
+}
+
 /* Sidebar: same tone as the dashboard tiles in the middle of the page,
    per the user's request — no longer its own darker step. */
 html.ee-dark .edubarSidebar,
@@ -670,6 +774,11 @@ html.ee-dark a {
   color: var(--ee-link) !important;
 }
 
+/* Answer labels are presentation controls, not navigation links. */
+html.ee-dark .etest-answer-num {
+  color: var(--ee-text) !important;
+}
+
 /* Grade table header row is EduPage's own hardcoded brand blue
    (rgb(44, 112, 163), confirmed live 2026-07-01), untouched by any
    theme so it clashed against purple/forest/etc. Themeable via its own
@@ -731,6 +840,16 @@ html.ee-dark .ui-datepicker-calendar .ui-state-active {
   background-color: var(--ee-card-hover) !important;
   color: var(--ee-text) !important;
   border-color: var(--ee-link) !important;
+}
+
+html.ee-dark .ui-datepicker-orbit .ui-datepicker thead,
+html.ee-dark .ui-datepicker-orbit.ui-datepicker thead {
+  border-bottom-color: var(--ee-border) !important;
+}
+
+html.ee-dark .ui-datepicker-orbit .ui-datepicker tbody tr,
+html.ee-dark .ui-datepicker-orbit.ui-datepicker tbody tr {
+  border-bottom-color: var(--ee-border) !important;
 }
 
 html.ee-dark .separator {
@@ -961,5 +1080,45 @@ html.ee-hide-personal-info form.zteFilterForm .zsvHeaderTitle > h1::before {
 }
 
 html.ee-hide-personal-info form.zteFilterForm .zsvHeaderTitle > h1 > span {
+  color: var(--ee-text) !important;
+}
+
+/* Likes are optional cleanup: hide the known message-page entry points, not
+   the surrounding message content or unrelated action controls. */
+html.ee-hide-likes .messageViewerTab[data-tab="likes"],
+html.ee-hide-likes a.likesBtn,
+html.ee-hide-likes a.thanksBtn,
+html.ee-hide-likes .akcieList > li.akciaItem:has(> a.akciaBtn[data-akcia="thanks"]),
+html.ee-hide-likes .akciaBtn:has(i.fa-thumbs-o-up.fa-fw),
+html.ee-hide-likes a:has(i.fa-thumbs-o-up.fa-fw),
+html.ee-hide-likes i.fa-thumbs-up.fa-fw,
+html.ee-hide-likes i.fa-thumbs-o-up.fa-fw {
+  display: none !important;
+}
+
+html.ee-hide-edupage-help #edubarHelpMenuBtn {
+  display: none !important;
+}
+
+html.ee-hide-home-educational-games li.testmegames,
+html.ee-hide-home-test-yourself li.testme,
+html.ee-hide-home-blackboards li.bb,
+html.ee-hide-home-photos li.nastenka_photos,
+html.ee-hide-home-registration-surveys li.signin {
+  display: none !important;
+}
+
+html.ee-hide-home-educational-games li.userButtonLast,
+html.ee-hide-home-test-yourself li.userButtonLast,
+html.ee-hide-home-blackboards li.userButtonLast,
+html.ee-hide-home-photos li.userButtonLast,
+html.ee-hide-home-registration-surveys li.userButtonLast {
+  display: none !important;
+}
+
+/* The student attendance view renders its plain-text title immediately before
+   its stable table container. Keep that title readable before content.js
+   normalizes the rest of the asynchronously rendered page. */
+html.ee-dark div:has(> .dash_dochadzka.asc-dt.ziak) > div[style*="font-weight: bold"][style*="margin-bottom: 4px"] {
   color: var(--ee-text) !important;
 }

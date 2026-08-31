@@ -177,6 +177,27 @@ runTest("Cleanup keeps the page-hero toggle beside its other opt-in decluttering
   assert.match(cleanupPanel, /for="HidePageHeroesCheckbox"/);
   assert.match(cleanupPanel, /data-i18n="hidePageHeroes"/);
   assert.match(cleanupPanel, /for="HidePersonalInfoCheckbox"/);
+  assert.match(cleanupPanel, /for="HideLikesCheckbox"/);
+  assert.match(cleanupPanel, /data-i18n="hideLikes"/);
+  assert.match(cleanupPanel, /for="HideEdupageHelpCheckbox"/);
+  assert.match(cleanupPanel, /data-i18n="hideEdupageHelp"/);
+  for (const checkbox of [
+    "HideEducationalGamesCheckbox", "HideTestYourselfCheckbox", "HideInteractiveBlackboardsCheckbox",
+    "HidePhotosCheckbox", "HideRegistrationSurveysCheckbox",
+  ]) {
+    assert.match(cleanupPanel, new RegExp(`for="${checkbox}"`));
+  }
+  for (const description of [
+    "hideEducationalGamesDesc", "hideTestYourselfDesc", "hideInteractiveBlackboardsDesc",
+    "hidePhotosDesc", "hideRegistrationSurveysDesc",
+  ]) {
+    assert.match(cleanupPanel, new RegExp(`data-i18n="${description}"`));
+  }
+  assert.doesNotMatch(cleanupPanel, /data-i18n="homeTileCleanup"/);
+  assert.match(cleanupPanel, /id="HideAllCleanupButton"/);
+  assert.match(cleanupPanel, /id="ShowAllCleanupButton"/);
+  assert.match(settingsScript, /const cleanupSection = document\.getElementById\("panel-cleanup"\);/);
+  assert.match(settingsScript, /debugSection\.before\(cleanupSection\)/);
 });
 
 runTest("Experimental stays isolated and acknowledgement expires on extension updates", () => {

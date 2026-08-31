@@ -27,10 +27,6 @@
             <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>
             <span data-i18n="groupAppearance">Appearance</span>
           </button>
-          <button class="settings-nav-item" type="button" id="nav-cleanup" aria-controls="panel-cleanup" data-target="cleanup">
-            <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
-            <span data-i18n="groupCleanup">Cleanup</span>
-          </button>
           <button class="settings-nav-item" type="button" id="nav-features" aria-controls="panel-features" data-target="features">
             <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.7a2 2 0 0 0 1.4 1.4L21 12l-5.7 1.9a2 2 0 0 0-1.4 1.4L12 21l-1.9-5.7a2 2 0 0 0-1.4-1.4L3 12l5.7-1.9a2 2 0 0 0 1.4-1.4L12 3z"/></svg>
             <span data-i18n="groupFeatures">Features</span>
@@ -46,6 +42,10 @@
           <button class="settings-nav-item" type="button" id="nav-updates" aria-controls="panel-updates" data-target="updates">
             <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
             <span data-i18n="groupUpdates">Updates</span>
+          </button>
+          <button class="settings-nav-item" type="button" id="nav-cleanup" aria-controls="panel-cleanup" data-target="cleanup">
+            <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-2.5-1-3.4 0l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
+            <span data-i18n="groupCleanup">Cleanup</span>
           </button>
           <button class="settings-nav-item" type="button" id="nav-debug" aria-controls="panel-debug" data-target="debug">
             <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>
@@ -193,6 +193,17 @@
         <div class="setting-card">
           <div class="setting-row">
             <div>
+              <h3 data-i18n="cleanupActions">Cleanup Actions</h3>
+              <p data-i18n="cleanupActionsDesc">Hide or restore every optional Cleanup item on this page.</p>
+            </div>
+            <div class="setting-row-actions">
+              <button class="secondary-button" id="HideAllCleanupButton" type="button" data-i18n="hideAllCleanup">Hide All</button>
+              <button class="secondary-button" id="ShowAllCleanupButton" type="button" data-i18n="showAllCleanup">Show All</button>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div>
               <h3 data-i18n="centeredLayout">Center Page Content</h3>
               <p data-i18n="centeredLayoutDesc">Keep the schedule and main EduPage content centered on wide screens.</p>
             </div>
@@ -217,6 +228,18 @@
 
           <div class="setting-row">
             <div>
+              <h3 data-i18n="hideEdupageHelp">Hide EduPage Help Button</h3>
+              <p data-i18n="hideEdupageHelpDesc">Hide the Get help button if you do not use EduPage's built-in help.</p>
+            </div>
+            <label class="switch switch-compact" for="HideEdupageHelpCheckbox">
+              <input type="checkbox" id="HideEdupageHelpCheckbox">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleEdupageHelp">Toggle hiding the EduPage help button</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
               <h3 data-i18n="hidePageHeroes">Hide Page Heroes</h3>
               <p data-i18n="hidePageHeroesDesc">Remove the oversized hero blocks from Messages, Assignments, Materials, and Results.</p>
             </div>
@@ -236,6 +259,78 @@
               <input type="checkbox" id="HidePersonalInfoCheckbox">
               <span class="switch-track" aria-hidden="true"></span>
               <span class="sr-only" data-i18n="togglePersonalInfo">Toggle hiding personal information</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="hideLikes">Hide Likes</h3>
+              <p data-i18n="hideLikesDesc">Hide like buttons and the Likes tab where EduPage exposes them.</p>
+            </div>
+            <label class="switch switch-compact" for="HideLikesCheckbox">
+              <input type="checkbox" id="HideLikesCheckbox">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleLikes">Toggle hiding likes</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="hideEducationalGames">Hide Educational Games</h3>
+              <p data-i18n="hideEducationalGamesDesc">Remove the Educational Games tile from the main page.</p>
+            </div>
+            <label class="switch switch-compact" for="HideEducationalGamesCheckbox">
+              <input type="checkbox" id="HideEducationalGamesCheckbox">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleEducationalGames">Toggle hiding Educational Games</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="hideTestYourself">Hide Test Yourself</h3>
+              <p data-i18n="hideTestYourselfDesc">Remove the Test Yourself tile from the main page.</p>
+            </div>
+            <label class="switch switch-compact" for="HideTestYourselfCheckbox">
+              <input type="checkbox" id="HideTestYourselfCheckbox">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleTestYourself">Toggle hiding Test Yourself</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="hideInteractiveBlackboards">Hide Interactive Blackboards</h3>
+              <p data-i18n="hideInteractiveBlackboardsDesc">Remove the Interactive Blackboards tile from the main page.</p>
+            </div>
+            <label class="switch switch-compact" for="HideInteractiveBlackboardsCheckbox">
+              <input type="checkbox" id="HideInteractiveBlackboardsCheckbox">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleInteractiveBlackboards">Toggle hiding Interactive Blackboards</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="hidePhotos">Hide Photos</h3>
+              <p data-i18n="hidePhotosDesc">Remove the Photos tile from the main page.</p>
+            </div>
+            <label class="switch switch-compact" for="HidePhotosCheckbox">
+              <input type="checkbox" id="HidePhotosCheckbox">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="togglePhotos">Toggle hiding Photos</span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <h3 data-i18n="hideRegistrationSurveys">Hide Registration / Surveys</h3>
+              <p data-i18n="hideRegistrationSurveysDesc">Remove the Registration / Surveys tile from the main page.</p>
+            </div>
+            <label class="switch switch-compact" for="HideRegistrationSurveysCheckbox">
+              <input type="checkbox" id="HideRegistrationSurveysCheckbox">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="toggleRegistrationSurveys">Toggle hiding Registration / Surveys</span>
             </label>
           </div>
 

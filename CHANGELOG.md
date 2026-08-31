@@ -4,6 +4,18 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## 1.0.5 — 2026-08-31
+
+- Added optional Cleanup controls for Likes, EduPage's built-in Get help button,
+  and selected home-page tiles, including Hide All and Show All for hide-style
+  Cleanup choices.
+- Expanded first-paint theme coverage for Attendance and eTest widgets, kept
+  attendance status colours meaningful in dark themes, and improved contrast
+  for eTest answer labels.
+- Made Chrome and Firefox use browser-specific background manifests during
+  development and packaging, removing the unsupported-background warning while
+  retaining Firefox compatibility.
+
 ## 1.0.4 — 2026-08-29
 
 - Added opt-in Cleanup controls for hiding selected oversized page heroes and

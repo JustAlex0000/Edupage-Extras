@@ -156,7 +156,7 @@ runTest("stored light theme remains light when themes are enabled", () => {
 });
 
 runTest("dark-mode normalizer only recolors visible non-heading borders", () => {
-  const { hasVisibleBorder, isHeadingElement } = loadContentInternals("/dashboard");
+  const { hasVisibleBorder, isHeadingElement, isLinkElement } = loadContentInternals("/dashboard");
   const noBorder = {
     borderTopWidth: "0px", borderRightWidth: "0px", borderBottomWidth: "0px", borderLeftWidth: "0px",
     borderTopStyle: "none", borderRightStyle: "none", borderBottomStyle: "none", borderLeftStyle: "none",
@@ -168,6 +168,34 @@ runTest("dark-mode normalizer only recolors visible non-heading borders", () => 
   assert.equal(hasVisibleBorder(bottomBorder), true);
   assert.equal(isHeadingElement({ tagName: "H1" }), true);
   assert.equal(isHeadingElement({ tagName: "DIV" }), false);
+  assert.equal(isLinkElement({ tagName: "A" }), true);
+  assert.equal(isLinkElement({ tagName: "SPAN" }), false);
+});
+
+runTest("attendance status cells keep their dedicated semantic theme colors", () => {
+  const { isAttendanceStatusElement } = loadContentInternals();
+  const statusCell = {
+    style: { backgroundColor: "rgb(202, 238, 215)" },
+    matches: (selector) => selector === "td, .p2td, span",
+    closest: (selector) => (selector === "table.dash_dochadzka, .attendance-box" ? {} : null),
+  };
+  const regularCell = { ...statusCell, style: { backgroundColor: "rgb(255, 255, 255)" } };
+  const unexcusedCell = { ...statusCell, style: { backgroundColor: "rgb(226, 171, 179)" } };
+
+  assert.equal(isAttendanceStatusElement(statusCell), true);
+  assert.equal(isAttendanceStatusElement(unexcusedCell), true);
+  assert.equal(isAttendanceStatusElement(regularCell), false);
+
+  const css = fs.readFileSync(path.join(__dirname, "..", "scripts", "theme-static.css"), "utf8");
+  assert.match(css, /--ee-attendance-excused-bg: #246b46;/);
+  assert.match(css, /--ee-attendance-representation-bg: #315c7a;/);
+  assert.match(css, /--ee-attendance-unexcused-bg: #7d3743;/);
+  assert.match(css, /background-color: rgb\(202, 238, 215\)/);
+  assert.match(css, /background-color: rgb\(206, 218, 226\)/);
+  assert.match(css, /background-color: rgb\(226, 171, 179\)/);
+  assert.match(css, /opacity: 1 !important;/);
+  assert.match(css, /table\.dash_dochadzka \[style\*="background-color: rgb\(202, 238, 215\)"\]/);
+  assert.match(css, /html\.ee-dark \.dash_dochadzka \.p2td \{\s*margin: 0 !important;\s*border: none !important;/);
 });
 
 runTest("update review links follow the current browser", () => {
@@ -283,15 +311,36 @@ runTest("known late-rendered widgets have static first-paint theme coverage", ()
     ".hwsideElem", ".ui-datepicker-calendar", ".separator", ".zsvHeaderTitle",
     ".fixedCell", ".znZnamka", ".akceptujBtn", ".dropDownBtn", ".dropDownPanel",
     ".ecourse-standards-subject-item", ".ecourse-standards-hero", ".dash_dochadzka",
+    ".dash_dochadzka.asc-dt.ziak", "thead tr.fixed", "th.head",
+    ".etest-meditor-searchdiv", ".etest-studentVysledkyElem", ".hwAkcie", ".hwPoznamka",
+    ".etest-meditor-test-item", ".etest-meditor-test-list-month",
   ]) {
     assert.match(themeCss, new RegExp(selector.replace(/\./g, "\\.")));
     assert.match(instantCss, new RegExp(selector.replace(/\./g, "\\.")));
   }
+  const paddedAttendanceWrapper = 'div[style*="padding: 10px"]:has(.dash_dochadzka.asc-dt.ziak)';
+  assert.ok(themeCss.includes(paddedAttendanceWrapper));
+  assert.ok(instantCss.includes(paddedAttendanceWrapper));
   assert.match(themeCss, /html\.ee-dark \.usercalendarTitle \{\s*border: none !important;/);
   assert.match(themeCss, /html\.ee-hide-page-heroes \.hwHeroDiv\.messages/);
   assert.match(themeCss, /\.hwHeroDiv\.ucivo/);
   assert.match(themeCss, /\.hwHeroDiv\.results/);
   assert.match(themeCss, /html\.ee-dark \.ribbon-button\.sel/);
+  assert.match(themeCss, /html\.ee-dark \.asc-ribbon \{/);
+  assert.match(themeCss, /html\.ee-dark \.asc-ribbon-button\.selected,/);
+  assert.match(themeCss, /html\.ee-dark \.ui-datepicker-orbit \.ui-datepicker thead,/);
+  assert.match(instantCss, /html\.ee-dark \.ui-datepicker-orbit \.ui-datepicker thead,/);
+  assert.match(themeCss, /html\.ee-dark \.ui-datepicker-orbit \.ui-datepicker tbody tr,/);
+  assert.match(instantCss, /html\.ee-dark \.ui-datepicker-orbit \.ui-datepicker tbody tr,/);
+  assert.match(themeCss, /html\.ee-hide-likes \.akcieList > li\.akciaItem:has\(> a\.akciaBtn\[data-akcia="thanks"\]\),/);
+  assert.match(themeCss, /html\.ee-hide-likes \.akciaBtn:has\(i\.fa-thumbs-o-up\.fa-fw\),/);
+  assert.match(themeCss, /html\.ee-hide-likes a\.thanksBtn,/);
+  assert.match(themeCss, /html\.ee-hide-edupage-help #edubarHelpMenuBtn \{/);
+  assert.match(themeCss, /html\.ee-hide-home-educational-games li\.testmegames,/);
+  assert.match(themeCss, /html\.ee-hide-home-registration-surveys li\.signin \{/);
+  assert.match(themeCss, /html\.ee-hide-home-educational-games li\.userButtonLast,/);
+  assert.match(themeCss, /div:has\(> \.dash_dochadzka\.asc-dt\.ziak\) > div\[style\*="font-weight: bold"\]/);
+  assert.match(themeCss, /html\.ee-dark \.etest-answer-num \{\s*color: var\(--ee-text\) !important;/);
   assert.match(themeCss, /html\.ee-hide-personal-info \.edubarProfilebox \.profilemenu \.userName/);
   assert.match(themeCss, /html\.ee-hide-personal-info form\.zteFilterForm \.zsvHeaderTitle > h1::before/);
   assert.match(themeCss, /content: "---, ";/);

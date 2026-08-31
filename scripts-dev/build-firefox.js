@@ -5,10 +5,10 @@ const path = require("node:path");
 const {
   ROOT,
   ARTIFACTS_DIR,
-  createPackageStaging,
+  createFirefoxPackageStaging,
 } = require("./package-policy");
 
-const staging = createPackageStaging("ee-firefox-");
+const staging = createFirefoxPackageStaging("ee-firefox-");
 const webExt = path.join(ROOT, "node_modules", ".bin", "web-ext");
 
 try {

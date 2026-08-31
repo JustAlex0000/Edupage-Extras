@@ -2,7 +2,7 @@
   "name": "__MSG_extName__",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "manifest_version": 3,
   "icons": {
     "16": "images/icon-16.png",
@@ -32,8 +32,7 @@
     "https://raw.githubusercontent.com/JustAlex0000/Edupage-Extras/*"
   ],
   "background": {
-    "service_worker": "scripts/background.js",
-    "scripts": ["scripts/lib/ee-common.js", "scripts/background.js"]
+    "service_worker": "scripts/background.js"
   },
   "commands": {
     "toggle-stay-active-mode": {

@@ -78,6 +78,13 @@ const CLEAN_UI_CLASS = "ee-clean-ui";
 const HIDE_HELP_TEXT_CLASS = "ee-hide-help-text";
 const HIDE_PAGE_HEROES_CLASS = "ee-hide-page-heroes";
 const HIDE_PERSONAL_INFO_CLASS = "ee-hide-personal-info";
+const HIDE_LIKES_CLASS = "ee-hide-likes";
+const HIDE_EDUPAGE_HELP_CLASS = "ee-hide-edupage-help";
+const HIDE_EDUCATIONAL_GAMES_CLASS = "ee-hide-home-educational-games";
+const HIDE_TEST_YOURSELF_CLASS = "ee-hide-home-test-yourself";
+const HIDE_INTERACTIVE_BLACKBOARDS_CLASS = "ee-hide-home-blackboards";
+const HIDE_PHOTOS_CLASS = "ee-hide-home-photos";
+const HIDE_REGISTRATION_SURVEYS_CLASS = "ee-hide-home-registration-surveys";
 // "pink" is a light pastel theme, not a dark one — it still goes through the
 // ee-dark code path (recolors EduPage's containers via the --ee-* vars), but
 // dark-mode-specific sensory adjustments (forced color-scheme: dark, image
@@ -93,6 +100,11 @@ const TEXT_CLASS = "ee-dark-text";
 const MUTED_TEXT_CLASS = "ee-dark-muted-text";
 const BORDER_CLASS = "ee-dark-border";
 const NORMALIZED_ATTR = "data-ee-dark-normalized";
+const ATTENDANCE_STATUS_BACKGROUNDS = new Set([
+  "rgb(202, 238, 215)", // excused absence
+  "rgb(206, 218, 226)", // representation
+  "rgb(226, 171, 179)", // unexcused absence
+]);
 
 let observer = null;
 let normalizeTimer = null;
@@ -104,6 +116,13 @@ let cleanUiEnabled = false;
 let hideHelpTextEnabled = false;
 let hidePageHeroesEnabled = false;
 let hidePersonalInfoEnabled = false;
+let hideLikesEnabled = false;
+let hideEdupageHelpEnabled = false;
+let hideEducationalGamesEnabled = false;
+let hideTestYourselfEnabled = false;
+let hideInteractiveBlackboardsEnabled = false;
+let hidePhotosEnabled = false;
+let hideRegistrationSurveysEnabled = false;
 let currentRozvrhRoomChangeColor = DEFAULT_ROZVRH_ROOM_CHANGE_COLOR;
 let currentRozvrhSubstitutionColor = DEFAULT_ROZVRH_SUBSTITUTION_COLOR;
 let etestAutoThemeOffEnabled = false;
@@ -204,10 +223,29 @@ function isHeadingElement(element) {
   return /^H[1-6]$/.test(element.tagName);
 }
 
+function isLinkElement(element) {
+  return element.tagName === "A";
+}
+
+function isAttendanceStatusElement(element) {
+  const inlineBackground = String(element?.style?.backgroundColor || "").replace(/\s+/g, " ").trim();
+  return ATTENDANCE_STATUS_BACKGROUNDS.has(inlineBackground)
+    && Boolean(element.matches?.("td, .p2td, span"))
+    && Boolean(element.closest?.("table.dash_dochadzka, .attendance-box"));
+}
+
 function normalizeElement(element) {
   if (shouldSkipElement(element)) return;
 
   resetElementClasses(element);
+
+  // Attendance uses lightly colored inline cells to distinguish statuses.
+  // They are data meaning, not light surfaces, so the dark-mode normalizer
+  // must leave the dedicated Attendance theme rule in control.
+  if (isAttendanceStatusElement(element)) {
+    element.setAttribute(NORMALIZED_ATTR, "1");
+    return;
+  }
 
   const styles = window.getComputedStyle(element);
   const background = parseRgb(styles.backgroundColor);
@@ -236,7 +274,10 @@ function normalizeElement(element) {
     }
   }
 
-  if (color && color.a > 0.35) {
+  // Theme CSS deliberately gives anchors the accent color. Do not attach a
+  // generic text class here: its class selector would outrank `html.ee-dark a`
+  // and turn native links into muted/plain text after the first paint.
+  if (!isLinkElement(element) && color && color.a > 0.35) {
     const textLum = luminance(color);
     if (textLum < 0.2) {
       element.classList.add(TEXT_CLASS);
@@ -413,13 +454,20 @@ function applyRozvrhColorProperties(roomChangeColor, substitutionColor) {
   root.style.setProperty("--ee-rozvrh-substitution-color", normalizeColor(substitutionColor, DEFAULT_ROZVRH_SUBSTITUTION_COLOR));
 }
 
-function setThemeClasses(theme, cleanEnabled, helpHidden, heroesHidden, personalInfoHidden, schemeIsLight) {
+function setThemeClasses(theme, cleanEnabled, helpHidden, heroesHidden, personalInfoHidden, likesHidden, edupageHelpHidden, educationalGamesHidden, testYourselfHidden, interactiveBlackboardsHidden, photosHidden, registrationSurveysHidden, schemeIsLight) {
   const root = document.documentElement;
   root.classList.remove(...THEME_CLASSES);
   root.classList.toggle(CLEAN_UI_CLASS, cleanEnabled);
   root.classList.toggle(HIDE_HELP_TEXT_CLASS, helpHidden);
   root.classList.toggle(HIDE_PAGE_HEROES_CLASS, heroesHidden);
   root.classList.toggle(HIDE_PERSONAL_INFO_CLASS, personalInfoHidden);
+  root.classList.toggle(HIDE_LIKES_CLASS, likesHidden);
+  root.classList.toggle(HIDE_EDUPAGE_HELP_CLASS, edupageHelpHidden);
+  root.classList.toggle(HIDE_EDUCATIONAL_GAMES_CLASS, educationalGamesHidden);
+  root.classList.toggle(HIDE_TEST_YOURSELF_CLASS, testYourselfHidden);
+  root.classList.toggle(HIDE_INTERACTIVE_BLACKBOARDS_CLASS, interactiveBlackboardsHidden);
+  root.classList.toggle(HIDE_PHOTOS_CLASS, photosHidden);
+  root.classList.toggle(HIDE_REGISTRATION_SURVEYS_CLASS, registrationSurveysHidden);
   root.classList.add(`ee-theme-${theme}`);
   root.classList.toggle(SCHEME_DARK_CLASS, theme !== "light" && !schemeIsLight);
   root.dataset.eeTheme = theme;
@@ -475,12 +523,20 @@ function applyTheme({
   helpHidden = hideHelpTextEnabled,
   heroesHidden = hidePageHeroesEnabled,
   personalInfoHidden = hidePersonalInfoEnabled,
+  likesHidden = hideLikesEnabled,
+  edupageHelpHidden = hideEdupageHelpEnabled,
+  educationalGamesHidden = hideEducationalGamesEnabled,
+  testYourselfHidden = hideTestYourselfEnabled,
+  interactiveBlackboardsHidden = hideInteractiveBlackboardsEnabled,
+  photosHidden = hidePhotosEnabled,
+  registrationSurveysHidden = hideRegistrationSurveysEnabled,
   rozvrhRoomChangeColor = currentRozvrhRoomChangeColor,
   rozvrhSubstitutionColor = currentRozvrhSubstitutionColor,
   etestAutoThemeOff = etestAutoThemeOffEnabled,
 } = {}) {
   lastThemeSettings = {
-    darkModeEnabled, theme, customTheme, cleanEnabled, helpHidden, heroesHidden, personalInfoHidden,
+    darkModeEnabled, theme, customTheme, cleanEnabled, helpHidden, heroesHidden, personalInfoHidden, likesHidden, edupageHelpHidden,
+    educationalGamesHidden, testYourselfHidden, interactiveBlackboardsHidden, photosHidden, registrationSurveysHidden,
     rozvrhRoomChangeColor, rozvrhSubstitutionColor, etestAutoThemeOff,
   };
   etestAutoThemeOffEnabled = etestAutoThemeOff;
@@ -498,11 +554,18 @@ function applyTheme({
   hideHelpTextEnabled = helpHidden;
   hidePageHeroesEnabled = heroesHidden;
   hidePersonalInfoEnabled = personalInfoHidden;
+  hideLikesEnabled = likesHidden;
+  hideEdupageHelpEnabled = edupageHelpHidden;
+  hideEducationalGamesEnabled = educationalGamesHidden;
+  hideTestYourselfEnabled = testYourselfHidden;
+  hideInteractiveBlackboardsEnabled = interactiveBlackboardsHidden;
+  hidePhotosEnabled = photosHidden;
+  hideRegistrationSurveysEnabled = registrationSurveysHidden;
   currentRozvrhRoomChangeColor = normalizeColor(rozvrhRoomChangeColor, DEFAULT_ROZVRH_ROOM_CHANGE_COLOR);
   currentRozvrhSubstitutionColor = normalizeColor(rozvrhSubstitutionColor, DEFAULT_ROZVRH_SUBSTITUTION_COLOR);
   applyCustomThemeProperties(currentCustomTheme);
   applyRozvrhColorProperties(currentRozvrhRoomChangeColor, currentRozvrhSubstitutionColor);
-  setThemeClasses(selectedTheme, cleanEnabled, helpHidden, heroesHidden, personalInfoHidden, isLightTonedTheme(selectedTheme, currentCustomTheme));
+  setThemeClasses(selectedTheme, cleanEnabled, helpHidden, heroesHidden, personalInfoHidden, likesHidden, edupageHelpHidden, educationalGamesHidden, testYourselfHidden, interactiveBlackboardsHidden, photosHidden, registrationSurveysHidden, isLightTonedTheme(selectedTheme, currentCustomTheme));
 
   if (selectedTheme !== "light") {
     document.documentElement.classList.add(CLASS_NAME);
@@ -539,6 +602,13 @@ function initDarkMode() {
         helpHidden: themeSettings.hideHelpTextEnabled,
         heroesHidden: themeSettings.hidePageHeroesEnabled,
         personalInfoHidden: themeSettings.hidePersonalInfoEnabled,
+        likesHidden: themeSettings.hideLikesEnabled,
+        edupageHelpHidden: themeSettings.hideEdupageHelpEnabled,
+        educationalGamesHidden: themeSettings.hideEducationalGamesEnabled,
+        testYourselfHidden: themeSettings.hideTestYourselfEnabled,
+        interactiveBlackboardsHidden: themeSettings.hideInteractiveBlackboardsEnabled,
+        photosHidden: themeSettings.hidePhotosEnabled,
+        registrationSurveysHidden: themeSettings.hideRegistrationSurveysEnabled,
         rozvrhRoomChangeColor: themeSettings.rozvrhRoomChangeColor,
         rozvrhSubstitutionColor: themeSettings.rozvrhSubstitutionColor,
         etestAutoThemeOff: isEtestAutoThemeOffActive(result),
@@ -558,6 +628,8 @@ if (globalThis.__EE_TEST__) {
     normalizeTheme,
     hasVisibleBorder,
     isHeadingElement,
+    isLinkElement,
+    isAttendanceStatusElement,
     shouldSuppressThemeForPath,
     resolveAppliedTheme,
     isEtestAutoThemeOffActive,
@@ -767,6 +839,13 @@ chrome.storage.onChanged.addListener((changes, area) => {
         helpHidden: themeSettings.hideHelpTextEnabled,
         heroesHidden: themeSettings.hidePageHeroesEnabled,
         personalInfoHidden: themeSettings.hidePersonalInfoEnabled,
+        likesHidden: themeSettings.hideLikesEnabled,
+        edupageHelpHidden: themeSettings.hideEdupageHelpEnabled,
+        educationalGamesHidden: themeSettings.hideEducationalGamesEnabled,
+        testYourselfHidden: themeSettings.hideTestYourselfEnabled,
+        interactiveBlackboardsHidden: themeSettings.hideInteractiveBlackboardsEnabled,
+        photosHidden: themeSettings.hidePhotosEnabled,
+        registrationSurveysHidden: themeSettings.hideRegistrationSurveysEnabled,
         rozvrhRoomChangeColor: themeSettings.rozvrhRoomChangeColor,
         rozvrhSubstitutionColor: themeSettings.rozvrhSubstitutionColor,
         etestAutoThemeOff: isEtestAutoThemeOffActive(result),
@@ -787,6 +866,13 @@ chrome.runtime.onMessage.addListener((message) => {
       helpHidden: message.hideHelpTextEnabled === true,
       heroesHidden: message.hidePageHeroesEnabled === true,
       personalInfoHidden: message.hidePersonalInfoEnabled === true,
+      likesHidden: message.hideLikesEnabled === true,
+      edupageHelpHidden: message.hideEdupageHelpEnabled === true,
+      educationalGamesHidden: message.hideEducationalGamesEnabled === true,
+      testYourselfHidden: message.hideTestYourselfEnabled === true,
+      interactiveBlackboardsHidden: message.hideInteractiveBlackboardsEnabled === true,
+      photosHidden: message.hidePhotosEnabled === true,
+      registrationSurveysHidden: message.hideRegistrationSurveysEnabled === true,
       rozvrhRoomChangeColor: message.rozvrhRoomChangeColor || currentRozvrhRoomChangeColor,
       rozvrhSubstitutionColor: message.rozvrhSubstitutionColor || currentRozvrhSubstitutionColor,
       etestAutoThemeOff: message.etestAutoThemeOff === true,

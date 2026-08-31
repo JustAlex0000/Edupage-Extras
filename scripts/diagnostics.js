@@ -427,6 +427,52 @@
     return `${tag}${classNames.map((name) => `.${name}`).join("")}`;
   }
 
+  function safeStyleSelector(selector) {
+    const value = String(selector || "").trim();
+    // Rule selectors are useful for a style fix, but never retain DOM IDs or
+    // attribute selectors: either can encode a user-specific value.
+    if (!value || value.length > 240 || /[#[\]]/.test(value)) return null;
+    return value;
+  }
+
+  function matchedStyleSources(element) {
+    const sources = { inlineProperties: [], backgroundSelectors: [], colorSelectors: [] };
+    if (element.style) {
+      ["background", "background-color", "color"].forEach((property) => {
+        if (element.style.getPropertyValue(property)) sources.inlineProperties.push(property);
+      });
+    }
+
+    const addMatchingRules = (rules) => {
+      Array.from(rules || []).forEach((rule) => {
+        if (sources.backgroundSelectors.length >= 8 && sources.colorSelectors.length >= 8) return;
+        if (rule.cssRules) addMatchingRules(rule.cssRules);
+        if (!rule.selectorText || !rule.style) return;
+        const selector = safeStyleSelector(rule.selectorText);
+        if (!selector) return;
+        try {
+          if (!element.matches(selector)) return;
+        } catch (_) {
+          return;
+        }
+        if (
+          sources.backgroundSelectors.length < 8
+          && (rule.style.getPropertyValue("background") || rule.style.getPropertyValue("background-color"))
+        ) {
+          sources.backgroundSelectors.push(selector);
+        }
+        if (sources.colorSelectors.length < 8 && rule.style.getPropertyValue("color")) {
+          sources.colorSelectors.push(selector);
+        }
+      });
+    };
+
+    Array.from(document.styleSheets || []).forEach((sheet) => {
+      try { addMatchingRules(sheet.cssRules); } catch (_) { /* cross-origin stylesheet */ }
+    });
+    return sources;
+  }
+
   function describeElement(element) {
     const styles = getComputedStyle(element);
     const border = (side) => ({
@@ -445,6 +491,7 @@
       tag: String(element.tagName || "div").toLowerCase(),
       classes: safeClassNames(element, 16),
       ancestors,
+      styleSources: matchedStyleSources(element),
       size: { width: Math.round(rect.width), height: Math.round(rect.height) },
       computed: {
         display: styles.display,

@@ -1,6 +1,4 @@
-// Chrome loads this file alone as the MV3 service worker, so the shared lib
-// must be pulled in here; Firefox's event page already lists it in the
-// manifest background "scripts" array (importScripts doesn't exist there).
+// MV3 loads this file as the service worker, so load the shared library here.
 if (typeof importScripts === "function" && typeof globalThis.EE === "undefined") {
   importScripts("lib/ee-common.js");
 }

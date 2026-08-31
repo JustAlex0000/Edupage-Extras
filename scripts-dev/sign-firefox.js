@@ -5,7 +5,7 @@ const path = require("node:path");
 const {
   ROOT,
   ARTIFACTS_DIR,
-  createPackageStaging,
+  createFirefoxPackageStaging,
 } = require("./package-policy");
 
 const apiKey = process.env.WEB_EXT_API_KEY;
@@ -15,7 +15,7 @@ if (!apiKey || !apiSecret) {
   process.exit(1);
 }
 
-const staging = createPackageStaging("ee-firefox-sign-");
+const staging = createFirefoxPackageStaging("ee-firefox-sign-");
 const webExt = path.join(ROOT, "node_modules", ".bin", "web-ext");
 
 try {

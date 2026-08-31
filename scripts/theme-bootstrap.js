@@ -23,6 +23,13 @@
     root.classList.add("ee-dark", `ee-theme-${theme}`);
     root.classList.toggle("ee-hide-page-heroes", cached.hidePageHeroesEnabled === true);
     root.classList.toggle("ee-hide-personal-info", cached.hidePersonalInfoEnabled === true);
+    root.classList.toggle("ee-hide-likes", cached.hideLikesEnabled === true);
+    root.classList.toggle("ee-hide-edupage-help", cached.hideEdupageHelpEnabled === true);
+    root.classList.toggle("ee-hide-home-educational-games", cached.hideEducationalGamesEnabled === true);
+    root.classList.toggle("ee-hide-home-test-yourself", cached.hideTestYourselfEnabled === true);
+    root.classList.toggle("ee-hide-home-blackboards", cached.hideInteractiveBlackboardsEnabled === true);
+    root.classList.toggle("ee-hide-home-photos", cached.hidePhotosEnabled === true);
+    root.classList.toggle("ee-hide-home-registration-surveys", cached.hideRegistrationSurveysEnabled === true);
     root.classList.toggle("ee-scheme-dark", theme !== "pink" && !customIsLight);
     root.dataset.eeTheme = theme;
     root.style.backgroundColor = theme === "custom" ? customTheme.bgBase : backgrounds[theme];

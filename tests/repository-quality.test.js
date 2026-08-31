@@ -224,6 +224,9 @@ test("the page style inspector remains session-only and omits route data", () =>
   assert.match(inspector, /sessionStorage\.setItem/);
   assert.match(inspector, /sessionStorage\.getItem/);
   assert.match(inspector, /No page text, IDs, attribute values, screenshots, or URLs are included\./);
+  assert.match(inspector, /function safeStyleSelector\(selector\)/);
+  assert.match(inspector, /\[\#\[\\\]\]/);
+  assert.match(inspector, /inlineProperties/);
   assert.doesNotMatch(inspector, /location\.pathname/);
   assert.doesNotMatch(inspector, /page:\s*\{\s*path:/);
 });
