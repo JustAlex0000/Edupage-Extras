@@ -87,9 +87,15 @@ runTest("Test Question Helper stays opt-in inside Experimental", () => {
   assert.match(html, /value="lmstudio"/);
   assert.match(html, /value="nvidia"/);
   assert.match(html, /value="openrouter"/);
+  assert.match(html, /value="gemini"/);
   assert.match(html, /id="OpenAiShortcutSettingsButton"/);
   assert.match(html, /id="AiHelperMessagesCheckbox"/);
+  assert.match(html, /id="AiAnswerModeSelect"/);
+  assert.match(html, /value="hotkeys"/);
+  assert.match(html, /id="AiVisualFallbackCheckbox"/);
   assert.match(settingsScript, /suggest-test-question/);
+  assert.match(settingsScript, /const AI_ANSWER_MODE_KEY = "eeAiAnswerMode"/);
+  assert.match(settingsScript, /if \(provider === "gemini"\) return "https:\/\/generativelanguage\.googleapis\.com\/\*"/);
   assert.match(settingsScript, /aiQuestionHelperToggle\.checked = result\[AI_HELPER_ENABLED_KEY\] === true/);
   assert.match(settingsScript, /aiHelperMessagesToggle\.checked = result\[AI_HELPER_MESSAGES_KEY\] === true/);
 });

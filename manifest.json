@@ -2,7 +2,7 @@
   "name": "__MSG_extName__",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "manifest_version": 3,
   "icons": {
     "16": "images/icon-16.png",
@@ -23,6 +23,7 @@
   "optional_host_permissions": [
     "http://127.0.0.1/*",
     "http://localhost/*",
+    "https://generativelanguage.googleapis.com/*",
     "https://integrate.api.nvidia.com/*",
     "https://openrouter.ai/*",
     "https://edublurtesting.ct.ws/*"

@@ -12,6 +12,8 @@
   const ETEST_INCLUDE_IMAGES_KEY = "eeEtestIncludeImages";
   const AI_HELPER_ENABLED_KEY = "eeAiQuestionHelperEnabled";
   const AI_HELPER_MESSAGES_KEY = "eeAiHelperMessagesEnabled";
+  const AI_ANSWER_MODE_KEY = "eeAiAnswerMode";
+  const AI_VISUAL_FALLBACK_KEY = "eeAiVisualFallbackEnabled";
   const COPY_BTN_CLASS = "ee-etest-question-copy-btn";
   const COPY_ALL_BTN_CLASS = "ee-etest-copyall-btn";
   const AI_BTN_CLASS = "ee-etest-ai-btn";
@@ -61,6 +63,8 @@
   let includeWholeTestImages = true;
   let aiHelperEnabled = false;
   let aiHelperMessagesEnabled = false;
+  let aiAnswerMode = "buttons";
+  let aiVisualFallbackEnabled = false;
   let aiMatchRequestSequence = 0;
   let observerTimer = null;
   let snapshotTimer = null;
@@ -1036,7 +1040,9 @@
       }
       if (!questionHasAnswer(content) && canApplyAiAnswer(content, response.suggestion)
         && applyAiAnswer(content, response.suggestion) && questionHasAnswer(content)) return;
-      applyAiSuggestion(content, response.suggestion, { showOrderingHint: hadOrderingAnswer });
+      if (aiVisualFallbackEnabled) {
+        applyAiSuggestion(content, response.suggestion, { showOrderingHint: hadOrderingAnswer });
+      }
     });
   }
 
@@ -1242,7 +1248,7 @@
       } else if (!playactions.querySelector(`.${COPY_BTN_CLASS}`)) {
         playactions.insertBefore(makeCopyButton(playactions), playactions.firstChild);
       }
-      if (!aiHelperEnabled) {
+      if (!aiHelperEnabled || aiAnswerMode === "hotkeys") {
         playactions.querySelectorAll(`.${AI_BTN_CLASS}`).forEach((button) => button.remove());
         const content = playactions.closest(".etest-question-content");
         if (content) clearAiSuggestion(content);
@@ -1355,6 +1361,10 @@
       wholeTestImages: values[ETEST_INCLUDE_IMAGES_KEY] !== false,
       aiHelper: values[AI_HELPER_ENABLED_KEY] === true,
       aiHelperMessages: values[AI_HELPER_MESSAGES_KEY] === true,
+      aiAnswerMode: ["buttons", "hotkeys", "both"].includes(values[AI_ANSWER_MODE_KEY])
+        ? values[AI_ANSWER_MODE_KEY]
+        : "buttons",
+      aiVisualFallback: values[AI_VISUAL_FALLBACK_KEY] === true,
     };
   }
 
@@ -1367,6 +1377,8 @@
       ETEST_INCLUDE_IMAGES_KEY,
       AI_HELPER_ENABLED_KEY,
       AI_HELPER_MESSAGES_KEY,
+      AI_ANSWER_MODE_KEY,
+      AI_VISUAL_FALLBACK_KEY,
     ];
     chrome.storage.local.get(keys, (result) => {
       const preferences = resolvePreferences(result);
@@ -1377,6 +1389,8 @@
       includeWholeTestImages = preferences.wholeTestImages;
       aiHelperEnabled = preferences.aiHelper;
       aiHelperMessagesEnabled = preferences.aiHelperMessages;
+      aiAnswerMode = preferences.aiAnswerMode;
+      aiVisualFallbackEnabled = preferences.aiVisualFallback;
       ensureButtons();
     });
 
@@ -1393,6 +1407,12 @@
       if (changes[ETEST_INCLUDE_IMAGES_KEY]) includeWholeTestImages = changes[ETEST_INCLUDE_IMAGES_KEY].newValue !== false;
       if (changes[AI_HELPER_ENABLED_KEY]) aiHelperEnabled = changes[AI_HELPER_ENABLED_KEY].newValue === true;
       if (changes[AI_HELPER_MESSAGES_KEY]) aiHelperMessagesEnabled = changes[AI_HELPER_MESSAGES_KEY].newValue === true;
+      if (changes[AI_ANSWER_MODE_KEY]) {
+        aiAnswerMode = ["buttons", "hotkeys", "both"].includes(changes[AI_ANSWER_MODE_KEY].newValue)
+          ? changes[AI_ANSWER_MODE_KEY].newValue
+          : "buttons";
+      }
+      if (changes[AI_VISUAL_FALLBACK_KEY]) aiVisualFallbackEnabled = changes[AI_VISUAL_FALLBACK_KEY].newValue === true;
       if (keys.some((key) => changes[key])) ensureButtons();
     });
   }
@@ -1437,7 +1457,7 @@
   }
 
   chrome.runtime.onMessage.addListener((message) => {
-    if (message?.type === "ee-ai-suggest-current-question" && aiHelperEnabled) {
+    if (message?.type === "ee-ai-suggest-current-question" && aiHelperEnabled && aiAnswerMode !== "buttons") {
       const content = getCurrentAiQuestion();
       if (content) requestAiSuggestion(content);
       return;

@@ -22,8 +22,9 @@ const AI_PROVIDER_KEY = "eeAiProvider";
 const AI_ENDPOINT_KEY = "eeAiEndpoint";
 const AI_MODEL_KEY = "eeAiModel";
 const AI_ACCESS_TOKEN_KEY = "eeAiAccessToken";
-const AI_PROVIDERS = new Set(["ollama", "lmstudio", "nvidia", "openrouter"]);
+const AI_PROVIDERS = new Set(["ollama", "lmstudio", "nvidia", "openrouter", "gemini"]);
 const AI_CLOUD_ENDPOINTS = {
+  gemini: "https://generativelanguage.googleapis.com",
   nvidia: "https://integrate.api.nvidia.com",
   openrouter: "https://openrouter.ai",
 };
@@ -112,7 +113,8 @@ function resolveAiProviderConfig(values = {}) {
   const accessToken = normalizeAiText(values[AI_ACCESS_TOKEN_KEY], 500);
   if (!model) throw new Error("Choose a model first.");
   if (AI_CLOUD_ENDPOINTS[provider] && !accessToken) {
-    throw new Error(`Enter an ${provider === "nvidia" ? "NVIDIA" : "OpenRouter"} API key first.`);
+    const providerName = { gemini: "Gemini", nvidia: "NVIDIA", openrouter: "OpenRouter" }[provider];
+    throw new Error(`Enter ${provider === "nvidia" ? "an" : "a"} ${providerName} API key first.`);
   }
   return {
     provider,
@@ -225,12 +227,48 @@ async function fetchAiJson(url, options = {}) {
 
 function extractAiMessageContent(data, provider) {
   if (provider === "ollama") return normalizeAiText(data?.message?.content, AI_MAX_RESPONSE_LENGTH);
+  if (provider === "gemini") {
+    const parts = data?.candidates?.[0]?.content?.parts;
+    return Array.isArray(parts)
+      ? normalizeAiText(parts.map((part) => part?.text || "").join(""), AI_MAX_RESPONSE_LENGTH)
+      : "";
+  }
   const content = data?.choices?.[0]?.message?.content;
   if (typeof content === "string") return normalizeAiText(content, AI_MAX_RESPONSE_LENGTH);
   if (Array.isArray(content)) {
     return normalizeAiText(content.map((part) => part?.text || "").join(""), AI_MAX_RESPONSE_LENGTH);
   }
   return "";
+}
+
+function buildGeminiGenerationConfig(model = "") {
+  const generationConfig = {
+    maxOutputTokens: 1_000,
+    responseMimeType: "application/json",
+  };
+  const modelId = String(model || "").replace(/^models\//, "").toLowerCase();
+  if (/^gemini-3(?:[.-]|$)/.test(modelId)) {
+    generationConfig.thinkingConfig = { thinkingLevel: "LOW" };
+  } else {
+    generationConfig.temperature = 0.1;
+    if (/^gemini-2\.5-flash(?:-lite)?(?:-|$)/.test(modelId)) {
+      generationConfig.thinkingConfig = { thinkingBudget: 0 };
+    }
+  }
+  return generationConfig;
+}
+
+function buildGeminiModelUrl(config, operation = "") {
+  const model = config.model.replace(/^models\//, "");
+  const suffix = operation ? `:${operation}` : "";
+  return `${config.endpoint}/v1beta/models/${encodeURIComponent(model)}${suffix}`;
+}
+
+function buildGeminiHeaders(accessToken) {
+  return {
+    "Content-Type": "application/json",
+    "x-goog-api-key": accessToken,
+  };
 }
 
 function parseAiJsonObject(content) {
@@ -409,6 +447,13 @@ async function requestAiQuestionSuggestion(questionInput) {
       format: "json",
       options: { temperature: 0.1 },
     };
+  } else if (config.provider === "gemini") {
+    url = buildGeminiModelUrl(config, "generateContent");
+    headers = buildGeminiHeaders(config.accessToken);
+    body = {
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: buildGeminiGenerationConfig(config.model),
+    };
   } else {
     url = config.provider === "openrouter"
       ? "https://openrouter.ai/api/v1/chat/completions"
@@ -465,6 +510,9 @@ async function testAiProviderConnection() {
       throw new Error("The provider returned an unreadable test response.");
     }
     return { provider: config.provider, model: config.model };
+  } else if (config.provider === "gemini") {
+    url = buildGeminiModelUrl(config);
+    headers = buildGeminiHeaders(config.accessToken);
   } else if (config.provider === "ollama") {
     url = `${config.endpoint}/api/tags`;
   } else {
@@ -472,7 +520,12 @@ async function testAiProviderConnection() {
     if (config.accessToken) headers.Authorization = `Bearer ${config.accessToken}`;
   }
   const data = await fetchAiJson(url, { method: "GET", headers });
-  if (config.provider !== "openrouter") {
+  if (config.provider === "gemini") {
+    const returnedModel = normalizeAiText(data?.name, 240).replace(/^models\//, "");
+    if (returnedModel !== config.model.replace(/^models\//, "")) {
+      throw new Error("The configured model is not available for this API key.");
+    }
+  } else if (config.provider !== "openrouter") {
     const models = config.provider === "ollama" ? data?.models : data?.data;
     if (!Array.isArray(models)) throw new Error("The provider returned an unreadable model list.");
     const names = models.map((model) => normalizeAiText(model?.name || model?.model || model?.id, 240));
@@ -1949,6 +2002,9 @@ if (globalThis.__EE_TEST__) {
     resolveAiProviderConfig,
     sanitizeAiQuestion,
     buildAiQuestionPrompt,
+    buildGeminiGenerationConfig,
+    buildGeminiHeaders,
+    buildGeminiModelUrl,
     parseAiJsonObject,
     validateAiSuggestion,
     normalizeAiFillIns,

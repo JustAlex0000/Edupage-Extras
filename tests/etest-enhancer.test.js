@@ -200,6 +200,8 @@ test("test copying is opt-in while its child preferences default on", () => {
       wholeTestImages: true,
       aiHelper: false,
       aiHelperMessages: false,
+      aiAnswerMode: "buttons",
+      aiVisualFallback: false,
     },
   );
   assert.deepEqual(
@@ -215,11 +217,16 @@ test("test copying is opt-in while its child preferences default on", () => {
       wholeTestImages: true,
       aiHelper: false,
       aiHelperMessages: false,
+      aiAnswerMode: "buttons",
+      aiVisualFallback: false,
     },
   );
   assert.equal(resolvePreferences({ eeEtestCopyEnabled: true }).copyEnabled, true);
   assert.equal(resolvePreferences({ eeAiQuestionHelperEnabled: true }).aiHelper, true);
   assert.equal(resolvePreferences({ eeAiHelperMessagesEnabled: true }).aiHelperMessages, true);
+  assert.equal(resolvePreferences({ eeAiAnswerMode: "hotkeys" }).aiAnswerMode, "hotkeys");
+  assert.equal(resolvePreferences({ eeAiAnswerMode: "unexpected" }).aiAnswerMode, "buttons");
+  assert.equal(resolvePreferences({ eeAiVisualFallbackEnabled: true }).aiVisualFallback, true);
 });
 
 test("mixed question interaction data keeps every supported control type", () => {

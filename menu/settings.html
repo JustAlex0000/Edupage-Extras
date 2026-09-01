@@ -699,7 +699,7 @@
                 <p data-i18n="aiQuestionHelperDesc">Add a small suggestion button beside each eTest question. Suggestions can be wrong, so check them before using them.</p>
               </div>
               <div class="setting-row-actions">
-                <button class="secondary-button setting-shortcut-button" id="OpenAiShortcutSettingsButton" type="button" data-i18n="openShortcutSettings">Open Shortcut Settings</button>
+                <button class="secondary-button setting-shortcut-button" id="OpenAiShortcutSettingsButton" type="button" data-i18n="openShortcutSettings" hidden>Open Shortcut Settings</button>
                 <label class="switch switch-compact" for="AiQuestionHelperCheckbox">
                   <input type="checkbox" id="AiQuestionHelperCheckbox">
                   <span class="switch-track" aria-hidden="true"></span>
@@ -712,7 +712,7 @@
               <div class="setting-row">
                 <div>
                   <h3 data-i18n="aiProvider">Provider</h3>
-                  <p data-i18n="aiProviderDesc">Ollama and LM Studio stay on this computer. OpenRouter sends the question text to the selected model provider.</p>
+                  <p data-i18n="aiProviderDesc">Ollama and LM Studio stay on this computer. NVIDIA, OpenRouter, and Gemini send question text to their hosted models.</p>
                 </div>
                 <label class="select-control" for="AiProviderSelect">
                   <span class="sr-only" data-i18n="aiProvider">Provider</span>
@@ -721,6 +721,7 @@
                     <option value="lmstudio">LM Studio</option>
                     <option value="nvidia">NVIDIA</option>
                     <option value="openrouter">OpenRouter</option>
+                    <option value="gemini">Google Gemini</option>
                   </select>
                 </label>
               </div>
@@ -745,11 +746,38 @@
 
               <div class="setting-row setting-row-stack" id="AiAccessTokenRow" hidden>
                 <div>
-                  <h3 data-i18n="aiAccessToken">Access token</h3>
-                  <p data-i18n="aiAccessTokenDesc">Required for OpenRouter and optional for protected LM Studio servers. Stored in this browser profile and never exposed to EduPage.</p>
+                  <h3 data-i18n="aiAccessToken">API key or access token</h3>
+                  <p data-i18n="aiAccessTokenDesc">Required for NVIDIA, OpenRouter, and Gemini; optional for protected LM Studio servers. Stored in this browser profile and never exposed to EduPage.</p>
                 </div>
-                <label class="sr-only" for="AiAccessTokenInput" data-i18n="aiAccessToken">Access token</label>
+                <label class="sr-only" for="AiAccessTokenInput" data-i18n="aiAccessToken">API key or access token</label>
                 <input id="AiAccessTokenInput" type="password" autocomplete="off" spellcheck="false">
+              </div>
+
+              <div class="setting-row">
+                <div>
+                  <h3 data-i18n="aiAnswerMode">Answer controls</h3>
+                  <p data-i18n="aiAnswerModeDesc">Choose how to request a suggestion on an eTest question.</p>
+                </div>
+                <label class="select-control" for="AiAnswerModeSelect">
+                  <span class="sr-only" data-i18n="aiAnswerMode">Answer controls</span>
+                  <select id="AiAnswerModeSelect">
+                    <option value="buttons" data-i18n="aiAnswerModeButtons">Buttons only</option>
+                    <option value="hotkeys" data-i18n="aiAnswerModeHotkeys">Keyboard shortcut only</option>
+                    <option value="both" data-i18n="aiAnswerModeBoth">Buttons and keyboard shortcut</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="setting-row">
+                <div>
+                  <h3 data-i18n="aiVisualFallback">Visual suggestion fallback</h3>
+                  <p data-i18n="aiVisualFallbackDesc">When an answer cannot be applied automatically, show the suggestion as highlights, input hints, and order numbers.</p>
+                </div>
+                <label class="switch switch-compact" for="AiVisualFallbackCheckbox">
+                  <input type="checkbox" id="AiVisualFallbackCheckbox">
+                  <span class="switch-track" aria-hidden="true"></span>
+                  <span class="sr-only" data-i18n="toggleAiVisualFallback">Toggle visual suggestion fallback</span>
+                </label>
               </div>
 
               <div class="setting-row">

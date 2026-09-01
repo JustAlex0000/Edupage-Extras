@@ -84,6 +84,8 @@ const etestImageExportButton = document.getElementById("EtestImageExportButton")
 const aiQuestionHelperToggle = document.getElementById("AiQuestionHelperCheckbox");
 const aiQuestionHelperSettings = document.getElementById("AiQuestionHelperSettings");
 const aiHelperMessagesToggle = document.getElementById("AiHelperMessagesCheckbox");
+const aiAnswerModeSelect = document.getElementById("AiAnswerModeSelect");
+const aiVisualFallbackToggle = document.getElementById("AiVisualFallbackCheckbox");
 const aiProviderSelect = document.getElementById("AiProviderSelect");
 const aiEndpointRow = document.getElementById("AiEndpointRow");
 const aiEndpointInput = document.getElementById("AiEndpointInput");
@@ -146,6 +148,8 @@ const ETEST_INCLUDE_ANSWERS_KEY = "eeEtestIncludeAnswers";
 const ETEST_INCLUDE_IMAGES_KEY = "eeEtestIncludeImages";
 const AI_HELPER_ENABLED_KEY = "eeAiQuestionHelperEnabled";
 const AI_HELPER_MESSAGES_KEY = "eeAiHelperMessagesEnabled";
+const AI_ANSWER_MODE_KEY = "eeAiAnswerMode";
+const AI_VISUAL_FALLBACK_KEY = "eeAiVisualFallbackEnabled";
 const AI_PROVIDER_KEY = "eeAiProvider";
 const AI_ENDPOINT_KEY = "eeAiEndpoint";
 const AI_MODEL_KEY = "eeAiModel";
@@ -154,7 +158,7 @@ const AI_DEFAULT_ENDPOINTS = {
 	ollama: "http://127.0.0.1:11434",
 	lmstudio: "http://127.0.0.1:1234",
 };
-const AI_CLOUD_PROVIDERS = new Set(["nvidia", "openrouter"]);
+const AI_CLOUD_PROVIDERS = new Set(["nvidia", "openrouter", "gemini"]);
 const TESTING_SITE_URL = "https://edublurtesting.ct.ws/";
 const TESTING_SITE_PERMISSION = "https://edublurtesting.ct.ws/*";
 const activityShieldSettings = [
@@ -341,6 +345,10 @@ function updateDependentControls() {
 
 	const aiEnabled = aiQuestionHelperToggle?.checked === true;
 	if (aiQuestionHelperSettings) aiQuestionHelperSettings.hidden = !aiEnabled;
+	const aiAnswerMode = aiAnswerModeSelect?.value || "buttons";
+	if (aiAnswerModeSelect) aiAnswerModeSelect.disabled = !aiEnabled;
+	if (aiVisualFallbackToggle) aiVisualFallbackToggle.disabled = !aiEnabled;
+	if (openAiShortcutSettingsButton) openAiShortcutSettingsButton.hidden = !aiEnabled || aiAnswerMode === "buttons";
 	const aiProvider = aiProviderSelect?.value || "ollama";
 	if (aiEndpointRow) aiEndpointRow.hidden = !aiEnabled || AI_CLOUD_PROVIDERS.has(aiProvider);
 	if (aiAccessTokenRow) aiAccessTokenRow.hidden = !aiEnabled || aiProvider === "ollama";
@@ -1066,6 +1074,8 @@ function currentAiSettings() {
 	return {
 		[AI_HELPER_ENABLED_KEY]: aiQuestionHelperToggle?.checked === true,
 		[AI_HELPER_MESSAGES_KEY]: aiHelperMessagesToggle?.checked === true,
+		[AI_ANSWER_MODE_KEY]: aiAnswerModeSelect?.value || "buttons",
+		[AI_VISUAL_FALLBACK_KEY]: aiVisualFallbackToggle?.checked === true,
 		[AI_PROVIDER_KEY]: aiProviderSelect?.value || "ollama",
 		[AI_ENDPOINT_KEY]: aiEndpointInput?.value.trim() || "",
 		[AI_MODEL_KEY]: aiModelInput?.value.trim() || "",
@@ -1081,6 +1091,7 @@ function getAiPermissionPattern() {
 	const provider = aiProviderSelect?.value || "ollama";
 	if (provider === "openrouter") return "https://openrouter.ai/*";
 	if (provider === "nvidia") return "https://integrate.api.nvidia.com/*";
+	if (provider === "gemini") return "https://generativelanguage.googleapis.com/*";
 	let endpoint;
 	try {
 		endpoint = new URL(aiEndpointInput?.value.trim() || AI_DEFAULT_ENDPOINTS[provider]);
@@ -1333,16 +1344,24 @@ if (aiQuestionHelperToggle) {
 	chrome.storage.local.get([
 		AI_HELPER_ENABLED_KEY,
 		AI_HELPER_MESSAGES_KEY,
+		AI_ANSWER_MODE_KEY,
+		AI_VISUAL_FALLBACK_KEY,
 		AI_PROVIDER_KEY,
 		AI_ENDPOINT_KEY,
 		AI_MODEL_KEY,
 		AI_ACCESS_TOKEN_KEY,
 	], (result) => {
-		const provider = ["ollama", "lmstudio", "nvidia", "openrouter"].includes(result[AI_PROVIDER_KEY])
+		const provider = ["ollama", "lmstudio", "nvidia", "openrouter", "gemini"].includes(result[AI_PROVIDER_KEY])
 			? result[AI_PROVIDER_KEY]
 			: "ollama";
 		aiQuestionHelperToggle.checked = result[AI_HELPER_ENABLED_KEY] === true;
 		if (aiHelperMessagesToggle) aiHelperMessagesToggle.checked = result[AI_HELPER_MESSAGES_KEY] === true;
+		if (aiAnswerModeSelect) {
+			aiAnswerModeSelect.value = ["buttons", "hotkeys", "both"].includes(result[AI_ANSWER_MODE_KEY])
+				? result[AI_ANSWER_MODE_KEY]
+				: "buttons";
+		}
+		if (aiVisualFallbackToggle) aiVisualFallbackToggle.checked = result[AI_VISUAL_FALLBACK_KEY] === true;
 		if (aiProviderSelect) aiProviderSelect.value = provider;
 		if (aiEndpointInput) aiEndpointInput.value = result[AI_ENDPOINT_KEY] || AI_DEFAULT_ENDPOINTS[provider] || "";
 		if (aiModelInput) aiModelInput.value = result[AI_MODEL_KEY] || "";
@@ -1357,6 +1376,15 @@ if (aiQuestionHelperToggle) {
 }
 
 aiHelperMessagesToggle?.addEventListener("change", () => {
+	saveAiSettings();
+});
+
+aiAnswerModeSelect?.addEventListener("change", () => {
+	saveAiSettings();
+	updateDependentControls();
+});
+
+aiVisualFallbackToggle?.addEventListener("change", () => {
 	saveAiSettings();
 });
 

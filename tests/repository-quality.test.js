@@ -43,11 +43,13 @@ test("optional hosts are narrowly scoped to explicit AI and test-site actions", 
   assert.deepEqual(optionalHosts.sort(), [
     "http://127.0.0.1/*",
     "http://localhost/*",
+    "https://generativelanguage.googleapis.com/*",
     "https://integrate.api.nvidia.com/*",
     "https://openrouter.ai/*",
     "https://edublurtesting.ct.ws/*",
   ].sort());
   assert.ok(!manifest.host_permissions.includes("https://integrate.api.nvidia.com/*"));
+  assert.ok(!manifest.host_permissions.includes("https://generativelanguage.googleapis.com/*"));
   assert.ok(!manifest.host_permissions.includes("https://openrouter.ai/*"));
   assert.ok(!manifest.host_permissions.includes("https://edublurtesting.ct.ws/*"));
 });

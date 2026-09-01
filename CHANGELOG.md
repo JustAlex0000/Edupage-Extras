@@ -4,6 +4,14 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## 1.0.6 — 2026-09-01
+
+- Added optional Google Gemini support to the Experimental Test Question
+  Helper. Its API key stays in the browser profile and is never added to a
+  request URL or exposed to EduPage.
+- Added Test Question Helper control modes for buttons, keyboard shortcut, or
+  both. The visual suggestion fallback is now separately opt-in.
+
 ## 1.0.5 — 2026-08-31
 
 - Added optional Cleanup controls for Likes, EduPage's built-in Get help button,

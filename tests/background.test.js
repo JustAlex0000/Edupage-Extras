@@ -181,14 +181,21 @@ runTest("report issue URLs use the renamed repository and preserve fields", () =
   assert.equal(url.searchParams.get("body"), "line one\nline two");
 });
 
-runTest("AI provider configuration only accepts fixed OpenRouter or loopback servers", () => {
-  const { normalizeLocalAiEndpoint, resolveAiProviderConfig } = loadBackgroundInternals();
+runTest("AI provider configuration only accepts fixed cloud origins or loopback servers", () => {
+  const {
+    normalizeLocalAiEndpoint,
+    resolveAiProviderConfig,
+    buildGeminiGenerationConfig,
+    buildGeminiHeaders,
+    buildGeminiModelUrl,
+  } = loadBackgroundInternals();
 
   assert.equal(normalizeLocalAiEndpoint("http://localhost:11434", "ollama"), "http://localhost:11434");
   assert.throws(() => normalizeLocalAiEndpoint("https://example.com", "ollama"), /localhost/);
   assert.throws(() => normalizeLocalAiEndpoint("http://127.0.0.1:11434/api/chat", "ollama"), /without a path/);
   assert.throws(() => resolveAiProviderConfig({ eeAiProvider: "openrouter", eeAiModel: "openai/model" }), /API key/);
   assert.throws(() => resolveAiProviderConfig({ eeAiProvider: "nvidia", eeAiModel: "nvidia/model" }), /API key/);
+  assert.throws(() => resolveAiProviderConfig({ eeAiProvider: "gemini", eeAiModel: "gemini-3-flash" }), /API key/);
   assert.deepEqual(
     JSON.parse(JSON.stringify(resolveAiProviderConfig({
       eeAiProvider: "openrouter",
@@ -215,6 +222,35 @@ runTest("AI provider configuration only accepts fixed OpenRouter or loopback ser
       endpoint: "https://integrate.api.nvidia.com",
     },
   );
+  const gemini = resolveAiProviderConfig({
+    eeAiProvider: "gemini",
+    eeAiModel: "models/gemini-3-flash-preview",
+    eeAiAccessToken: "secret",
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(gemini)), {
+    provider: "gemini",
+    model: "models/gemini-3-flash-preview",
+    accessToken: "secret",
+    endpoint: "https://generativelanguage.googleapis.com",
+  });
+  const geminiUrl = new URL(buildGeminiModelUrl(gemini, "generateContent"));
+  assert.equal(geminiUrl.pathname, "/v1beta/models/gemini-3-flash-preview:generateContent");
+  assert.equal(geminiUrl.search, "", "Gemini keys must use the request header, not the URL");
+  assert.deepEqual(JSON.parse(JSON.stringify(buildGeminiHeaders("secret"))), {
+    "Content-Type": "application/json",
+    "x-goog-api-key": "secret",
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(buildGeminiGenerationConfig("gemini-3-flash-preview"))), {
+    maxOutputTokens: 1_000,
+    responseMimeType: "application/json",
+    thinkingConfig: { thinkingLevel: "LOW" },
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(buildGeminiGenerationConfig("gemini-2.5-flash"))), {
+    maxOutputTokens: 1_000,
+    responseMimeType: "application/json",
+    temperature: 0.1,
+    thinkingConfig: { thinkingBudget: 0 },
+  });
 });
 
 runTest("AI question and model responses are bounded before reaching the page", () => {

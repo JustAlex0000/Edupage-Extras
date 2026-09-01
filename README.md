@@ -146,8 +146,8 @@ The extension does not request access to all websites.
 - No analytics.
 - External requests are limited to the optional public GitHub update check and
   user-triggered Test Question Helper requests. Ollama and LM Studio stay on
-  the local computer; NVIDIA and OpenRouter receive the current question text
-  and any responses already chosen in that question.
+  the local computer; Gemini, NVIDIA, and OpenRouter receive the current
+  question text and any responses already chosen in that question.
 - No Edupage credentials are collected.
 - Settings are stored locally.
 - Structured attendance and timetable data used by enhancements is cached
