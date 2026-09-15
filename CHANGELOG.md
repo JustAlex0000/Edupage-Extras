@@ -4,6 +4,12 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## 1.0.7 — 2026-09-15
+
+- Fixed timetable change highlighting when several substitutions share the
+  same class period. Ambiguous entries now keep EduPage's native appearance
+  instead of being assigned an incorrect change colour.
+
 ## 1.0.6 — 2026-09-01
 
 - Added optional Google Gemini support to the Experimental Test Question

@@ -33,14 +33,30 @@
     tableHeaderBg: "#2c70a3",
   };
 
+  /**
+   * Normalizes a theme name to a valid theme identifier.
+   * @param {string} theme - The theme identifier.
+   * @returns {string} Normalized theme name ("dark" fallback).
+   */
   EE.normalizeTheme = function normalizeTheme(theme) {
     return EE.THEMES.includes(theme) ? theme : "dark";
   };
 
+  /**
+   * Validates and normalizes a 6-digit hex color code.
+   * @param {string} value - The hex color candidate string.
+   * @param {string} fallback - Fallback hex color string.
+   * @returns {string} Hex color string or fallback.
+   */
   EE.normalizeColor = function normalizeColor(value, fallback) {
     return /^#[0-9a-f]{6}$/i.test(String(value || "")) ? value : fallback;
   };
 
+  /**
+   * Normalizes a custom theme configuration object against defaults.
+   * @param {Object} [theme] - Partial or complete custom theme map.
+   * @returns {Object} Full custom theme map with valid hex colors.
+   */
   EE.normalizeCustomTheme = function normalizeCustomTheme(theme) {
     return Object.fromEntries(
       Object.entries(EE.DEFAULT_CUSTOM_THEME).map(([key, fallback]) => [
@@ -73,6 +89,11 @@
   });
   EE.THEME_STORAGE_KEY_LIST = Object.freeze(Object.values(EE.THEME_STORAGE_KEYS));
 
+  /**
+   * Reads and normalizes theme and cleanup settings from storage values.
+   * @param {Object} [values={}] - Raw storage object read from chrome.storage.local.
+   * @returns {Object} Normalized theme and cleanup settings object.
+   */
   EE.readThemeSettings = function readThemeSettings(values = {}) {
     const keys = EE.THEME_STORAGE_KEYS;
     return {
@@ -98,6 +119,12 @@
     };
   };
 
+  /**
+   * Constructs an "ee-set-theme" message object for tab broadcast.
+   * @param {Object} [settings={}] - Theme settings object.
+   * @param {Object} [extras={}] - Additional payload fields.
+   * @returns {Object} Message object for content script theme update.
+   */
   EE.createThemeMessage = function createThemeMessage(settings = {}, extras = {}) {
     return {
       type: "ee-set-theme",
@@ -123,6 +150,11 @@
 
   // Strict "YYYY-MM-DD" → local-midnight Date, null for anything else
   // (including real-looking but invalid dates like 2024-02-31).
+  /**
+   * Parses a strict "YYYY-MM-DD" string into a local midnight Date.
+   * @param {string} value - Date string candidate.
+   * @returns {Date|null} Valid Date object at local midnight, or null for invalid input.
+   */
   EE.parseDateOnly = function parseDateOnly(value) {
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
     if (!match) return null;
@@ -144,7 +176,11 @@
     return date;
   };
 
-  // Date → "YYYY-MM-DD" (local), "" for invalid input.
+  /**
+   * Formats a Date object to local "YYYY-MM-DD" string format.
+   * @param {Date} date - Date object.
+   * @returns {string} Formatted date string, or empty string if invalid.
+   */
   EE.formatDate = function formatDate(date) {
     if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
     const year = String(date.getFullYear()).padStart(4, "0");
@@ -153,7 +189,11 @@
     return `${year}-${month}-${day}`;
   };
 
-  // Diacritics-stripped lowercase slug ("Fyzika – 2. polrok" → "fyzika-2-polrok").
+  /**
+   * Normalizes text to a diacritics-stripped lowercase slug.
+   * @param {string} value - Text string to normalize.
+   * @returns {string} Normalized slug ("fyzika-2-polrok").
+   */
   EE.normalizeKeyText = function normalizeKeyText(value) {
     return String(value || "")
       .normalize("NFD")
@@ -163,8 +203,12 @@
       .replace(/^-+|-+$/g, "");
   };
 
-  // Return the balanced {...} / [...] / (...) group starting at startIndex,
-  // string-literal aware (both quote kinds), or null if unbalanced.
+  /**
+   * Extracts a balanced bracket/brace/parenthesis group from text.
+   * @param {string} text - Source code string.
+   * @param {number} startIndex - Character index of opening bracket/brace/paren.
+   * @returns {string|null} Balanced substring or null if unbalanced.
+   */
   EE.extractBalanced = function extractBalanced(text, startIndex) {
     const opening = text[startIndex];
     const closing = opening === "{" ? "}" : opening === "[" ? "]" : opening === "(" ? ")" : "";
@@ -212,7 +256,13 @@
     return null;
   };
 
-  // First balanced object literal following `marker` in `text`.
+  /**
+   * Extracts the first balanced object literal `{...}` following a marker string.
+   * @param {string} text - Source code text.
+   * @param {string} marker - Prefix marker to search for.
+   * @param {number} [searchFrom=0] - Index to search from.
+   * @returns {string|null} Object literal substring or null.
+   */
   EE.extractObjectLiteral = function extractObjectLiteral(text, marker, searchFrom = 0) {
     const markerIndex = text.indexOf(marker, searchFrom);
     if (markerIndex === -1) return null;
@@ -223,7 +273,11 @@
     return EE.extractBalanced(text, openBraceIndex);
   };
 
-  // Split "a, {b, c}, [d]" on top-level commas only, string-literal aware.
+  /**
+   * Splits top-level arguments on commas, ignoring commas inside nested brackets or string literals.
+   * @param {string} text - Argument list string.
+   * @returns {string[]} Trimmed argument substrings.
+   */
   EE.splitTopLevelArguments = function splitTopLevelArguments(text) {
     const values = [];
     let startIndex = 0;
@@ -284,6 +338,11 @@
     return values;
   };
 
+  /**
+   * Escapes HTML special characters for safe inclusion in markup.
+   * @param {string} value - Raw string value.
+   * @returns {string} HTML-escaped string.
+   */
   EE.escapeHtml = function escapeHtml(value) {
     return String(value == null ? "" : value)
       .replace(/&/g, "&amp;")
@@ -293,9 +352,11 @@
       .replace(/'/g, "&#39;");
   };
 
-  // RFC 4180-style CSV field escaping with spreadsheet formula protection.
-  // EduPage text is untrusted: prefix cells whose first non-whitespace
-  // character can trigger a formula when opened in Excel/Calc.
+  /**
+   * Escapes values for RFC 4180 CSV export with formula injection protection.
+   * @param {string} value - Raw cell value.
+   * @returns {string} Escaped CSV cell text.
+   */
   EE.csvEscape = function csvEscape(value) {
     const text = String(value == null ? "" : value);
     const safeText = /^\s*[=+\-@]/.test(text) ? `'${text}` : text;
@@ -303,6 +364,12 @@
     return safeText;
   };
 
+  /**
+   * Triggers a browser download of a text blob file.
+   * @param {string} filename - Target filename.
+   * @param {string} mime - MIME type string.
+   * @param {string} content - Text payload.
+   */
   EE.downloadTextFile = function downloadTextFile(filename, mime, content) {
     const blob = new Blob([content], { type: mime });
     const url = URL.createObjectURL(blob);

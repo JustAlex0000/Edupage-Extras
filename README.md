@@ -76,7 +76,7 @@ EduPage, open a GitHub issue or report it on [Discord](https://discord.gg/eNZXHe
 - **Subject attendance** shows attendance for individual subjects calculated from the Attendance page.
 - **Halfyear absence percentage** overall absence percentage inside Edupage's existing attendance page.
 
-### Učivo / Curriculum
+### Curriculum
 
 - **Curriculum export** — on a subject's topic plan page, export the
   full year's chapters, topics, and taught dates as `.txt` or `.csv`.

@@ -240,10 +240,9 @@
   }
 
   // Picks the Suplovanie row for a given homepage item across all sections that
-  // match the item's class label(s). Among rows at this period, a subject-code
-  // match wins outright; otherwise we fall back to "changed" rather than guessing
-  // a type — that avoids mis-classifying when II.A's section has an unrelated
-  // change at the same period as the user's own lesson.
+  // match the item's class label(s). A change type is trustworthy only when its
+  // subject code matches the lesson. A different subject at the same period can
+  // be an unrelated change in a shared class section.
   function findRowForItem(item, sections) {
     const period = periodDigits(item.querySelector(".hodina")?.textContent);
     const itemSubject = getItemSubject(item);
@@ -253,7 +252,7 @@
       .filter(Boolean);
 
     let subjectMatchedRow = null;
-    let periodMatchedRow = null;
+    const periodMatchedRows = [];
 
     for (const heading of triedaList) {
       const section = sections.find((sec) => sec.heading === heading);
@@ -264,56 +263,58 @@
           subjectMatchedRow = row;
           break;
         }
-        if (!periodMatchedRow) periodMatchedRow = row;
+        periodMatchedRows.push(row);
       }
       if (subjectMatchedRow) break;
     }
 
-    return { subjectMatchedRow, periodMatchedRow };
+    return { subjectMatchedRow, periodMatchedRows };
+  }
+
+  function applyRowClassification(item, row) {
+    const type = row.isAdd ? "moved" : classifySubstitutionInfo(row.info);
+    item.setAttribute(ROZVRH_PROCESSED_ATTR, type);
+    item.classList.add(ROZVRH_CLASS_BY_TYPE[type]);
+    item.title = row.info;
+    if (type !== "room-change") return;
+
+    const newRoom = extractNewRoom(row.info);
+    if (!newRoom) return;
+    item.dataset.eeNewRoom = newRoom;
+    // Room display may have already run — update it immediately.
+    if (item.hasAttribute(ROOM_PROCESSED_ATTR)) {
+      const span = item.querySelector(".trieda");
+      if (span) span.textContent = newRoom;
+    }
   }
 
   function applyRozvrhClassification(item, sections) {
     if (item.hasAttribute(ROZVRH_PROCESSED_ATTR)) return;
 
-    const { subjectMatchedRow, periodMatchedRow } = findRowForItem(item, sections);
+    const { subjectMatchedRow, periodMatchedRows } = findRowForItem(item, sections);
 
     if (subjectMatchedRow) {
-      const type = subjectMatchedRow.isAdd ? "moved" : classifySubstitutionInfo(subjectMatchedRow.info);
-      item.setAttribute(ROZVRH_PROCESSED_ATTR, type);
-      item.classList.add(ROZVRH_CLASS_BY_TYPE[type]);
-      item.title = subjectMatchedRow.info;
-      if (type === "room-change") {
-        const newRoom = extractNewRoom(subjectMatchedRow.info);
-        if (newRoom) {
-          item.dataset.eeNewRoom = newRoom;
-          // Room display may have already run — update it immediately.
-          if (item.hasAttribute(ROOM_PROCESSED_ATTR)) {
-            const span = item.querySelector(".trieda");
-            if (span) span.textContent = newRoom;
-          }
-        }
-      }
+      applyRowClassification(item, subjectMatchedRow);
       return;
     }
 
-    if (periodMatchedRow && getItemSubject(item)) {
-      // EduPage flags this lesson as changed and there IS a Suplovanie row at
-      // this period in the student's own class — just under a different subject
-      // code (commonly because this lesson is the substitute, so the row names
-      // the subject it replaced). It's still a real change, so colour it by that
-      // row's type rather than leaving EduPage's ambiguous yellow. classify by
-      // the period-matched row's info.
-      const type = periodMatchedRow.isAdd ? "moved" : classifySubstitutionInfo(periodMatchedRow.info);
-      item.setAttribute(ROZVRH_PROCESSED_ATTR, type);
-      item.classList.add(ROZVRH_CLASS_BY_TYPE[type]);
-      item.title = periodMatchedRow.info;
+    if (periodMatchedRows.length === 1) {
+      // Homepage labels can differ from the subject code in Suplovanie. A lone
+      // changed row for this class and period still identifies the lesson.
+      applyRowClassification(item, periodMatchedRows[0]);
       return;
     }
 
-    // No matching row at all — Edupage flagged it but Suplovanie has nothing for
-    // this class. Surface as generic "changed" so the user still sees something.
-    item.setAttribute(ROZVRH_PROCESSED_ATTR, "changed");
-    item.classList.add(ROZVRH_CLASS_BY_TYPE.changed);
+    if (periodMatchedRows.length > 1) {
+      // Several rows for the same period do not identify this lesson's change
+      // type. Keep EduPage's native changed appearance rather than guessing.
+      item.setAttribute(ROZVRH_PROCESSED_ATTR, "none");
+      return;
+    }
+
+    // No matching row at all. EduPage's generic changed state is more honest
+    // than assigning a room-change or substitution color without evidence.
+    item.setAttribute(ROZVRH_PROCESSED_ATTR, "none");
   }
 
   async function enhanceRozvrhWidget() {
@@ -616,6 +617,11 @@
       enhanceRozvrhRooms().catch(() => {});
       initRozvrhObserver();
     }
+  }
+
+  // Deliberate test hook — see tests/timetable-enhancer.test.js.
+  if (globalThis.__EE_TEST__) {
+    globalThis.__eeTestExports = { applyRozvrhClassification, findRowForItem };
   }
 
   init();
