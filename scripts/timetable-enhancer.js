@@ -142,13 +142,13 @@
   }
 
   function classifySubstitutionInfo(info) {
-    if (/Suplovanie:/i.test(info)) return "substitution";
-    if (/Zameni[ťt]\s*u[čc]ebň?u:/i.test(info)) return "room-change";
+    if (/(?:Zameni[ťt]\s*u[čc]ebň?u|Change\s+the\s+classroom):/i.test(info)) return "room-change";
+    if (/(?:Suplovanie|Substitution):/i.test(info)) return "substitution";
     return "changed";
   }
 
   function extractNewRoom(info) {
-    const match = /Zameni[ťt]\s*u[čc]ebňu:?\s*[^➔→⇒]+[➔→⇒]\s*([^\s,;(]+)/i
+    const match = /(?:Zameni[ťt]\s*u[čc]ebňu|Change\s+the\s+classroom):?\s*[^➔→⇒]+[➔→⇒]\s*([^,;]+)/i
       .exec(String(info || ""));
     return match ? match[1].trim() : null;
   }

@@ -113,3 +113,43 @@ runTest("timetable highlights keep an exact subject substitution color", () => {
   assert.equal(item.getAttribute("data-ee-rozvrh-type"), "substitution");
   assert.equal(item.classList.contains("ee-rozvrh-substitution"), true);
 });
+
+runTest("an explicit room change wins when the same row also names a substitution", () => {
+  const { applyRozvrhClassification } = loadTimetableEnhancerInternals();
+  const item = makeTimetableItem({ period: 3, subject: "BIO", trieda: "II.A" });
+  const sections = [{
+    heading: "II.A",
+    rows: [{
+      isAdd: false,
+      periods: ["3"],
+      info: "BIO - Suplovanie: KOV, Zameniť učebňu: 101 ➔ 202",
+    }],
+  }];
+
+  applyRozvrhClassification(item, sections);
+
+  assert.equal(item.getAttribute("data-ee-rozvrh-type"), "room-change");
+  assert.equal(item.classList.contains("ee-rozvrh-room-change"), true);
+  assert.equal(item.classList.contains("ee-rozvrh-substitution"), false);
+  assert.equal(item.dataset.eeNewRoom, "202");
+});
+
+runTest("English EduPage room-change text uses the room-change color", () => {
+  const { applyRozvrhClassification } = loadTimetableEnhancerInternals();
+  const item = makeTimetableItem({ period: 5, subject: "ANJ", trieda: "1. Skupina" });
+  const sections = [{
+    heading: "1. Skupina",
+    rows: [{
+      isAdd: false,
+      periods: ["5"],
+      info: "ANJ - Teacher: BAJ, Change the classroom: (LIT 2 (122/2)) ➔ LIT 3 (023)",
+    }],
+  }];
+
+  applyRozvrhClassification(item, sections);
+
+  assert.equal(item.getAttribute("data-ee-rozvrh-type"), "room-change");
+  assert.equal(item.classList.contains("ee-rozvrh-room-change"), true);
+  assert.equal(item.classList.contains("ee-rozvrh-substitution"), false);
+  assert.equal(item.dataset.eeNewRoom, "LIT 3 (023)");
+});
