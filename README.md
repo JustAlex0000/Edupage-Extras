@@ -142,6 +142,16 @@ Experimental settings include a **Test Stay Active Mode** button below the Stay 
 master switch. It opens https://test.nop.wtf in a new tab. The reload action reloads both
 EduPage and test.nop.wtf tabs.
 
+Stay Active changes selected page-visible activity signals. Its jQuery Sweep directly
+removes `.etestplayeral` and `.etestaplayer` handlers from `window` and `document`,
+including later registrations during enabled sweeps. Disabling stops further
+removal; already removed handlers are intentionally not restored. Pending animation frames
+move between visible and hidden scheduling without losing their cancellation handles.
+Preferences are not stored in page DOM. Page scripts can still observe or interfere
+with browser hooks and the initial bridge handshake; undetectability is not guaranteed.
+Browser throttling, freezing, tab discard, and machine sleep can pause all page work.
+The testing page does not verify school-side monitoring or session timeouts.
+
 ### Keyboard shortcuts
 
 Some features can be bound on the browser's extension-shortcuts page.
@@ -203,6 +213,11 @@ The extension does not request access to all websites.
 - Attendance percentages are generated from Edupage's existing attendance page
   data and do not use an external API.
 - Timetable export generates a calendar file locally.
+- Attendance caches are scoped to a freshly verified student, school, and period.
+  Ambiguous student ownership is rejected; old ownerless caches are discarded.
+- Redacted diagnostics omit account names, subject names, original tooltips,
+  arbitrary text, and URL paths. They retain counts, known structural metadata,
+  and masked numeric formats. Unredacted reports are an explicit opt-in.
 
 <details>
 <summary>Development notes and publishing checks</summary>

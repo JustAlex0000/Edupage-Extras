@@ -42,6 +42,25 @@ The manifest script order is deliberate. Keep shared libraries before their
 consumers, grade modules before `grades-bootstrap.js`, and page bridges before
 the script they support.
 
+## Activity shield
+
+The isolated bridge sends boolean preferences over a MessageChannel after a
+one-time page-world handshake. Main-world hooks keep preference state in closures;
+no DOM control port, native-hidden dataset, or native-state event is published.
+The handshake and MAIN-world hooks are observable and are not an anti-tampering
+boundary. The indicator is created only when requested and only in the top frame.
+
+Native visibility transitions update reload blocking and pending animation requests
+before downstream events are suppressed. Disabling removes the reload blocker and
+moves pending animation callbacks back to native scheduling. Stable handles remain
+cancellable. The jQuery Sweep calls `.off()` on the exact `.etestplayeral` and `.etestaplayer`
+namespaces on `window` and `document`, immediately on activation and at 500ms
+intervals while enabled. It does not wrap registration, dispatch, or callbacks.
+Disabling stops removal and its timer; intentionally removed handlers remain
+removed. Script-load/readiness events also trigger active sweeps. The default-off
+state has no polling timer. Browser suspension and cached
+native methods remain outside the feature's guarantees.
+
 ## Themes
 
 Theme settings are read from `chrome.storage.local`. Because storage is async,
@@ -110,6 +129,18 @@ the legacy export cache version was incremented to invalidate ambiguous entries.
 Grades sorting/filtering works on the real subject table and moves a subject
 with its following category rows. Never modify `#znamkyTableHeaderBg` or
 EduPage's floating header clone: EduPage keeps them in sync itself.
+
+Attendance cache version 16 includes student identity in its cache key. Every load
+verifies the current sole owner from a fresh attendance response before considering
+memory or storage; a completed full read verifies the owner again. Ambiguous owners
+fail closed. Changing the grades table/period or disabling attendance aborts pending
+reads. Individual reads have a twenty-second deadline. Summary rendering ignores
+its own mutations and does not rebuild unchanged values.
+
+AI suggestions are tied to the exact player, route, question model, and request
+generation. Disable, mode changes, player replacement, and navigation invalidate
+pending actions; returned data cannot modify an obsolete question. Provider reads
+have a twenty-five-second deadline to remain below Chromium's fetch lifetime.
 
 The eTest serializer creates a small structured question model rather than
 storing page text. It keeps snapshots in memory for the current player only;

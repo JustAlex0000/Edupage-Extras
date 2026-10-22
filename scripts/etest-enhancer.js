@@ -73,6 +73,9 @@
   let activePlayerRoot = null;
   let lastAiQuestionContent = null;
   const seenQuestions = new Map();
+  let aiRequestGeneration = 0;
+  const pendingAiRequests = new Map();
+  const preferenceOverrides = {};
 
   function getMessage(key, fallback, substitutions) {
     try {
@@ -620,9 +623,10 @@
   function refreshTestScope() {
     const locationKey = `${window.location.pathname}${window.location.search}`;
     const playerRoot = document.querySelector(".etest-player");
-    const playerChanged = activePlayerRoot && playerRoot && playerRoot !== activePlayerRoot;
+    const playerChanged = activePlayerRoot && playerRoot !== activePlayerRoot;
     const routeChanged = activeTestScope && locationKey !== activeTestScope;
     if (playerChanged || routeChanged) {
+      cancelAiRequests();
       seenQuestions.clear();
       seenSequence = 0;
     }
@@ -996,8 +1000,23 @@
     if (!visualCueCount && suggestion.answer) appendAiNote(content, suggestion.answer);
   }
 
+  function cancelAiRequests() {
+    aiRequestGeneration += 1;
+    for (const [content, request] of pendingAiRequests) {
+      delete content.dataset.eeAiRequestPending;
+      if (request.button) {
+        request.button.disabled = false;
+        request.button.removeAttribute("aria-busy");
+      }
+      if (request.icon) request.icon.className = request.originalIconClass;
+      if (request.status) request.status.textContent = "";
+    }
+    pendingAiRequests.clear();
+  }
+
   function requestAiSuggestion(content, buttonState) {
-    if (!content || content.dataset.eeAiRequestPending === "true") return;
+    if (!aiHelperEnabled || !content || content.dataset.eeAiRequestPending === "true") return;
+    refreshTestScope();
     const model = buildQuestionModel(content);
     const hadOrderingAnswer = hasOrderingAnswer(content);
     if (!model.plainBody) return;
@@ -1006,6 +1025,10 @@
     content.dataset.eeAiRequestPending = "true";
     const { button, icon, status } = buttonState || {};
     const originalIconClass = icon?.className;
+    const request = { generation: aiRequestGeneration, identity: model.identity,
+      body: model.plainBody, type: model.type, interactions: JSON.stringify(model.interactionData),
+      route: activeTestScope, player: activePlayerRoot, button, icon, status, originalIconClass };
+    pendingAiRequests.set(content, request);
     if (button) {
       button.disabled = true;
       button.setAttribute("aria-busy", "true");
@@ -1021,6 +1044,9 @@
         currentAnswers: model.answers,
       },
     }, (response) => {
+      const runtimeError = chrome.runtime.lastError;
+      if (pendingAiRequests.get(content) !== request) return;
+      pendingAiRequests.delete(content);
       delete content.dataset.eeAiRequestPending;
       if (button) {
         button.disabled = false;
@@ -1028,7 +1054,13 @@
       }
       if (icon) icon.className = originalIconClass;
       if (status) status.textContent = "";
-      const runtimeError = chrome.runtime.lastError;
+      refreshTestScope();
+      if (!aiHelperEnabled || request.generation !== aiRequestGeneration
+        || request.route !== activeTestScope || request.player !== activePlayerRoot
+        || !document.documentElement.contains(content)) return;
+      const current = buildQuestionModel(content);
+      if (current.identity !== request.identity || current.plainBody !== request.body
+        || current.type !== request.type || JSON.stringify(current.interactionData) !== request.interactions) return;
       if (runtimeError || !response?.ok || !response.suggestion) {
         appendAiNote(
           content,
@@ -1236,6 +1268,7 @@
   }
 
   function ensureButtons() {
+    refreshTestScope();
     if (!etestCopyEnabled && !aiHelperEnabled) {
       removeButtons();
       return;
@@ -1319,12 +1352,12 @@
   }
 
   function snapshotBeforeNavigation(event) {
-    if (!etestCopyEnabled) return;
     const target = event && event.target;
     if (!target || typeof target.closest !== "function") return;
     if (target.closest(`.${COPY_BTN_CLASS}, .${COPY_ALL_BTN_CLASS}, .${AI_BTN_CLASS}`)) return;
     if (target.closest(".etest-player-sidebar-question, .etest-screen-action-btn, .etest-header-nav")) {
-      snapshotVisibleQuestions();
+      cancelAiRequests();
+      if (etestCopyEnabled) snapshotVisibleQuestions();
     }
   }
 
@@ -1340,6 +1373,7 @@
       childList: true,
       subtree: true,
     });
+    window.addEventListener("pagehide", cancelAiRequests);
     document.addEventListener("input", scheduleSnapshotFromEvent, true);
     document.addEventListener("change", scheduleSnapshotFromEvent, true);
     document.addEventListener("focusin", rememberAiQuestion, true);
@@ -1381,7 +1415,7 @@
       AI_VISUAL_FALLBACK_KEY,
     ];
     chrome.storage.local.get(keys, (result) => {
-      const preferences = resolvePreferences(result);
+      const preferences = resolvePreferences({ ...result, ...preferenceOverrides });
       etestCopyEnabled = preferences.copyEnabled;
       questionButtonsEnabled = preferences.questionButtons;
       wholeTestButtonEnabled = preferences.wholeTestButton;
@@ -1396,6 +1430,7 @@
 
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== "local") return;
+      for (const key of keys) if (changes[key]) preferenceOverrides[key] = changes[key].newValue;
       if (changes[ETEST_COPY_KEY]) etestCopyEnabled = changes[ETEST_COPY_KEY].newValue === true;
       if (changes[ETEST_QUESTION_BUTTONS_KEY]) {
         questionButtonsEnabled = changes[ETEST_QUESTION_BUTTONS_KEY].newValue !== false;
@@ -1405,9 +1440,13 @@
       }
       if (changes[ETEST_INCLUDE_ANSWERS_KEY]) includeSelectedAnswers = changes[ETEST_INCLUDE_ANSWERS_KEY].newValue !== false;
       if (changes[ETEST_INCLUDE_IMAGES_KEY]) includeWholeTestImages = changes[ETEST_INCLUDE_IMAGES_KEY].newValue !== false;
-      if (changes[AI_HELPER_ENABLED_KEY]) aiHelperEnabled = changes[AI_HELPER_ENABLED_KEY].newValue === true;
+      if (changes[AI_HELPER_ENABLED_KEY]) {
+        cancelAiRequests();
+        aiHelperEnabled = changes[AI_HELPER_ENABLED_KEY].newValue === true;
+      }
       if (changes[AI_HELPER_MESSAGES_KEY]) aiHelperMessagesEnabled = changes[AI_HELPER_MESSAGES_KEY].newValue === true;
       if (changes[AI_ANSWER_MODE_KEY]) {
+        cancelAiRequests();
         aiAnswerMode = ["buttons", "hotkeys", "both"].includes(changes[AI_ANSWER_MODE_KEY].newValue)
           ? changes[AI_ANSWER_MODE_KEY].newValue
           : "buttons";
@@ -1450,6 +1489,8 @@
       syncDropdownDisplay,
       acceptAiSuggestionWithTab,
       getCurrentAiQuestion,
+      requestAiSuggestion,
+      cancelAiRequests,
       applyAiSuggestion,
       init,
     };

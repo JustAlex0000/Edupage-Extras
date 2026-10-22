@@ -2,20 +2,22 @@
  * activity-shield-main.js
  *
  * Page-world protections adapted from the reference Browser_extension.
- * This script cannot access chrome.* APIs, so activity-shield-bridge.js writes
- * the active preferences onto #ee-activity-shield-port.
+ * Preferences arrive from the isolated-world bridge over a MessageChannel.
+ * Page-world hooks and the initial handshake are not an anti-tampering boundary.
  */
 
 (function () {
   "use strict";
 
-  let port = document.getElementById("ee-activity-shield-port");
-  if (!port) {
-    port = document.createElement("span");
-    port.id = "ee-activity-shield-port";
-    port.hidden = true;
-    (document.documentElement || document.head || document.body)?.append(port);
-  }
+  const CHANNEL_REQUEST = "ee-activity-shield-request";
+  const CHANNEL_READY = "ee-activity-shield-ready";
+  const CHANNEL_CONNECT = "ee-activity-shield-connect";
+  const FLAGS = [
+    "enabled", "log", "visibilityState", "hidden", "visibilityEvents", "focus",
+    "blur", "redirect", "mouseleave", "mouseout", "pointercapture", "clipboard",
+    "animationFrame", "blockEsc", "jquerySweep", "fullscreenSpoof",
+  ];
+  let preferences = Object.create(null);
 
   const nativeVisibilityState = Object.getOwnPropertyDescriptor(Document.prototype, "visibilityState");
   const nativeHidden = Object.getOwnPropertyDescriptor(Document.prototype, "hidden");
@@ -23,14 +25,7 @@
   const nativeRequestAnimationFrame = window.requestAnimationFrame;
   const nativeCancelAnimationFrame = window.cancelAnimationFrame;
 
-  const enabled = () => port.dataset.enabled === "true";
-  const active = (name) => enabled() && port.dataset[name] !== "false";
-  // blockEsc/jquerySweep/fullscreenSpoof are more invasive than the other
-  // toggles above (removing the eTest player's own listeners, spoofing
-  // fullscreen state), so — unlike `active()` — they require an explicit
-  // "true" rather than defaulting on while the bridge's storage read is
-  // still in flight (dataset attribute not yet set).
-  const strictActive = (name) => enabled() && port.dataset[name] === "true";
+  const active = (name) => preferences.enabled === true && preferences[name] === true;
 
   const readNativeVisibilityState = () => {
     try {
@@ -115,7 +110,7 @@
   };
 
   const debug = (...args) => {
-    if (port.dataset.log === "true") {
+    if (preferences.log === true) {
       console.info("[Edupage Extras Activity Shield]", ...args);
     }
   };
@@ -172,35 +167,30 @@
     debug("Could not wrap document.hasFocus", error);
   }
 
-  if (window.top === window) {
-    // The Navigation API (Chrome) is only used to learn the reload
-    // destination for the debug log and to avoid blocking non-reload
-    // unloads; the actual blocking is the plain beforeunload handler, which
-    // works everywhere. Where the API is missing (Firefox), arm the blocker
-    // purely off the hidden state so the toggle isn't a silent no-op.
-    const navigationApi = window.navigation;
-    const redirect = (event) => {
-      if (navigationApi && !redirect.href) return;
-      debug("Blocked hidden-page redirect to", redirect.href || "(unknown destination)");
-      event.preventDefault();
-      event.returnValue = "no";
-    };
+  const navigationApi = window.top === window ? window.navigation : null;
+  let reloadDestination = null;
+  let redirectArmed = false;
+  const redirect = (event) => {
+    if (!active("redirect") || !readNativeHidden()) return;
+    if (navigationApi && reloadDestination === null) return;
+    debug("Requested a hidden-page reload confirmation");
+    event.preventDefault();
+    event.returnValue = "no";
+  };
 
-    if (navigationApi) {
-      navigationApi.addEventListener("navigate", (event) => {
-        if (event.navigationType === "reload") {
-          redirect.href = event.destination.url;
-        }
-      });
-    }
+  function syncRedirect() {
+    const shouldArm = window.top === window && active("redirect") && readNativeHidden();
+    if (shouldArm && !redirectArmed) window.addEventListener("beforeunload", redirect);
+    if (!shouldArm && redirectArmed) window.removeEventListener("beforeunload", redirect);
+    redirectArmed = shouldArm;
+    if (!shouldArm) reloadDestination = null;
+  }
 
-    document.addEventListener("visibilitychange", () => {
-      delete redirect.href;
-      removeEventListener("beforeunload", redirect);
-      if (readNativeVisibilityState() === "hidden" && active("redirect")) {
-        addEventListener("beforeunload", redirect);
-      }
-    }, true);
+  if (navigationApi) {
+    navigationApi.addEventListener("navigate", (event) => {
+      reloadDestination = event.navigationType === "reload" ? event.destination?.url || "" : null;
+      syncRedirect();
+    });
   }
 
   const onFocus = (event) => {
@@ -224,7 +214,10 @@
   });
 
   const onVisibility = (event) => {
-    port.dispatchEvent(new Event("ee-activity-state"));
+    reloadDestination = null;
+    syncRedirect();
+    syncAnimationFrames();
+    discoverJquery();
     if (active("visibilityEvents")) block(event);
   };
 
@@ -278,7 +271,7 @@
   });
 
   const onKeydownBlockEsc = (event) => {
-    if (!strictActive("blockEsc")) return;
+    if (!active("blockEsc")) return;
     if (event.key === "Escape" || event.keyCode === 27) {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -287,40 +280,85 @@
   window.addEventListener("keydown", onKeydownBlockEsc, true);
   document.addEventListener("keydown", onKeydownBlockEsc, true);
 
+  let syncAnimationFrames = () => {};
   try {
     if (typeof nativeRequestAnimationFrame === "function" && typeof nativeCancelAnimationFrame === "function") {
-      let lastFrameTime = 0;
       let nextSyntheticFrameId = -1;
-      const syntheticFrames = new Map();
+      let frameTimer = null;
+      const frames = new Map();
+      const useSyntheticFrames = () => active("animationFrame") && readNativeHidden();
+      const invokeFrame = (id, frame, timestamp) => {
+        if (frames.get(id) !== frame) return;
+        frames.delete(id);
+        frame.callback.call(window, timestamp);
+      };
+      const requestNativeFrame = (id, frame) => {
+        frame.nativeId = nativeRequestAnimationFrame.call(window, (timestamp) => invokeFrame(id, frame, timestamp));
+      };
+      const scheduleFrameTimer = () => {
+        if (frameTimer !== null || !frames.size) return;
+        frameTimer = setTimeout(() => {
+          frameTimer = null;
+          if (!useSyntheticFrames()) {
+            syncAnimationFrames();
+            return;
+          }
+          const timestamp = performance.now();
+          for (const [id, frame] of Array.from(frames)) {
+            if (frame.nativeId !== null) continue;
+            try {
+              invokeFrame(id, frame, timestamp);
+            } catch (error) {
+              if (typeof window.reportError === "function") window.reportError(error);
+              else setTimeout(() => { throw error; }, 0);
+            }
+          }
+        }, 16);
+      };
+
+      syncAnimationFrames = () => {
+        if (frameTimer !== null) clearTimeout(frameTimer);
+        frameTimer = null;
+        const synthetic = useSyntheticFrames();
+        for (const [id, frame] of frames) {
+          if (synthetic && frame.nativeId !== null) {
+            nativeCancelAnimationFrame.call(window, frame.nativeId);
+            frame.nativeId = null;
+          } else if (!synthetic && frame.nativeId === null) {
+            requestNativeFrame(id, frame);
+          }
+        }
+        if (synthetic) scheduleFrameTimer();
+      };
+
       window.requestAnimationFrame = new Proxy(nativeRequestAnimationFrame, {
         apply(target, self, args) {
-          if (active("animationFrame") && readNativeHidden()) {
-            const callback = args[0];
-            if (typeof callback !== "function") {
-              return Reflect.apply(target, self, args);
-            }
-            const currentTime = Date.now();
-            const delay = Math.max(0, 16 - (currentTime - lastFrameTime));
-            const id = nextSyntheticFrameId;
-            nextSyntheticFrameId -= 1;
-            const timer = setTimeout(() => {
-              syntheticFrames.delete(id);
-              callback(performance.now());
-            }, delay);
-            syntheticFrames.set(id, timer);
-            lastFrameTime = currentTime + delay;
+          if (typeof args[0] !== "function") return Reflect.apply(target, self, args);
+          const frame = { callback: args[0], nativeId: null };
+          if (useSyntheticFrames()) {
+            const id = nextSyntheticFrameId--;
+            frames.set(id, frame);
+            scheduleFrameTimer();
             return id;
           }
-          return Reflect.apply(target, self, args);
+          const id = Reflect.apply(target, self, [(timestamp) => invokeFrame(id, frame, timestamp)]);
+          frame.nativeId = id;
+          frames.set(id, frame);
+          return id;
         },
       });
 
       window.cancelAnimationFrame = new Proxy(nativeCancelAnimationFrame, {
         apply(target, self, args) {
-          const id = args[0];
-          if (syntheticFrames.has(id)) {
-            clearTimeout(syntheticFrames.get(id));
-            syntheticFrames.delete(id);
+          const id = Number(args[0]);
+          const frame = frames.get(id);
+          if (frame) {
+            if (frame.nativeId !== null) nativeCancelAnimationFrame.call(window, frame.nativeId);
+            frames.delete(id);
+            if (!frames.size && frameTimer !== null) {
+              clearTimeout(frameTimer);
+              frameTimer = null;
+            }
             return undefined;
           }
           return Reflect.apply(target, self, args);
@@ -331,92 +369,43 @@
     debug("Could not wrap animation frame APIs", error);
   }
 
-  // Gate eTest's namespaced handlers at registration time. The page
-  // emits custom enterBackgroundHandler/enterForegroundHandler jQuery events
-  // in addition to native visibility/focus events; capture-phase DOM
-  // listeners cannot intercept those custom events. Wrapping the exact
-  // eTest namespaces keeps the handlers installed and makes them work again
-  // immediately when Stay Active is disabled.
-  let jqueryGateInstalled = false;
-  const installJqueryListenerGate = () => {
+  // These two player namespaces are intentionally removed. Disabling stops
+  // further stripping; a reload is needed to recreate deleted handlers.
+  let jqueryTimer = null;
+
+  function discoverJquery() {
+    if (!active("jquerySweep")) return;
     const jq = window.jQuery || window.$;
-    if (!jq?.event?.add) return false;
-    if (jq.event.add.__eeActivityShieldGate) {
-      jqueryGateInstalled = true;
-      return true;
-    }
-
-    const nativeAdd = jq.event.add;
-    const gatedHandlers = new WeakMap();
-    const gatedAdd = function (elem, types, handler, data, selector) {
-      const isEtestHandler = (elem === window || elem === document)
-        && typeof types === "string"
-        && types.split(/\s+/).some((type) => (
-          type.includes(".etestplayeral") || type.includes(".etestaplayer")
-        ));
-
-      if (isEtestHandler && typeof handler === "function") {
-        let gatedHandler = gatedHandlers.get(handler);
-        if (!gatedHandler) {
-          gatedHandler = function (...args) {
-            if (strictActive("jquerySweep")) return undefined;
-            return handler.apply(this, args);
-          };
-          gatedHandler.guid = handler.guid || (handler.guid = jq.guid++);
-          gatedHandlers.set(handler, gatedHandler);
-        }
-        handler = gatedHandler;
-      }
-
-      return nativeAdd.call(this, elem, types, handler, data, selector);
-    };
-    gatedAdd.__eeActivityShieldGate = true;
-    gatedAdd.__eeNativeAdd = nativeAdd;
-    jq.event.add = gatedAdd;
-    jqueryGateInstalled = true;
-    return true;
-  };
-
-  // Poll rapidly only across the initial script-loading window. If jQuery is
-  // already present, do not create a timer at all. The slower compatibility
-  // sweep below keeps trying after this bounded window, without leaving a
-  // permanent 40 Hz task on pages or frames that never load jQuery.
-  if (!installJqueryListenerGate()) {
-    let jqueryGateAttempts = 0;
-    const jqueryGateTimer = setInterval(() => {
-      jqueryGateAttempts += 1;
-      if (installJqueryListenerGate() || jqueryGateAttempts >= 400) {
-        clearInterval(jqueryGateTimer);
-      }
-    }, 25);
-  }
-
-  // Remove once any eTest handlers that raced registration before the gate.
-  // If a jQuery build does not expose event.add, retain the periodic sweep as
-  // the compatibility fallback.
-  let preGateHandlersRemoved = false;
-  setInterval(() => {
-    if (!jqueryGateInstalled) installJqueryListenerGate();
-    if (!strictActive("jquerySweep")) return;
-    if (jqueryGateInstalled && preGateHandlersRemoved) return;
-    const jq = window.jQuery || window.$;
-    if (!jq || !jq.fn) return;
+    if (typeof jq !== "function" || typeof jq.fn?.off !== "function") return;
     try {
       jq(document).off(".etestplayeral").off(".etestaplayer");
       jq(window).off(".etestplayeral").off(".etestaplayer");
-      if (jqueryGateInstalled) preGateHandlersRemoved = true;
     } catch (error) {
-      debug("Could not sweep eTest player jQuery listeners", error);
+      debug("Could not remove eTest player jQuery listeners", error);
     }
-  }, 500);
+  }
 
-  // fullScreenChangeHandle (the eTest player's own handler) only logs and
-  // calls into enforcement that's already neutralized elsewhere here, so
-  // blocking the event entirely is safe — layout still needs a manual
-  // resize nudge since nothing else triggers one.
+  function syncJquerySweep() {
+    if (!active("jquerySweep")) {
+      if (jqueryTimer !== null) clearInterval(jqueryTimer);
+      jqueryTimer = null;
+    } else {
+      discoverJquery();
+      if (jqueryTimer === null) jqueryTimer = setInterval(discoverJquery, 500);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", discoverJquery);
+  window.addEventListener("pageshow", discoverJquery);
+  window.addEventListener("load", (event) => {
+    if (event.target === window || event.target === document || event.target?.tagName === "SCRIPT") discoverJquery();
+  }, true);
+
+  // Suppress downstream fullscreen handlers and request a layout refresh.
+  // Native fullscreen properties and earlier window listeners remain observable.
   ["fullscreenchange", "webkitfullscreenchange", "mozfullscreenchange"].forEach((name) => {
     document.addEventListener(name, (event) => {
-      if (!strictActive("fullscreenSpoof")) return;
+      if (!active("fullscreenSpoof")) return;
       event.stopImmediatePropagation();
       try {
         (window.jQuery || window.$)(window).trigger("resize");
@@ -425,4 +414,29 @@
       }
     }, true);
   });
+
+  const onChannelMessage = (event) => {
+    if (event.source !== window) return;
+    if (event.data?.type === CHANNEL_REQUEST) {
+      window.postMessage({ type: CHANNEL_READY }, "*");
+      return;
+    }
+    if (event.data?.type !== CHANNEL_CONNECT || event.ports?.length !== 1) return;
+    const channel = event.ports[0];
+    window.removeEventListener("message", onChannelMessage, true);
+    let revision = -1;
+    channel.onmessage = ({ data }) => {
+      if (data?.type !== "preferences" || !Number.isSafeInteger(data.revision) || data.revision <= revision || !data.preferences || typeof data.preferences !== "object") return;
+      const next = Object.create(null);
+      for (const name of FLAGS) next[name] = data.preferences[name] === true;
+      preferences = next;
+      revision = data.revision;
+      syncRedirect();
+      syncAnimationFrames();
+      syncJquerySweep();
+    };
+    channel.postMessage({ type: "connected" });
+  };
+  window.addEventListener("message", onChannelMessage, true);
+  window.postMessage({ type: CHANNEL_READY }, "*");
 })();

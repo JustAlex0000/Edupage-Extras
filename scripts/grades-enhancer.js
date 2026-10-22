@@ -38,6 +38,7 @@
   let observerTimer = null;
   let ignoreMutationsUntil = 0;
   let attendanceLoadToken = 0;
+  let attendanceContextTable = null;
 
   // Mutable state shared with the other grades-*.js modules (each is its own
   // IIFE and can't see this file's local `let`s), addressed as GE.state.*.
@@ -1050,10 +1051,11 @@
       if (!table || tables.length === 0) return;
 
       const nextGradesView = readGradesViewContext();
-      if (nextGradesView.signature !== GE.state.gradesView.signature) {
+      if (nextGradesView.signature !== GE.state.gradesView.signature || table !== attendanceContextTable) {
         GE.state.attendanceStatsCache = null;
         GE.attendance.resetForGradesView();
       }
+      attendanceContextTable = table;
       GE.state.gradesView = nextGradesView;
 
       markInternalMutation();
@@ -1378,24 +1380,25 @@
 
         if (changes[GRADES_ATTENDANCE_KEY]) {
           GE.state.gradesAttendanceEnabled = changes[GRADES_ATTENDANCE_KEY].newValue !== false;
+          GE.attendance.resetForGradesView();
           shouldEnhance = true;
         }
 
         if (changes[GRADES_ATTENDANCE_DEBUG_KEY]) {
           GE.state.gradesAttendanceDebugEnabled = changes[GRADES_ATTENDANCE_DEBUG_KEY].newValue === true;
-          GE.state.attendanceStatsCache = null;
+          GE.attendance.resetForGradesView();
           shouldEnhance = true;
         }
 
         if (changes[HALFYEAR_START_KEY]) {
           GE.state.halfyearStartOverride = normalizeDateInput(changes[HALFYEAR_START_KEY].newValue);
-          GE.state.attendanceStatsCache = null;
+          GE.attendance.resetForGradesView();
           shouldEnhance = true;
         }
 
         if (changes[HALFYEAR_END_KEY]) {
           GE.state.halfyearEndOverride = normalizeDateInput(changes[HALFYEAR_END_KEY].newValue);
-          GE.state.attendanceStatsCache = null;
+          GE.attendance.resetForGradesView();
           shouldEnhance = true;
         }
 

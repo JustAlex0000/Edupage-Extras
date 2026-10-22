@@ -110,12 +110,13 @@
   function readWeekSignature() {
     const data = parseWeeklyTimetable();
     return data
-      ? `${data.weekLabel}|${data.dayHeaders.map((entry) => entry.date).join(",")}|${data.lessons.length}`
+      ? JSON.stringify(serializeParsedWeek(data))
       : "";
   }
 
   function findTimetableRoot() {
-    const printRoot = Array.from(document.querySelectorAll(".print-nobreak")).find((element) => element.querySelector(".tt-cell"));
+    const printRoot = Array.from(document.querySelectorAll(".print-nobreak")).find((element) =>
+      element.querySelector(".tt-cell") || (findStickyHeader(element) && findStickyDayColumn(element)));
     if (printRoot) return printRoot;
 
     const lessonCell = document.querySelector(".tt-cell");
@@ -249,28 +250,26 @@
       && readStyleNumber(element, "height") === 45 && !element.querySelector("span"));
     const periodHeaders = parsePeriodHeaders(root);
     const dayHeaders = parseDayHeaders(root);
-    if (!weekLabelElement || periodHeaders.length === 0 || dayHeaders.length === 0) return null;
+    if (!weekLabelElement || periodHeaders.length === 0 || dayHeaders.length === 0 || dayHeaders.some((day) => !day.date)) return null;
 
     const grid = Array.from(root.querySelectorAll("div")).find((element) => {
-      const absoluteChildren = element.querySelectorAll(":scope > div[style*='position: absolute']");
-      const lessonBlocks = element.querySelectorAll(".tt-cell");
-      return absoluteChildren.length > 5 && lessonBlocks.length > 5;
+      return Array.from(element.querySelectorAll(":scope > div[style*='position: absolute'][style*='overflow: visible']"))
+        .some((row) => row.querySelector(":scope > div.tt-cell"));
     });
-    if (!grid) return null;
+    if (!grid && root.querySelector(".tt-cell")) return null;
 
-    const rowContainers = Array.from(grid.querySelectorAll(":scope > div[style*='position: absolute'][style*='overflow: visible']"))
+    const rowContainers = Array.from(grid?.querySelectorAll(":scope > div[style*='position: absolute'][style*='overflow: visible']") || [])
       .filter((element) => element.querySelector(":scope > div.tt-cell"))
       .sort((left, right) => readStyleNumber(left, "top") - readStyleNumber(right, "top"));
 
     const lessons = [];
 
-    rowContainers.forEach((rowContainer, dayIndex) => {
+    rowContainers.forEach((rowContainer) => {
       const rowTop = readStyleNumber(rowContainer, "top");
-      const dayHeader = dayHeaders[dayIndex]
-        || dayHeaders
-          .slice()
-          .sort((left, right) => Math.abs(left.top - rowTop) - Math.abs(right.top - rowTop))[0];
+      const dayHeader = dayHeaders.slice()
+        .sort((left, right) => Math.abs(left.top - rowTop) - Math.abs(right.top - rowTop))[0];
       if (!dayHeader?.date) return;
+      const dayIndex = dayHeaders.indexOf(dayHeader);
 
       const blocks = Array.from(rowContainer.querySelectorAll(":scope > div.tt-cell"))
         .filter((element) => element.style.cursor === "pointer" && element.style.pointerEvents !== "none");
@@ -344,9 +343,13 @@
 
   async function waitForTimetableReady(timeoutMs = 30000) {
     const startedAt = Date.now();
+    let previous = "";
+    let stableAt = startedAt;
     while (Date.now() - startedAt < timeoutMs) {
       const parsed = parseWeeklyTimetable();
-      if (parsed && parsed.lessons.length > 0) return parsed;
+      const signature = parsed ? JSON.stringify(serializeParsedWeek(parsed)) : "";
+      if (signature !== previous) { previous = signature; stableAt = Date.now(); }
+      if (parsed && Date.now() - stableAt >= 500) return parsed;
       await delay(250);
     }
     return null;
@@ -406,11 +409,11 @@
         throw new Error("The hidden tab is not on the EduPage timetable page.");
       }
 
-      await selectOwnTimetable();
-      let parsed = await waitForTimetableReady();
+      let parsed = await selectOwnTimetable();
       if (!parsed) {
         throw new Error("EduPage timetable did not finish rendering.");
       }
+      const ownLabel = parsed.classLabel;
 
       if (message?.type === "ee-extract-timetable-week-series") {
         const requestedCount = Number.parseInt(message.count, 10);
@@ -424,6 +427,7 @@
           if (!parsed) {
             throw new Error("EduPage timetable did not finish rendering.");
           }
+          verifyOwnTimetable(parsed, ownLabel);
           lastResolvedWeekStart = parseDateOnly(parsed.dayHeaders?.[0]?.date);
           weeks.push(serializeParsedWeek(parsed));
         }
@@ -444,6 +448,7 @@
           if (!parsed) {
             throw new Error("EduPage timetable did not finish rendering.");
           }
+          verifyOwnTimetable(parsed, ownLabel);
           lastResolvedWeekStart = parseDateOnly(parsed?.dayHeaders?.[0]?.date);
         }
       }
@@ -472,19 +477,34 @@
       .find((element) => titles.includes(element.title));
   }
 
+  function ownTimetableIdentity() {
+    const ownName = Array.from(nativeNavigation()?.children || [])
+      .find((element) => element.tagName === "SPAN" && element.style.fontWeight === "bold");
+    const control = nativeControl(["My timetable", "Môj rozvrh", "Můj rozvrh"]) || ownName;
+    const label = (ownName?.textContent || control?.textContent || "").replace(/\s+/g, " ").trim();
+    if (!control || !label) throw new Error("Could not verify the native My timetable identity.");
+    return { control, label };
+  }
+
+  function verifyOwnTimetable(parsed, label = ownTimetableIdentity().label) {
+    if (!parsed || parsed.classLabel !== label) throw new Error("EduPage did not select My timetable.");
+    return parsed;
+  }
+
   async function selectOwnTimetable() {
-    const control = nativeControl(["My timetable", "Môj rozvrh", "Můj rozvrh"])
-      || Array.from(nativeNavigation()?.children || []).find((element) => element.tagName === "SPAN" && element.style.fontWeight === "bold");
-    if (!control) throw new Error("Unsupported timetable navigation");
-    const before = document.querySelector("#fitheight .print-nobreak");
-    control.click();
+    const { control, label } = ownTimetableIdentity();
+    const before = parseWeeklyTimetable();
+    const previousRoot = findTimetableRoot();
+    const needsSelection = before?.classLabel !== label;
+    if (needsSelection) control.click();
     const until = Date.now() + 10000;
-    do {
+    while (Date.now() < until) {
+      const parsed = await waitForTimetableReady(Math.min(2000, until - Date.now()));
+      const completed = !needsSelection || findTimetableRoot() !== previousRoot || previousRoot?.isConnected === false;
+      if (completed && parsed?.classLabel === label) return verifyOwnTimetable(parsed, label);
       await delay(250);
-      const parsed = parseWeeklyTimetable();
-      if (parsed && (!before?.isConnected || Date.now() > until - 9000)) return parsed;
-    } while (Date.now() < until);
-    return null;
+    }
+    throw new Error("EduPage did not finish selecting My timetable.");
   }
 
   async function listComparisonClasses() {
@@ -511,6 +531,7 @@
     if (!C || !Number.isFinite(C.dayNumber(message.weekStart)) || C.monday(message.weekStart) !== message.weekStart) throw new Error("Invalid week");
     let parsed = await selectOwnTimetable();
     if (!parsed) throw new Error("Timetable unavailable");
+    const ownLabel = parsed.classLabel;
     if (message.ownerId !== "self") {
       const classes = await listComparisonClasses();
       if (!classes.some((entry) => entry.id === message.ownerId)) throw new Error("Class unavailable");
@@ -534,6 +555,7 @@
       await clickWeekNavigator(start < message.weekStart ? 1 : -1);
       parsed = await waitForTimetableReady(3000);
       if (message.ownerId !== "self" && parsed?.classLabel !== message.ownerId) throw new Error("Class changed unexpectedly");
+      if (message.ownerId === "self") verifyOwnTimetable(parsed, ownLabel);
     }
     throw new Error("Week navigation limit reached");
   }
@@ -541,6 +563,7 @@
   window.__eeComparisonReader = { parseWeeklyTimetable, findTimetableRoot, parseTimetableTimeRange, normalizeTimetablePeriods };
   // Deliberate test hook — see tests/timetable-sync.test.js.
   if (globalThis.__EE_TEST__) {
-    globalThis.__eeTestExports = { resolveDisplayedDate, resolveDisplayedWeekDates, formatDate, parseTimetableTimeRange, normalizeTimetablePeriods };
+    globalThis.__eeTestExports = { resolveDisplayedDate, resolveDisplayedWeekDates, formatDate, parseTimetableTimeRange, normalizeTimetablePeriods,
+      parseWeeklyTimetable, waitForTimetableReady, clickWeekNavigator, selectOwnTimetable };
   }
 })();

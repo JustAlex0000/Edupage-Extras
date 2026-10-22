@@ -38,7 +38,8 @@ const AI_LOCAL_ENDPOINTS = {
 const AI_QUESTION_TYPES = new Set([
   "question", "choice", "dropdown", "fill-in", "matching", "ordering", "mixed",
 ]);
-const AI_REQUEST_TIMEOUT_MS = 90_000;
+// Chromium can terminate a worker whose fetch has not responded in 30 seconds.
+const AI_REQUEST_TIMEOUT_MS = 25_000;
 const AI_MAX_QUESTION_LENGTH = 24_000;
 const AI_MAX_RESPONSE_LENGTH = 64_000;
 const AI_MAX_CURRENT_ANSWERS = 60;
@@ -230,7 +231,7 @@ async function fetchAiJson(url, options = {}) {
       throw new Error("The provider returned an unreadable response.");
     }
   } catch (error) {
-    if (error?.name === "AbortError") throw new Error("The provider took too long to respond.");
+    if (error?.name === "AbortError") throw new Error("The provider did not respond within 25 seconds. Try a faster or already-loaded model.");
     if (/^The provider /.test(error?.message || "")) throw error;
     throw new Error("Could not reach the configured provider.");
   } finally {
@@ -712,11 +713,40 @@ function recordBackgroundError(level, args) {
 })();
 
 const DIAGNOSTICS_SECRET_PATTERN = /secret|token|api.?key|client|oauth|password|credential/i;
+const DIAGNOSTICS_BOOLEAN_SETTINGS = new Set([
+  ...EE.THEME_STORAGE_KEY_LIST,
+  UPDATE_REMINDER_ENABLED_KEY,
+  "timetableHighlightsEnabled", "gradeBadgesEnabled", "gradesAttendanceStatsEnabled",
+  "gradesAttendanceDebugEnabled", "attendancePercentagesEnabled", "eeAutoLoginEnabled",
+  "eeUcivoExportEnabled", "eeGradesSortFilterEnabled", "eeGradesExportEnabled",
+  "eeTimetableExportEnabled", "eeTimetableComparisonEnabled", "eeEtestAutoThemeOffEnabled",
+  "eeEtestCopyEnabled", "eeEtestResultsEnabled", "eeEtestQuestionButtonsEnabled",
+  "eeEtestWholeTestButtonEnabled", "eeEtestIncludeAnswers", "eeEtestIncludeImages",
+  AI_HELPER_ENABLED_KEY, "eeAiHelperMessagesEnabled", "eeAiVisualFallbackEnabled",
+  ACTIVITY_SHIELD_ENABLED_KEY, "eeActivityShieldVisibilityState", "eeActivityShieldHidden",
+  "eeActivityShieldVisibilityEvents", "eeActivityShieldFocus", "eeActivityShieldBlur",
+  "eeActivityShieldRedirect", "eeActivityShieldMouseleave", "eeActivityShieldMouseout",
+  "eeActivityShieldPointercapture", "eeActivityShieldClipboard", "eeActivityShieldAnimationFrame",
+  "eeActivityShieldBlockEsc", "eeActivityShieldJquerySweep", "eeActivityShieldFullscreenSpoof",
+  "eeActivityShieldVisualIndicator", "eeActivityShieldLog",
+]);
+const DIAGNOSTICS_ENUM_SETTINGS = {
+  [THEME_STORAGE_KEYS.theme]: new Set(EE.THEMES),
+  [AI_PROVIDER_KEY]: AI_PROVIDERS,
+  eeAiAnswerMode: new Set(["buttons", "hotkeys", "both"]),
+  [AI_REASONING_EFFORT_OPENAI_KEY]: new Set(["default", "off", "low", "medium", "high"]),
+  [AI_THINKING_LEVEL_GEMINI_KEY]: new Set(["default", "off", "low", "high"]),
+};
 
-async function buildSettingsSummary() {
+async function buildSettingsSummary({ redact = true } = {}) {
   const all = await storageGet(null);
   const summary = {};
   for (const [key, value] of Object.entries(all || {})) {
+    if (redact) {
+      if (DIAGNOSTICS_BOOLEAN_SETTINGS.has(key) && typeof value === "boolean") summary[key] = value;
+      else if (Object.hasOwn(DIAGNOSTICS_ENUM_SETTINGS, key) && DIAGNOSTICS_ENUM_SETTINGS[key].has(value)) summary[key] = value;
+      continue;
+    }
     if (DIAGNOSTICS_SECRET_PATTERN.test(key)) continue;
     if (key === TIMETABLE_SYNC_CACHE_KEY || key === "eeTimetableComparison" || key === "eeTimetableComparisons") continue; // private timetable data
     if (value === null || value === undefined) continue;
@@ -732,11 +762,12 @@ async function buildSettingsSummary() {
   return summary;
 }
 
-async function buildTimetableSyncSummary() {
+async function buildTimetableSyncSummary({ redact = true } = {}) {
   const result = await storageGet([TIMETABLE_SYNC_CACHE_KEY]);
   const root = result?.[TIMETABLE_SYNC_CACHE_KEY];
   if (!root || typeof root !== "object") return { present: false };
   const byOrigin = root.byOrigin && typeof root.byOrigin === "object" ? root.byOrigin : {};
+  if (redact) return { present: true, originCount: Object.keys(byOrigin).length };
   const origins = Object.entries(byOrigin).map(([origin, bucket]) => ({
     origin,
     fetchedAt: bucket?.fetchedAt ? new Date(bucket.fetchedAt).toISOString() : null,
@@ -772,8 +803,27 @@ function diagnosticsDelay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function stripUrlQuery(url) {
-  try { const u = new URL(url); return `${u.origin}${u.pathname}`; } catch (_) { return url; }
+function redactedUrlOrigin(url) {
+  try { return new URL(url).origin; } catch (_) { return "[hidden]"; }
+}
+
+function summarizeDiagnosticErrors(entries) {
+  const counts = {};
+  for (const entry of entries) {
+    const level = ["error", "warn", "uncaught", "unhandledrejection"].includes(entry?.level) ? entry.level : "other";
+    counts[level] = (counts[level] || 0) + 1;
+  }
+  return Object.entries(counts).map(([level, count]) => ({ level, count }));
+}
+
+function summarizeUpdateStatus(status) {
+  if (!status || typeof status !== "object") return null;
+  const summary = { updateAvailable: status.updateAvailable === true, failed: Boolean(status.error) };
+  for (const key of ["localVersion", "latestVersion"]) {
+    if (typeof status[key] === "string" && /^\d+(?:\.\d+){0,3}$/.test(status[key])) summary[key] = status[key];
+  }
+  if (Number.isFinite(status.checkedAt)) summary.checkedAt = status.checkedAt;
+  return summary;
 }
 
 function summarizePageDiagnostics(pages) {
@@ -856,7 +906,7 @@ async function collectPageDiagnostics(redact) {
     }
 
     pages.push({
-      tabUrl: redact ? stripUrlQuery(tab.url) : tab.url,
+      tabUrl: redact ? redactedUrlOrigin(tab.url) : tab.url,
       active: Boolean(tab.active),
       frameCount: frames.length,
       frames: kept.length ? kept : frames,
@@ -886,10 +936,10 @@ async function buildDiagnosticsReport(options = {}) {
       languages: navigator.languages,
       timeZone: (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (_) { return null; } })(),
     },
-    settings: await buildSettingsSummary(),
-    updateStatus: updateResult?.[UPDATE_STATUS_KEY] || null,
-    timetableSync: await buildTimetableSyncSummary(),
-    backgroundErrors: diagnosticsErrorLog.slice(),
+    settings: await buildSettingsSummary({ redact }),
+    updateStatus: redact ? summarizeUpdateStatus(updateResult?.[UPDATE_STATUS_KEY]) : updateResult?.[UPDATE_STATUS_KEY] || null,
+    timetableSync: await buildTimetableSyncSummary({ redact }),
+    backgroundErrors: redact ? summarizeDiagnosticErrors(diagnosticsErrorLog) : diagnosticsErrorLog.slice(),
     page: await collectPageDiagnostics(redact),
   };
 }
@@ -2129,6 +2179,9 @@ if (globalThis.__EE_TEST__) {
     normalizeAiDropdownIndexes,
     DIAGNOSTICS_SECRET_PATTERN,
     buildSettingsSummary,
+    buildDiagnosticsReport,
+    fetchAiJson,
+    AI_REQUEST_TIMEOUT_MS,
   };
 }
 

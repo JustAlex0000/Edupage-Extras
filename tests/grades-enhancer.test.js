@@ -474,7 +474,7 @@ runTest("attendance cache isolates periods and replaces the legacy origin entry"
     "https://school.example": { version: 14, halfKey: "2" },
   };
   const firstHalfStats = {
-    version: 15,
+    version: 16, ownerId: "student-a",
     viewSignature: "2024:1",
     halfKey: "1",
     fetchedAt: now - 1_000,
@@ -487,7 +487,7 @@ runTest("attendance cache isolates periods and replaces the legacy origin entry"
     now,
   );
   const secondHalfStats = {
-    version: 15,
+    version: 16, ownerId: "student-a",
     viewSignature: "2024:2",
     halfKey: "2",
     fetchedAt: now,
@@ -500,10 +500,10 @@ runTest("attendance cache isolates periods and replaces the legacy origin entry"
     now,
   );
 
-  assert.equal(firstUpdate["https://school.example"]["2024:1"].halfKey, "1");
+  assert.equal(firstUpdate["https://school.example"][JSON.stringify(["student-a", "2024:1"])].halfKey, "1");
   assert.equal(firstUpdate["https://school.example"].version, undefined);
-  assert.equal(secondUpdate["https://school.example"]["2024:1"].halfKey, "1");
-  assert.equal(secondUpdate["https://school.example"]["2024:2"].halfKey, "2");
+  assert.equal(secondUpdate["https://school.example"][JSON.stringify(["student-a", "2024:1"])].halfKey, "1");
+  assert.equal(secondUpdate["https://school.example"][JSON.stringify(["student-a", "2024:2"])].halfKey, "2");
 });
 
 runTest("attendance cache pruning removes expired views and empty origins", () => {
@@ -511,19 +511,19 @@ runTest("attendance cache pruning removes expired views and empty origins", () =
   const now = 2_000_000;
   const cache = {
     "https://school-a.example": {
-      "2024:1": { version: 15, fetchedAt: now - 1_000 },
-      "2023:2": { version: 15, fetchedAt: now - (16 * 60 * 1_000) },
+      [JSON.stringify(["student-a", "2024:1"])]: { version: 16, ownerId: "student-a", fetchedAt: now - 1_000 },
+      [JSON.stringify(["student-a", "2023:2"])]: { version: 16, ownerId: "student-a", fetchedAt: now - (16 * 60 * 1_000) },
     },
     "https://school-b.example": {
-      "2024:1": { version: 14, fetchedAt: now },
+      [JSON.stringify(["student-a", "2024:1"])]: { version: 14, fetchedAt: now },
     },
   };
 
   const pruned = pruneAttendanceCache(cache, now);
 
   assert.equal(Object.keys(pruned).length, 1);
-  assert.equal(pruned["https://school-a.example"]["2024:1"].version, 15);
-  assert.equal(pruned["https://school-a.example"]["2023:2"], undefined);
+  assert.equal(pruned["https://school-a.example"][JSON.stringify(["student-a", "2024:1"])].version, 16);
+  assert.equal(pruned["https://school-a.example"][JSON.stringify(["student-a", "2023:2"])], undefined);
 });
 
 runTest("subject absences can be assigned directly from attendance subject ids", () => {

@@ -29,6 +29,12 @@ jobs:
       - name: Run unit tests
         run: npm test
 
+      - name: Install browser test runtimes
+        run: npx playwright install --with-deps chromium firefox
+
+      - name: Run browser regressions
+        run: npm run test:browser
+
       - name: Lint for Firefox
         run: npm run lint:firefox
 

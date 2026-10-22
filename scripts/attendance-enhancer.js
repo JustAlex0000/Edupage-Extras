@@ -9,6 +9,7 @@
   let observerTimer = null;
   let attendancePercentagesEnabled = true;
   let halfyearStartOverride = "";
+  const renderSignatures = new WeakMap();
 
   function t(key, substitutions) {
     try {
@@ -314,10 +315,14 @@
   }
 
   function clearInjectedStats(grid) {
+    renderSignatures.delete(grid);
     grid.querySelectorAll(".ee-attendance-stat").forEach((element) => element.remove());
   }
 
   function renderAttendancePercentages(grid, halves, computedHalves, currentHalfKey) {
+    const signature = JSON.stringify([halves, computedHalves, currentHalfKey]);
+    if (renderSignatures.get(grid) === signature
+      && grid.querySelectorAll(".ee-attendance-stat").length === 4) return;
     clearInjectedStats(grid);
 
     const firstHalf = computedHalves["1"] || { absent: 0, total: 0, percent: NaN };
@@ -338,6 +343,7 @@
     detailCell.title = t("attDetailFormula");
 
     grid.append(labelCell, firstValueCell, secondValueCell, detailCell);
+    renderSignatures.set(grid, signature);
   }
 
   function enhanceAttendanceTable() {
@@ -394,8 +400,13 @@
   }
 
   function initObserver() {
-    const observer = new MutationObserver(() => {
-      if (document.querySelector("table.dash_dochadzka")) {
+    const observer = new MutationObserver((mutations) => {
+      const nativeChange = mutations.some((mutation) => {
+        if (mutation.target.closest?.(".ee-attendance-stat")) return false;
+        const changed = [...mutation.addedNodes, ...mutation.removedNodes];
+        return changed.length === 0 || changed.some((node) => !node.matches?.(".ee-attendance-stat"));
+      });
+      if (nativeChange && document.querySelector("table.dash_dochadzka")) {
         scheduleEnhance();
       }
     });
@@ -437,7 +448,7 @@
 
   // Deliberate test hook — see tests/attendance-enhancer.test.js.
   if (globalThis.__EE_TEST__) {
-    globalThis.__eeTestExports = { parseDateOnly, normalizeDateInput, resolveSecondHalfStartDate, computeHalfStats };
+    globalThis.__eeTestExports = { parseDateOnly, normalizeDateInput, resolveSecondHalfStartDate, computeHalfStats, renderAttendancePercentages, clearInjectedStats };
   }
 
   if (document.readyState === "loading") {

@@ -30,6 +30,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install browser test runtimes
+        run: npx playwright install --with-deps chromium firefox
+
+      - name: Run browser regressions
+        run: npm run test:browser
+
       - name: Verify pushed tag matches package.json version
         if: github.ref_type == 'tag'
         run: |
