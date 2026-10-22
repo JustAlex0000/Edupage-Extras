@@ -73,6 +73,7 @@
       buildGradesViewContext: GE.buildGradesViewContext,
       readGradesViewContext: GE.readGradesViewContext,
       hasUnenhancedGradesTable: GE.hasUnenhancedGradesTable,
+      attendanceCacheSignature: GE.attendance.attendanceCacheSignature,
       updateAttendanceCache: GE.attendance.updateAttendanceCache,
       pruneAttendanceCache: GE.attendance.pruneAttendanceCache,
       normalizeGradesSearchText: GE.sortFilter.normalizeSearchText,

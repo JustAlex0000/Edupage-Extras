@@ -181,28 +181,21 @@ test("eTest protections use enabled defaults while remaining master-gated", () =
     /chrome\.storage\.local\.get\(\{ \[ETEST_AUTO_THEME_OFF_KEY\]: true \}/,
     "automatic eTest theme suppression must default on",
   );
-  assert.match(main, /if \(!strictActive\("blockEsc"\)\) return;/, "Escape blocking must require an explicit true value");
-  assert.match(main, /if \(!strictActive\("jquerySweep"\)\) return;/, "listener removal must require an explicit true value");
-  assert.match(main, /if \(!strictActive\("fullscreenSpoof"\)\) return;/, "fullscreen blocking must require an explicit true value");
-  assert.match(
-    main,
-    /type\.includes\("\.etestplayeral"\) \|\| type\.includes\("\.etestaplayer"\)/,
-    "phone-specific eTest jQuery handlers must be gated by namespace",
-  );
-  assert.match(
-    main,
-    /if \(strictActive\("jquerySweep"\)\) return undefined;/,
-    "the jQuery listener gate must remain controlled by the existing master-gated preference",
-  );
+  assert.match(main, /if \(!active\("blockEsc"\)\) return;/, "Escape blocking must require an explicit true value");
+  assert.match(main, /if \(!active\("fullscreenSpoof"\)\) return;/, "fullscreen blocking must require an explicit true value");
+  assert.match(main, /jq\(document\)\.off\("\.etestplayeral"\)\.off\("\.etestaplayer"\)/);
+  assert.match(main, /jq\(window\)\.off\("\.etestplayeral"\)\.off\("\.etestaplayer"\)/);
+  assert.doesNotMatch(main, /jq\.event\.(?:add|dispatch)\s*=/, "the requested direct sweep must not wrap jQuery APIs");
 });
 
-test("Activity Shield avoids permanent high-frequency polling and cancels synthetic frames reliably", () => {
+test("Activity Shield has a stoppable enabled-only sweep and no DOM preference or native-state control port", () => {
   const main = fs.readFileSync(path.join(ROOT, "scripts/activity-shield-main.js"), "utf8");
+  const bridge = fs.readFileSync(path.join(ROOT, "scripts/activity-shield-bridge.js"), "utf8");
 
-  assert.match(main, /jqueryGateAttempts >= 400/);
-  assert.match(main, /clearInterval\(jqueryGateTimer\)/);
-  assert.match(main, /if \(syntheticFrames\.has\(id\)\)/);
-  assert.doesNotMatch(main, /active\("animationFrame"\) && readNativeHidden\(\) && syntheticFrames\.has\(id\)/);
+  assert.match(main, /jqueryTimer = setInterval\(discoverJquery, 500\)/);
+  assert.match(main, /if \(!active\("jquerySweep"\)\) \{[\s\S]*?clearInterval\(jqueryTimer\)/);
+  assert.doesNotMatch(main + bridge, /dataset\.|ee-activity-shield-port|ee-activity-state/);
+  assert.match(bridge, /new MessageChannel\(\)/);
 });
 
 test("route-specific enhancers wait only until their target appears", () => {

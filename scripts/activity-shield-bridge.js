@@ -7,7 +7,9 @@
 (function () {
   "use strict";
 
-  const PORT_ID = "ee-activity-shield-port";
+  const CHANNEL_REQUEST = "ee-activity-shield-request";
+  const CHANNEL_READY = "ee-activity-shield-ready";
+  const CHANNEL_CONNECT = "ee-activity-shield-connect";
   const INDICATOR_ID = "ee-activity-shield-indicator";
   const KEYS = [
     "eeActivityShieldEnabled",
@@ -49,22 +51,52 @@
     eeActivityShieldLog: false,
   };
 
-  let port = document.getElementById(PORT_ID);
-  if (!port) {
-    port = document.createElement("span");
-    port.id = PORT_ID;
-    port.hidden = true;
-    (document.documentElement || document.head || document.body)?.append(port);
+  const flags = {
+    enabled: "eeActivityShieldEnabled",
+    log: "eeActivityShieldLog",
+    visibilityState: "eeActivityShieldVisibilityState",
+    hidden: "eeActivityShieldHidden",
+    visibilityEvents: "eeActivityShieldVisibilityEvents",
+    focus: "eeActivityShieldFocus",
+    blur: "eeActivityShieldBlur",
+    redirect: "eeActivityShieldRedirect",
+    mouseleave: "eeActivityShieldMouseleave",
+    mouseout: "eeActivityShieldMouseout",
+    pointercapture: "eeActivityShieldPointercapture",
+    clipboard: "eeActivityShieldClipboard",
+    animationFrame: "eeActivityShieldAnimationFrame",
+    blockEsc: "eeActivityShieldBlockEsc",
+    jquerySweep: "eeActivityShieldJquerySweep",
+    fullscreenSpoof: "eeActivityShieldFullscreenSpoof",
+  };
+  let channel = null;
+  let connected = false;
+  let latestPrefs = defaults;
+  let revision = 0;
+  let refreshGeneration = 0;
+
+  function sendPrefs() {
+    if (!connected) return;
+    const preferences = {};
+    for (const [name, key] of Object.entries(flags)) preferences[name] = latestPrefs[key] === true;
+    channel.postMessage({ type: "preferences", revision, preferences });
   }
 
-  port.dataset.nativeHidden = String(document.hidden);
-  port.addEventListener("ee-activity-state", () => {
-    port.dataset.nativeHidden = String(document.hidden);
-  });
-
-  function setFlag(name, value) {
-    port.dataset[name] = String(value === true);
+  function connect(event) {
+    if (event.source !== window || event.data?.type !== CHANNEL_READY || channel) return;
+    const messageChannel = new MessageChannel();
+    channel = messageChannel.port1;
+    channel.onmessage = ({ data }) => {
+      if (data?.type !== "connected" || connected) return;
+      connected = true;
+      window.removeEventListener("message", connect, true);
+      sendPrefs();
+    };
+    window.postMessage({ type: CHANNEL_CONNECT }, "*", [messageChannel.port2]);
   }
+
+  window.addEventListener("message", connect, true);
+  window.postMessage({ type: CHANNEL_REQUEST }, "*");
 
   function t(key) {
     try {
@@ -101,13 +133,18 @@
     indicator.addEventListener("click", () => {
       window.open(chrome.runtime.getURL("menu/settings.html"), "_blank", "noopener");
     });
-    document.documentElement.append(indicator);
+    document.body.append(indicator);
     return indicator;
   }
 
   function updateIndicator(enabled, visible) {
+    if (window.top !== window) return;
+    if (!visible) {
+      document.getElementById(INDICATOR_ID)?.remove();
+      return;
+    }
+    if (!document.body) return;
     const indicator = ensureIndicator();
-    indicator.style.display = visible ? "block" : "none";
     indicator.style.background = enabled ? "#89b4fa" : "#f38ba8";
     const label = t(enabled ? "activityShieldIndicatorActive" : "activityShieldIndicatorPaused");
     indicator.title = label;
@@ -116,33 +153,28 @@
 
   function applyPrefs(prefs) {
     const enabled = prefs.eeActivityShieldEnabled === true;
-
-    port.dataset.enabled = String(enabled);
-    port.dataset.log = String(prefs.eeActivityShieldLog === true);
-
-    setFlag("visibilityState", prefs.eeActivityShieldVisibilityState);
-    setFlag("hidden", prefs.eeActivityShieldHidden);
-    setFlag("visibilityEvents", prefs.eeActivityShieldVisibilityEvents);
-    setFlag("focus", prefs.eeActivityShieldFocus);
-    setFlag("blur", prefs.eeActivityShieldBlur);
-    setFlag("redirect", prefs.eeActivityShieldRedirect);
-    setFlag("mouseleave", prefs.eeActivityShieldMouseleave);
-    setFlag("mouseout", prefs.eeActivityShieldMouseout);
-    setFlag("pointercapture", prefs.eeActivityShieldPointercapture);
-    setFlag("clipboard", prefs.eeActivityShieldClipboard);
-    setFlag("animationFrame", prefs.eeActivityShieldAnimationFrame);
-    setFlag("blockEsc", prefs.eeActivityShieldBlockEsc);
-    setFlag("jquerySweep", prefs.eeActivityShieldJquerySweep);
-    setFlag("fullscreenSpoof", prefs.eeActivityShieldFullscreenSpoof);
-
+    latestPrefs = prefs;
+    revision += 1;
+    sendPrefs();
     updateIndicator(enabled, prefs.eeActivityShieldVisualIndicator === true);
   }
 
   function refresh() {
-    chrome.storage.local.get(defaults, applyPrefs);
+    const generation = ++refreshGeneration;
+    try {
+      chrome.storage.local.get(defaults, (prefs) => {
+        if (generation !== refreshGeneration || chrome.runtime.lastError) return;
+        applyPrefs(prefs);
+      });
+    } catch (_) {
+      // An extension reload can invalidate this frame's storage context.
+    }
   }
 
   refresh();
+  document.addEventListener("DOMContentLoaded", () => {
+    updateIndicator(latestPrefs.eeActivityShieldEnabled === true, latestPrefs.eeActivityShieldVisualIndicator === true);
+  }, { once: true });
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local") return;

@@ -4,6 +4,22 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## Unreleased
+
+- Removed Stay Active's recursive jQuery wrappers and retained the intended direct
+  namespace removal while enabled, with no default-off polling. Repaired reload-
+  guard ordering, cleanup, and pending animation scheduling.
+- Removed DOM activity preferences and native-hidden broadcasts. Documented the
+  remaining page-world and browser-suspension limits.
+- Isolated attendance caches by verified student and period, bounded pending
+  reads, and stopped self-triggered attendance rendering.
+- Canceled obsolete AI fills and delayed logins after setting changes or manual input.
+- Removed personal text from redacted diagnostics and bounded provider requests.
+- Fixed sparse/empty timetable weeks, missing-day date mapping, owner selection,
+  date-aware cache expiry, retries, and disabled-highlight races.
+- Updated development tools and added browser regression coverage for Chromium
+  and Firefox.
+
 ## 1.0.9 — 2026-10-22
 
 - Added opt-in timetable comparison, configured entirely in Timetable settings.

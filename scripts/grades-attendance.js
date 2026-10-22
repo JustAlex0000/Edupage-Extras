@@ -15,21 +15,27 @@
   const GE = (window.__eeGrades = window.__eeGrades || {});
 
   const GRADES_ATTENDANCE_CACHE_KEY = "eeGradesAttendanceStatsCache";
-  const GRADES_ATTENDANCE_CACHE_VERSION = 15;
+  const GRADES_ATTENDANCE_CACHE_VERSION = 16;
   const CACHE_TTL_MS = 15 * 60 * 1000;
   const CLASSBOOK_RANGE_MAX_DAYS = 30;
   const ATTENDANCE_RENDER_SIGNATURE_ATTR = "data-ee-attendance-render-signature";
   let attendanceBaseStatsPromise = null;
-  let attendanceStatsPromise = null;
+  let attendanceGeneration = 0;
+  const attendanceControllers = new Set();
   let headerTransformObserver = null;
   let observedHeaderReference = null;
 
     function currentGradesViewSignature() {
-      return GE.state.gradesView?.signature || "current:current";
+      const period = GE.state.gradesView?.signature || "current:current";
+      const start = GE.state.halfyearStartOverride || "";
+      const end = GE.state.halfyearEndOverride || "";
+      return start || end ? JSON.stringify([period, start, end]) : period;
     }
     function resetForGradesView() {
       attendanceBaseStatsPromise = null;
-      attendanceStatsPromise = null;
+      attendanceGeneration += 1;
+      for (const controller of attendanceControllers) controller.abort();
+      attendanceControllers.clear();
       GE.state.attendanceStatsCache = null;
     }
     function pruneAttendanceCache(byOrigin, now = Date.now()) {
@@ -46,6 +52,7 @@
                 return stats
                   && typeof stats === "object"
                   && stats.version === GRADES_ATTENDANCE_CACHE_VERSION
+                  && typeof stats.ownerId === "string" && stats.ownerId.length > 0
                   && age >= 0
                   && age <= CACHE_TTL_MS;
               }),
@@ -57,6 +64,7 @@
     }
     function updateAttendanceCache(byOrigin, origin, stats, fallbackSignature, now = Date.now()) {
       const cache = pruneAttendanceCache(byOrigin, now);
+      if (!stats.ownerId) return cache;
       const storedOrigin = cache[origin];
       const byView = storedOrigin && typeof storedOrigin === "object" && !("version" in storedOrigin)
         ? storedOrigin
@@ -66,9 +74,13 @@
         ...cache,
         [origin]: {
           ...byView,
-          [viewSignature]: stats,
+          [attendanceCacheSignature(stats.ownerId, viewSignature)]: stats,
         },
       };
+    }
+
+    function attendanceCacheSignature(ownerId, viewSignature) {
+      return JSON.stringify([ownerId, viewSignature]);
     }
 
     function shouldCountAbsentType(typeMeta) {
@@ -440,6 +452,7 @@
       const order = Array.isArray(payload?.order) ? payload.order : [];
       const studentKeys = Object.keys(payload?.students || {});
       if (order.length > 1 || studentKeys.length > 1) return "";
+      if (order[0] && studentKeys[0] && String(order[0]) !== studentKeys[0]) return "";
       return String(order[0] || studentKeys[0] || "").trim();
     }
     function resolveOfficialHalfSummary(attendanceInfo, halfWindow) {
@@ -1815,61 +1828,58 @@
     function countSchoolDaysInRange(startDate, endDate) {
       return buildSchoolDayAnchors(startDate, endDate).length;
     }
-    async function readCachedAttendanceStats() {
+    async function readCachedAttendanceStats(ownerId, viewSignature = currentGradesViewSignature()) {
       const today = GE.formatDateISO(new Date());
-      const viewSignature = currentGradesViewSignature();
-      if (GE.state.gradesAttendanceDebugEnabled) return null;
-      const result = await GE.storageGet([GRADES_ATTENDANCE_CACHE_KEY]);
+      if (!ownerId || GE.state.gradesAttendanceDebugEnabled) return null;
+      let result;
+      try { result = await GE.storageGet([GRADES_ATTENDANCE_CACHE_KEY]); }
+      catch (_) { return null; }
       const byOrigin = result[GRADES_ATTENDANCE_CACHE_KEY] || {};
       const pruned = pruneAttendanceCache(byOrigin);
-      if (JSON.stringify(pruned) !== JSON.stringify(byOrigin)) {
-        await GE.storageSet({ [GRADES_ATTENDANCE_CACHE_KEY]: pruned });
-      }
-      const cached = pruned[GE.currentOrigin()]?.[viewSignature];
+      const cached = pruned[GE.currentOrigin()]?.[attendanceCacheSignature(ownerId, viewSignature)];
 
-      if (!cached) return null;
+      if (!cached || cached.ownerId !== ownerId || cached.viewSignature !== viewSignature) return null;
       if (cached.version !== GRADES_ATTENDANCE_CACHE_VERSION) return null;
       if (cached.cacheDate !== today) return null;
       if (Date.now() - GE.numberValue(cached.fetchedAt) > CACHE_TTL_MS) return null;
 
       return cached;
     }
-    async function writeCachedAttendanceStats(stats) {
+    async function writeCachedAttendanceStats(stats, ensureCurrent = () => {}) {
       if (GE.state.gradesAttendanceDebugEnabled) return;
       const result = await GE.storageGet([GRADES_ATTENDANCE_CACHE_KEY]);
       const byOrigin = result[GRADES_ATTENDANCE_CACHE_KEY] || {};
       const origin = GE.currentOrigin();
-      const updated = updateAttendanceCache(byOrigin, origin, stats, currentGradesViewSignature());
+      ensureCurrent();
+      const updated = updateAttendanceCache(byOrigin, origin, stats, stats.viewSignature);
       await GE.storageSet({ [GRADES_ATTENDANCE_CACHE_KEY]: updated });
     }
     async function fetchText(url, options = {}) {
-      GE.debug.log("Fetch start", {
-        url,
-        method: options.method || "GET",
-      });
-      const response = await fetch(url, {
-        credentials: "include",
-        cache: "no-store",
-        ...options,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Request failed for ${url}: ${response.status}`);
+      const controller = new AbortController();
+      const signal = options.signal;
+      const abort = () => controller.abort();
+      if (signal?.aborted) controller.abort();
+      else signal?.addEventListener("abort", abort, { once: true });
+      const timer = setTimeout(abort, 20000);
+      try {
+        const response = await fetch(url, {
+          credentials: "include",
+          cache: "no-store",
+          ...options,
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error(`Attendance request failed: ${response.status}`);
+        return await response.text();
+      } finally {
+        clearTimeout(timer);
+        signal?.removeEventListener("abort", abort);
       }
-
-      const text = await response.text();
-      GE.debug.log("Fetch ok", {
-        url,
-        method: options.method || "GET",
-        length: text.length,
-        startsWith: text.slice(0, 120),
-      });
-      return text;
     }
     async function fetchClassbookData(ttdayInfo, {
       date,
       datefrom = "",
       dateto = "",
+      signal,
     } = {}) {
       const params = new URLSearchParams({
         gpid: ttdayInfo.gpid,
@@ -1893,9 +1903,6 @@
         date: date || ttdayInfo.renderDate,
         datefrom,
         dateto,
-        gpid: ttdayInfo.gpid,
-        user: String(ttdayInfo.user || ""),
-        body,
       });
 
       return fetchText("/gcall", {
@@ -1904,16 +1911,18 @@
           "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         },
         body,
+        signal,
       });
     }
-    async function fetchClassbookRange(ttdayInfo, halfWindow) {
+    async function fetchClassbookRange(ttdayInfo, halfWindow, signal) {
       return fetchClassbookData(ttdayInfo, {
         date: halfWindow.endDate,
         datefrom: halfWindow.startDate,
         dateto: halfWindow.endDate,
+        signal,
       });
     }
-    async function fetchAnchoredClassbookRange(ttdayInfo, halfWindow, diagnostics = []) {
+    async function fetchAnchoredClassbookRange(ttdayInfo, halfWindow, diagnostics = [], signal) {
       const anchors = buildWeekAnchors(halfWindow.startDate, halfWindow.endDate);
       if (anchors.length === 0) {
         return { dates: {} };
@@ -1922,7 +1931,7 @@
       let mergedData = { dates: {} };
 
       for (const anchor of anchors) {
-        const anchoredResponse = await fetchClassbookData(ttdayInfo, { date: anchor });
+        const anchoredResponse = await fetchClassbookData(ttdayInfo, { date: anchor, signal });
         const responseInfo = inspectClassbookResponseText(anchoredResponse);
         const anchoredData = parseClassbookDataFromText(anchoredResponse);
         diagnostics.push({
@@ -1937,7 +1946,7 @@
 
       return mergedData;
     }
-    async function fetchChunkedClassbookRange(ttdayInfo, halfWindow, diagnostics = []) {
+    async function fetchChunkedClassbookRange(ttdayInfo, halfWindow, diagnostics = [], signal) {
       const chunks = buildRangeChunks(halfWindow.startDate, halfWindow.endDate);
       if (chunks.length === 0) {
         return { dates: {} };
@@ -1950,6 +1959,7 @@
           date: chunk.endDate,
           datefrom: chunk.startDate,
           dateto: chunk.endDate,
+          signal,
         });
         const responseInfo = inspectClassbookResponseText(responseText);
         const chunkData = parseClassbookDataFromText(responseText);
@@ -1967,7 +1977,7 @@
 
       return mergedData;
     }
-    async function fetchAnchoredTtdayPages(halfWindow, diagnostics = []) {
+    async function fetchAnchoredTtdayPages(halfWindow, diagnostics = [], signal) {
       const anchors = buildWeekAnchors(halfWindow.startDate, halfWindow.endDate);
       if (anchors.length === 0) {
         return { dates: {} };
@@ -1977,7 +1987,7 @@
 
       for (const anchor of anchors) {
         const url = `/dashboard/eb.php?mode=ttday&date=${encodeURIComponent(anchor)}`;
-        const anchoredHtml = await fetchText(url);
+        const anchoredHtml = await fetchText(url, { signal });
         let parsedInfo = null;
 
         try {
@@ -2005,7 +2015,7 @@
 
       return mergedData;
     }
-    async function fetchDenseTtdayPages(halfWindow, diagnostics = []) {
+    async function fetchDenseTtdayPages(halfWindow, diagnostics = [], signal) {
       const anchors = buildSchoolDayAnchors(halfWindow.startDate, halfWindow.endDate);
       if (anchors.length === 0) {
         return { dates: {} };
@@ -2021,7 +2031,7 @@
             const url = `/dashboard/eb.php?mode=ttday&date=${encodeURIComponent(anchor)}`;
 
             try {
-              const anchoredHtml = await fetchText(url);
+              const anchoredHtml = await fetchText(url, { signal });
               const parsedInfo = parseTtdayPage(anchoredHtml);
               return {
                 anchor,
@@ -2029,6 +2039,7 @@
                 parsedInfo,
               };
             } catch (error) {
+              if (signal?.aborted) throw error;
               return {
                 anchor,
                 source: "ttday-dense",
@@ -2063,38 +2074,42 @@
     async function loadBaseSubjectAttendanceStats() {
       const today = GE.formatDateISO(new Date());
       const viewSignature = currentGradesViewSignature();
-
-      if (
-        GE.state.attendanceStatsCache
-        && GE.state.attendanceStatsCache.cacheDate === today
-        && GE.state.attendanceStatsCache.viewSignature === viewSignature
-        && Date.now() - GE.numberValue(GE.state.attendanceStatsCache.fetchedAt) <= CACHE_TTL_MS
-      ) {
-        return GE.state.attendanceStatsCache;
-      }
-
       if (attendanceBaseStatsPromise?.viewSignature === viewSignature) {
         return attendanceBaseStatsPromise.promise;
       }
+      const generation = attendanceGeneration;
+      const controller = new AbortController();
+      const signal = controller.signal;
+      attendanceControllers.add(controller);
+      const deadlineTimer = setTimeout(() => controller.abort(), 90000);
+      const ensureCurrent = () => {
+        if (signal.aborted || generation !== attendanceGeneration) {
+          throw new Error("Attendance request was canceled.");
+        }
+      };
 
       const request = {
         viewSignature,
         promise: (async () => {
-        const cached = await readCachedAttendanceStats();
+        const attendanceHtml = await fetchText("/dashboard/eb.php?mode=attendance", { signal });
+        ensureCurrent();
+        const attendanceInfo = parseAttendancePage(attendanceHtml);
+        const ownerId = resolveUnambiguousStudentId(attendanceInfo.payload);
+        if (!ownerId) throw new Error("Attendance owner could not be verified.");
+        const memory = GE.state.attendanceStatsCache;
+        if (memory?.ownerId !== ownerId) GE.state.attendanceStatsCache = null;
+        const cached = memory?.ownerId === ownerId && memory.viewSignature === viewSignature
+          && memory.cacheDate === today && Date.now() >= GE.numberValue(memory.fetchedAt)
+          && Date.now() - GE.numberValue(memory.fetchedAt) <= CACHE_TTL_MS
+          ? memory : await readCachedAttendanceStats(ownerId, viewSignature);
+        ensureCurrent();
         if (cached) {
           GE.state.attendanceStatsCache = cached;
-          window.__eeGradesAttendanceDebug = cached.debug || null;
           GE.debug.syncAttendanceDebug(cached.debug || null);
-          attendanceStatsPromise = { viewSignature, promise: Promise.resolve(cached) };
           return cached;
         }
-
-        const [attendanceHtml, ttdayHtml] = await Promise.all([
-          fetchText("/dashboard/eb.php?mode=attendance"),
-          fetchText("/dashboard/eb.php?mode=ttday"),
-        ]);
-
-        const attendanceInfo = parseAttendancePage(attendanceHtml);
+        const ttdayHtml = await fetchText("/dashboard/eb.php?mode=ttday", { signal });
+        ensureCurrent();
         const ttdayInfo = parseTtdayPage(ttdayHtml);
         GE.debug.log("Parsed source pages", {
           today,
@@ -2124,7 +2139,7 @@
           : null;
         GE.debug.log("Resolved half window", halfWindow);
 
-        const classbookResponse = await fetchClassbookRange(ttdayInfo, halfWindow);
+        const classbookResponse = await fetchClassbookRange(ttdayInfo, halfWindow, signal);
         const rangedResponseInfo = inspectClassbookResponseText(classbookResponse);
         const rangedClassbookData = parseClassbookDataFromText(classbookResponse) || { dates: {} };
         const embeddedDateCount = Object.keys(ttdayInfo.classbookData?.dates || {}).length;
@@ -2132,16 +2147,16 @@
         const chunkDiagnostics = [];
         const needsChunkedFallback = rangedDateCount <= embeddedDateCount || rangedDateCount < 20;
         const chunkedClassbookData = needsChunkedFallback
-          ? await fetchChunkedClassbookRange(ttdayInfo, halfWindow, chunkDiagnostics)
+          ? await fetchChunkedClassbookRange(ttdayInfo, halfWindow, chunkDiagnostics, signal)
           : { dates: {} };
         const chunkedDateCount = Object.keys(chunkedClassbookData?.dates || {}).length;
         const needsAnchoredFallback = chunkedDateCount <= embeddedDateCount || chunkedDateCount < 20;
         const anchoredDiagnostics = [];
         let anchoredClassbookData = needsAnchoredFallback
-          ? await fetchAnchoredClassbookRange(ttdayInfo, halfWindow, anchoredDiagnostics)
+          ? await fetchAnchoredClassbookRange(ttdayInfo, halfWindow, anchoredDiagnostics, signal)
           : { dates: {} };
         if (needsAnchoredFallback && Object.keys(anchoredClassbookData?.dates || {}).length < 20) {
-          const anchoredPageData = await fetchAnchoredTtdayPages(halfWindow, anchoredDiagnostics);
+          const anchoredPageData = await fetchAnchoredTtdayPages(halfWindow, anchoredDiagnostics, signal);
           anchoredClassbookData = mergeManyClassbookData(
             anchoredClassbookData,
             anchoredPageData,
@@ -2189,7 +2204,7 @@
         );
 
         if (shouldUseDenseFallback) {
-          const denseClassbookData = await fetchDenseTtdayPages(halfWindow, denseDiagnostics);
+          const denseClassbookData = await fetchDenseTtdayPages(halfWindow, denseDiagnostics, signal);
           const denseDateCount = Object.keys(denseClassbookData?.dates || {}).length;
 
           if (denseDateCount > 0) {
@@ -2264,7 +2279,13 @@
         };
 
         const predictedAttendanceSummary = summarizePredictedAttendance(subjects, attendanceSummary);
+        const verifiedHtml = await fetchText("/dashboard/eb.php?mode=attendance", { signal });
+        ensureCurrent();
+        if (resolveUnambiguousStudentId(parseAttendancePage(verifiedHtml).payload) !== ownerId) {
+          throw new Error("Attendance account changed during loading.");
+        }
         const baseStats = {
+          ownerId,
           version: GRADES_ATTENDANCE_CACHE_VERSION,
           viewSignature,
           cacheDate: today,
@@ -2283,41 +2304,12 @@
         window.__eeGradesAttendanceDebug = baseDebug;
         GE.debug.syncAttendanceDebug(baseDebug);
 
-        const finalRequest = {
-          viewSignature,
-          promise: (async () => {
-          const predictedSubjects = subjects;
-          const debug = {
-            ...baseDebug,
-            subjects: GE.debug.summarizeSubjectsForDebug(predictedSubjects),
-          };
-          const stats = {
-            ...baseStats,
-            fetchedAt: Date.now(),
-            subjects: predictedSubjects,
-            predictedAttendanceSummary,
-            predictionState: "ready",
-            debug,
-          };
-
-          GE.state.attendanceStatsCache = stats;
-          window.__eeGradesAttendanceDebug = debug;
-          GE.debug.syncAttendanceDebug(debug);
-          GE.debug.log("Final attendance stats", debug);
-          if (GE.state.gradesAttendanceDebugEnabled && (attendanceSummary.total < 100 || debug.mergedDateCount <= embeddedDateCount)) {
-            console.warn("[Edupage Extras] Grades attendance diagnostic", debug);
-          }
-          if (attendanceSummary.total >= 100) {
-            await writeCachedAttendanceStats(stats);
-          }
-          return stats;
-          })()
-          .finally(() => {
-            if (attendanceStatsPromise === finalRequest) attendanceStatsPromise = null;
-          }),
-        };
-        attendanceStatsPromise = finalRequest;
-
+        ensureCurrent();
+        GE.state.attendanceStatsCache = baseStats;
+        if (attendanceSummary.total >= 100) {
+          try { await writeCachedAttendanceStats(baseStats, ensureCurrent); } catch (_) {}
+        }
+        ensureCurrent();
         return baseStats;
         })()
         .catch((error) => {
@@ -2326,6 +2318,8 @@
           throw error;
         })
         .finally(() => {
+          clearTimeout(deadlineTimer);
+          attendanceControllers.delete(controller);
           if (attendanceBaseStatsPromise === request) attendanceBaseStatsPromise = null;
         }),
       };
@@ -2334,33 +2328,14 @@
       return request.promise;
     }
     async function loadSubjectAttendanceStats() {
-      const today = GE.formatDateISO(new Date());
-      const viewSignature = currentGradesViewSignature();
-
-      if (
-        GE.state.attendanceStatsCache
-        && GE.state.attendanceStatsCache.cacheDate === today
-        && GE.state.attendanceStatsCache.viewSignature === viewSignature
-        && Date.now() - GE.numberValue(GE.state.attendanceStatsCache.fetchedAt) <= CACHE_TTL_MS
-      ) {
-        return GE.state.attendanceStatsCache;
-      }
-
-      if (attendanceStatsPromise?.viewSignature === viewSignature) {
-        return attendanceStatsPromise.promise;
-      }
-
-      const baseStats = await loadBaseSubjectAttendanceStats();
-      if (baseStats?.predictionState === "ready") {
-        return baseStats;
-      }
-      if (attendanceStatsPromise?.viewSignature === viewSignature) {
-        return attendanceStatsPromise.promise;
-      }
-      return baseStats;
+      return loadBaseSubjectAttendanceStats();
     }
 
   GE.attendance = {
+    currentGradesViewSignature,
+    attendanceCacheSignature,
+    readCachedAttendanceStats,
+    fetchText,
     resetForGradesView,
     pruneAttendanceCache,
     updateAttendanceCache,
