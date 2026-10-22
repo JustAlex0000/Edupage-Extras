@@ -59,6 +59,15 @@ EduPage, open a GitHub issue or report it on [Discord](https://discord.gg/eNZXHe
 - **Themes** for Edupage pages and extension menus, custom themes supported.
 - **Centered layout** centers the page layout.
 - **Help text hide** for hiding the annoying top-right Edupage help greeting.
+- **Anonymizer** — the last option in Cleanup replaces the signed-in account's
+  full name throughout rendered EduPage text and presentation labels, and hides
+  the profile login. Enable it to reveal an autosaved display name, initially
+  `Anonymous`. It follows dynamically loaded content, handles names split across
+  inline elements, and restores original text when disabled. The account name
+  comes from EduPage's `loggedUserName` widget option, with profile text as a
+  fallback while it loads. Forms, editors,
+  scripts and stored EduPage data are not changed. Account names stay in memory;
+  only your chosen alias is saved in extension storage.
 
 ### Grades
 
@@ -84,8 +93,9 @@ EduPage, open a GitHub issue or report it on [Discord](https://discord.gg/eNZXHe
 ### Test results
 
 - **Show My Test Answers (WIP, off by default)** — enable in Settings →
-  Enhancements to open Answers / detailed results for your completed eTests
-  when EduPage has already loaded them but hides the question view. The setting
+  Enhancements to open Answers / detailed results for your eTests
+  when EduPage has already loaded your result but hides the question view,
+  regardless of its evaluation status. The setting
   only overrides question visibility. Correct-answer checks and the print
   renderer stay native: unlocked tests without a server-provided answer key
   show your answers without forced green/red correctness marks.
@@ -150,8 +160,11 @@ Some features can be bound on the browser's extension-shortcuts page.
 ### Languages
 
 - **Localized interface** Extension is translated into English, Slovak, and Czech.
-- The language follows the browser UI language automatically
-  (`chrome.i18n`/`browser.i18n`), falling back to English.
+- Choose **Language** at the top of **Settings → Appearance**: Browser language,
+  Slovenčina, Čeština, or English. Browser language is the default and falls back
+  to English when unsupported. The choice is saved locally, updates Settings
+  immediately, and is used by the popup and injected extension text. Reload open
+  EduPage tabs to refresh all extension labels there.
 
 ### Updates
 

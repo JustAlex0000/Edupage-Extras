@@ -181,34 +181,9 @@ html.ee-hide-page-heroes .hwHeroDiv.results {
   display: none !important;
 }
 
-html.ee-hide-personal-info .edubarProfilebox a.display > span,
-html.ee-hide-personal-info .edubarProfilebox .profilemenu .userName,
-html.ee-hide-personal-info .edubarProfilebox .profilemenu .userLogin,
-html.ee-hide-personal-info .edubarProfilebox .profilemenu h1 {
-  color: transparent !important;
-  text-shadow: none !important;
-}
-
-html.ee-hide-personal-info .edubarProfilebox a.display > span::after,
-html.ee-hide-personal-info .edubarProfilebox .profilemenu .userName::after,
-html.ee-hide-personal-info .edubarProfilebox .profilemenu .userLogin::after,
-html.ee-hide-personal-info .edubarProfilebox .profilemenu h1::after {
-  color: var(--ee-text) !important;
-  content: "---";
-}
-
-html.ee-hide-personal-info form.zteFilterForm .zsvHeaderTitle > h1 {
-  color: transparent !important;
-  text-shadow: none !important;
-}
-
-html.ee-hide-personal-info form.zteFilterForm .zsvHeaderTitle > h1::before {
-  color: var(--ee-text) !important;
-  content: "---, ";
-}
-
-html.ee-hide-personal-info form.zteFilterForm .zsvHeaderTitle > h1 > span {
-  color: var(--ee-text) !important;
+/* Names are replaced by the reversible anonymizer; keep account logins private. */
+html.ee-hide-personal-info .edubarProfilebox .profilemenu .userLogin {
+  visibility: hidden !important;
 }
 
 html.ee-hide-likes .messageViewerTab[data-tab="likes"],

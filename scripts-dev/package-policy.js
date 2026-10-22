@@ -29,7 +29,7 @@ function createFirefoxPackageStaging(prefix) {
     const manifestPath = path.join(staging, "manifest.json");
     const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
     delete manifest.background.service_worker;
-    manifest.background.scripts = ["scripts/lib/ee-common.js", "scripts/lib/ee-timetable-comparison.js", "scripts/background.js", "scripts/timetable-comparison-background.js"];
+    manifest.background.scripts = ["scripts/lib/ee-common.js", "scripts/lib/ee-i18n.js", "scripts/lib/ee-timetable-comparison.js", "scripts/background.js", "scripts/timetable-comparison-background.js"];
     fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
     return staging;
   } catch (error) {

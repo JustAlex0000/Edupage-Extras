@@ -11,7 +11,7 @@
 
   function getMessage(key, fallback) {
     try {
-      return chrome.i18n.getMessage(key) || fallback;
+      return EE.getMessage(key) || fallback;
     } catch (_) {
       return fallback;
     }
@@ -226,8 +226,8 @@
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init, { once: true });
+    document.addEventListener("DOMContentLoaded", () => EE.withLanguageReady(init), { once: true });
   } else {
-    init();
+    EE.withLanguageReady(init);
   }
 })();

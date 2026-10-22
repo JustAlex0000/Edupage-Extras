@@ -137,3 +137,5 @@ chrome.storage.onChanged.addListener((changes, area) => {
 		});
 	}
 });
+
+EE.i18n?.subscribe(initializeMenu);

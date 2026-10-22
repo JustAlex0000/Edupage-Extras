@@ -95,7 +95,7 @@ function setup({ frame = false, late = false } = {}) {
   };
 }
 
-test("question visibility override is opt-in, scoped to own finished results, and preserves native calls", () => {
+test("question visibility override is opt-in, scoped to own results, and preserves native calls", () => {
   const s = setup();
   const obj = new s.Super();
   const own = "Studentfixture-student";
@@ -113,17 +113,50 @@ test("question visibility override is opt-in, scoped to own finished results, an
     assert.equal(call.receiver, obj);
     assert.deepEqual(call.args, ["l1", own, "native-result", "extra-argument"]);
   }
-  for (const state of ["new", "saved", "rework", "", "unknown"]) {
-    obj.getVysledokStav = () => state;
-    for (const method of methods) assert.equal(obj[method]("l2or3", own), false);
-  }
-  obj.getVysledokStav = () => "ev_man";
-  for (const method of methods) assert.equal(obj[method]("l2or3", own), true);
   s.window.location.pathname = "/timetable/";
   for (const method of methods) assert.equal(obj[method]("l2or3", own), false);
   s.emit("click");
   assert.equal(s.Super.prototype.zobrazovatOtazky, s.original);
   assert.equal(s.Super.prototype.zobrazovatSpravne, s.originalCorrect);
+});
+
+test("automatically evaluated results show the student's answers", () => {
+  const s = setup();
+  const obj = new s.Super();
+  obj.getVysledokStav = () => "evaluated";
+  s.enable(true);
+  assert.equal(obj.zobrazovatOtazky("l2or3", "Studentfixture-student"), true);
+  assert.equal(obj.zobrazovatSpravne("l2or3", "Studentfixture-student"), false);
+  s.enable(false);
+  assert.equal(obj.zobrazovatOtazky("l2or3", "Studentfixture-student"), false);
+});
+
+test("loaded own results are visible independently of status, including future statuses", () => {
+  const s = setup();
+  const obj = new s.Super();
+  s.enable(true);
+  for (const state of ["evaluated", "ev_man", "done", "part", "nexttime", "new", "saved", "submitted", "rework", "dline", "seen_only", "", "future-status"]) {
+    obj.getVysledokStav = () => state;
+    assert.equal(obj.zobrazovatOtazky("l2or3", "Studentfixture-student"), true, state);
+    assert.equal(obj.zobrazovatOtazky("l2or3", "Studentother"), false, state);
+    assert.equal(obj.zobrazovatOtazky("l1", "Studentfixture-student"), false, state);
+    assert.equal(obj.zobrazovatOtazky("l3", "Studentfixture-student"), false, state);
+  }
+  // Status APIs need not exist when the native results row is available.
+  obj.getVysledokStav = undefined;
+  assert.equal(obj.zobrazovatOtazky("l2or3", "Studentfixture-student"), true);
+});
+
+test("missing own results keep native visibility and arguments", () => {
+  const s = setup();
+  const obj = new s.Super();
+  s.enable(true);
+  for (const getRow of [() => null, undefined, () => { throw new Error("unsupported renderer"); }]) {
+    obj.getBestVysledokRow = getRow;
+    assert.equal(obj.zobrazovatOtazky("l2or3", "Studentfixture-student"), false);
+    assert.equal(obj.zobrazovatOtazky("l2or3", "Studentfixture-student", "native-result"), "native-result");
+    assert.deepEqual(s.nativeCalls.at(-1).args, ["l2or3", "Studentfixture-student", "native-result"]);
+  }
 });
 
 test("disable restores question visibility and leaves native correctness untouched", () => {
@@ -258,7 +291,7 @@ test("storage bridge waits for body and transmits only the boolean preference", 
   };
   const window = { location: { pathname: "/elearning/" } };
   window.top = window;
-  vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../scripts/etest-results-bridge.js"), "utf8"), {
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../scripts/lib/ee-common.js"), "utf8") + "\n" + fs.readFileSync(path.join(__dirname, "../scripts/etest-results-bridge.js"), "utf8"), {
     window, document,
     Event: function (type) { this.type = type; },
     chrome: {
@@ -312,7 +345,7 @@ test("localized results banner is unique, follows redraws, and cleans up", () =>
   };
   const window = { location: { pathname: "/elearning/" } };
   window.top = window;
-  vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../scripts/etest-results-bridge.js"), "utf8"), {
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../scripts/lib/ee-common.js"), "utf8") + "\n" + fs.readFileSync(path.join(__dirname, "../scripts/etest-results-bridge.js"), "utf8"), {
     window, document,
     Event: function (type) { this.type = type; },
     chrome: {

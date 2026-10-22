@@ -12,7 +12,7 @@
 
   function t(key, substitutions) {
     try {
-      return chrome.i18n.getMessage(key, substitutions) || key;
+      return EE.getMessage(key, substitutions) || key;
     } catch (_) {
       return key;
     }
@@ -441,8 +441,8 @@
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init, { once: true });
+    document.addEventListener("DOMContentLoaded", () => EE.withLanguageReady(init), { once: true });
   } else {
-    init();
+    EE.withLanguageReady(init);
   }
 })();

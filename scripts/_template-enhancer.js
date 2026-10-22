@@ -27,7 +27,7 @@
 
   function getMessage(key, fallback) {
     try {
-      return chrome.i18n.getMessage(key) || fallback;
+      return EE.getMessage(key) || fallback;
     } catch (_) {
       return fallback;
     }

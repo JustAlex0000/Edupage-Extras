@@ -174,6 +174,6 @@
       clearTimeout(discoveryTimer);
     });
   }
-  if (document.body) start();
-  else document.addEventListener("DOMContentLoaded", start, { once: true });
+  if (document.body) EE.withLanguageReady(start);
+  else document.addEventListener("DOMContentLoaded", () => EE.withLanguageReady(start), { once: true });
 })();

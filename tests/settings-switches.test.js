@@ -212,6 +212,19 @@ runTest("Cleanup keeps the page-hero toggle beside its other opt-in decluttering
   assert.match(settingsScript, /debugSection\.before\(cleanupSection\)/);
 });
 
+runTest("anonymizer is last in Cleanup with an accessible conditional alias field", () => {
+  const cleanupPanel = html.slice(html.indexOf('id="panel-cleanup"'), html.indexOf('id="panel-features"'));
+  assert.ok(cleanupPanel.indexOf('id="ee-anonymizer-setting"') > cleanupPanel.indexOf('id="HideRegistrationSurveysCheckbox"'));
+  assert.match(cleanupPanel, /id="ee-anonymizer-options" hidden/);
+  assert.match(cleanupPanel, /for="ee-anonymizer-alias"/);
+  assert.match(cleanupPanel, /id="ee-anonymizer-alias" value="Anonymous" maxlength="80"/);
+  assert.match(settingsScript, /ANONYMIZER_ALIAS_KEY,/);
+  assert.match(settingsScript, /anonymizerSettings\.load\(result\)/);
+  assert.match(settingsScript, /anonymizerSettings\.syncVisibility\(\)/);
+  assert.doesNotMatch(settingsScript, /bindThemeToggle\(hidePersonalInfoToggle/);
+  assert.ok(html.indexOf('src="anonymizer-settings.js"') < html.indexOf('src="settings.js"'));
+});
+
 runTest("Experimental stays isolated and acknowledgement expires on extension updates", () => {
   assert.match(html, /id="panel-experimental"[^>]*hidden/);
   assert.match(html, /data-i18n="experimentalConfirmContinue">I understand the risks</);

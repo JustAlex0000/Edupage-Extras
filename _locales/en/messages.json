@@ -1,4 +1,8 @@
 {
+  "languageLabel": { "message": "Language" },
+  "languageDesc": { "message": "Choose the extension language. Reload open EduPage tabs to update all extension text there." },
+  "languageAutomatic": { "message": "Browser language" },
+  "languageSaveError": { "message": "The language could not be saved. Try again." },
   "extName": { "message": "Edupage Extras" },
   "extDescription": { "message": "QoL extras for Edupage - themes, grade tools, attendance stats, and timetable export." },
 
@@ -93,9 +97,11 @@
   "hidePageHeroes": { "message": "Hide Page Heroes" },
   "hidePageHeroesDesc": { "message": "Remove the oversized hero blocks from Messages, Assignments, Materials, and Results." },
   "togglePageHeroes": { "message": "Toggle page heroes" },
-  "hidePersonalInfo": { "message": "Hide My Name and Login" },
-  "hidePersonalInfoDesc": { "message": "Hide your account name and login in EduPage's profile menu on this screen. It does not remove them from EduPage or change your account." },
-  "togglePersonalInfo": { "message": "Toggle hiding personal information" },
+  "hidePersonalInfo": { "message": "Anonymizer" },
+  "hidePersonalInfoDesc": { "message": "Replace your full name across EduPage with a name of your choice and hide your profile login. This only changes the display on this device." },
+  "togglePersonalInfo": { "message": "Toggle anonymizer" },
+  "anonymizerAliasLabel": { "message": "Display name" },
+  "anonymizerSaveError": { "message": "The display name could not be saved. Try editing it again." },
   "hideLikes": { "message": "Hide Likes" },
   "hideLikesDesc": { "message": "Hide like buttons and the Likes tab where EduPage exposes them." },
   "toggleLikes": { "message": "Toggle hiding likes" },
@@ -512,7 +518,7 @@
   "gradesRowTooltip": { "message": "Current halfyear ($1): $2/$3 lessons absent. Formula: absent / lessons held so far in the halfyear." },
   "gradesRowPredictedTooltip": { "message": "If you miss no more lessons this $1, the projected end-of-halfyear total is $2/$3." },
   "etestResults": { "message": "Show My Test Answers" },
-  "etestResultsDesc": { "message": "Show your completed eTest answers even when the question view is hidden. Only question visibility is changed; correct-answer highlighting is not forced. Off by default; turning it off restores the normal view." },
+  "etestResultsDesc": { "message": "Show your eTest answers when your result is already loaded, even if the question view is hidden, regardless of evaluation status. Only question visibility is changed; correct-answer highlighting is not forced. Off by default; turning it off restores the normal view." },
   "toggleEtestResults": { "message": "Toggle showing my test answers" },
   "etestResultsInfo": { "message": "Edupage Extras: These are the answers you entered during the test, not an answer key." },
 

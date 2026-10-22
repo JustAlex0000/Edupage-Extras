@@ -10,17 +10,46 @@ portal. There is no framework or build step during development: the files in
   pages.
 - `scripts/lib/ee-common.js` is loaded first and contains shared defaults and
   theme data.
+- `scripts/lib/ee-i18n.js` follows the common library in extension pages, content
+  scripts and both background runtimes. `eeLanguage` stores auto/en/sk/cs,
+  independently of the theme. `EE.getMessage` and `EE.getUILanguage` use the
+  selected bundled catalog, falling back to English and then native i18n.
+  Catalog reads go through the worker's `ee-language-catalog` message, restricted
+  to en/sk/cs and this extension's own packaged files; no external requests or
+  additional resource permissions are needed. The shared ready promise and
+  change subscriptions avoid startup races, while revision checks reject stale
+  responses. `menu/language-settings.js` saves the Appearance selector; existing
+  EduPage tabs can be refreshed to translate all already-rendered extension UI.
 - `scripts/background.js` handles browser events, commands, update checks,
   optional AI-provider requests, notifications, and calendar exports.
 - `scripts/content.js` applies themes and shared page styling. The remaining
   `scripts/*-enhancer.js` files are narrow, page-specific additions.
+- `scripts/lib/ee-anonymizer.js` is loaded after `ee-common.js` and before
+  `content.js`, which applies its state independently of the dark theme. It
+  requests the current account's full name from `scripts/anonymizer-main.js`,
+  which runs in MAIN and reads `$j('#edubar').edubar('option', 'loggedUserName')`.
+  Only the name crosses the isolated-world boundary as a transient string event,
+  and it is requested only while enabled. Native profile DOM is a fallback until
+  the widget is ready. DOM/script loading and account changes trigger a refresh
+  without polling. The enhancer observes
+  inserted content and text changes, and replaces whole-name matches in text,
+  title, aria-label and alt attributes. Original values stay in memory and are
+  restored only when the page has not since changed them. Removed fragments are
+  restored and released. Scripts and editable controls are excluded.
+  `eeHidePersonalInfoEnabled` remains the toggle; `eeAnonymizerAlias` is the
+  normalized, 80-character, extension-local display name, defaulting to Anonymous.
+  It is propagated through the shared theme-message contract but excluded from
+  page localStorage and diagnostic summaries. `menu/anonymizer-settings.js`
+  handles debounced autosave, first-use defaults, visibility and save failures.
 - `scripts/grades-*.js` share `window.__eeGrades`; the bootstrap module starts
   them after their dependencies load.
 - `scripts/etest-enhancer.js` owns eTest copying and the experimental question
   helper UI.
 - `scripts/etest-results-bridge.js` passes the opt-in `eeEtestResultsEnabled`
   preference to `etest-results-main.js` in the page world. The latter wraps
-  only `zobrazovatOtazky` for the signed-in student's finished results.
+  only `zobrazovatOtazky` for the signed-in student's loaded results in the
+  `l2or3` results view, independently of evaluation status names. Missing result
+  rows, other users, and other levels retain native behavior.
   `zobrazovatSpravne` and the print renderer stay untouched. Secured responses
   omit the answer key, and widget loading can synthesize a first-option default
   that must never be presented as an actual solution. The original is restored

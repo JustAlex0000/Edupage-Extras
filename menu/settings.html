@@ -68,6 +68,23 @@
         <div class="setting-card">
           <div class="setting-row">
             <div>
+              <h3 data-i18n="languageLabel">Language</h3>
+              <p data-i18n="languageDesc">Choose the extension language. Reload open EduPage tabs to update all extension text there.</p>
+              <p class="status-text" id="ee-language-status" role="status" hidden></p>
+            </div>
+            <label class="select-control" for="ee-language-select">
+              <span class="sr-only" data-i18n="languageLabel">Language</span>
+              <select id="ee-language-select" disabled>
+                <option value="auto" data-i18n="languageAutomatic">Browser language</option>
+                <option value="sk" lang="sk">Slovenčina</option>
+                <option value="cs" lang="cs">Čeština</option>
+                <option value="en" lang="en">English</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
               <h3 data-i18n="themesLabel">Themes</h3>
               <p data-i18n="themesDesc">Recolor EduPage and the extension menus with your selected theme.</p>
             </div>
@@ -253,18 +270,6 @@
 
           <div class="setting-row">
             <div>
-              <h3 data-i18n="hidePersonalInfo">Hide My Name and Login</h3>
-              <p data-i18n="hidePersonalInfoDesc">Hide your account name and login in EduPage's profile menu on this screen. It does not remove them from EduPage or change your account.</p>
-            </div>
-            <label class="switch switch-compact" for="HidePersonalInfoCheckbox">
-              <input type="checkbox" id="HidePersonalInfoCheckbox">
-              <span class="switch-track" aria-hidden="true"></span>
-              <span class="sr-only" data-i18n="togglePersonalInfo">Toggle hiding personal information</span>
-            </label>
-          </div>
-
-          <div class="setting-row">
-            <div>
               <h3 data-i18n="hideLikes">Hide Likes</h3>
               <p data-i18n="hideLikesDesc">Hide like buttons and the Likes tab where EduPage exposes them.</p>
             </div>
@@ -332,6 +337,23 @@
               <input type="checkbox" id="HideRegistrationSurveysCheckbox">
               <span class="switch-track" aria-hidden="true"></span>
               <span class="sr-only" data-i18n="toggleRegistrationSurveys">Toggle hiding Registration / Surveys</span>
+            </label>
+          </div>
+
+          <div class="setting-row" id="ee-anonymizer-setting">
+            <div>
+              <h3><span data-i18n="hidePersonalInfo">Anonymizer</span> <span class="setting-tag setting-tag-wip" data-i18n="wipBadge">WIP</span></h3>
+              <p data-i18n="hidePersonalInfoDesc">Replace your full name across EduPage with a name of your choice and hide your profile login. This only changes the display on this device.</p>
+              <div class="anonymizer-options" id="ee-anonymizer-options" hidden>
+                <label for="ee-anonymizer-alias" data-i18n="anonymizerAliasLabel">Display name</label>
+                <input type="text" id="ee-anonymizer-alias" value="Anonymous" maxlength="80" autocomplete="off" spellcheck="false" dir="auto">
+                <p class="status-text" id="ee-anonymizer-save-status" role="status" hidden></p>
+              </div>
+            </div>
+            <label class="switch switch-compact" for="HidePersonalInfoCheckbox">
+              <input type="checkbox" id="HidePersonalInfoCheckbox" aria-controls="ee-anonymizer-options" aria-expanded="false">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="togglePersonalInfo">Toggle anonymizer</span>
             </label>
           </div>
 
@@ -1235,7 +1257,10 @@
       </dialog>
     </main>
     <script src="../scripts/lib/ee-common.js"></script>
+    <script src="../scripts/lib/ee-i18n.js"></script>
     <script src="i18n.js"></script>
+    <script src="language-settings.js"></script>
+    <script src="anonymizer-settings.js"></script>
     <script src="settings.js"></script>
     <script src="../scripts/lib/ee-timetable-comparison.js"></script>
     <script src="../scripts/timetable-comparison-ui.js"></script>

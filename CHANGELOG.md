@@ -4,6 +4,23 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## Unreleased
+
+- Added a language selector at the top of Appearance: Browser language, Slovak,
+  Czech and English. The saved choice applies to Settings, the popup and
+  extension labels on EduPage, using the existing bundled translations.
+- Replaced Hide My Name and Login with an Anonymizer at the end of Cleanup.
+  Its display name defaults to Anonymous, autosaves, and replaces full-name
+  occurrences in dynamically loaded page text without changing form values.
+  Turning it off restores the page; real names are never persisted.
+- Read the anonymized account name from EduPage's `loggedUserName` widget option
+  in the page world, with a DOM fallback and late-loading regression coverage.
+- Fixed Show My Test Answers rejecting automatically evaluated (`evaluated`)
+  results. The opt-in viewer now accepts loaded own results independently of
+  evaluation status; missing results and native correctness checks stay unchanged.
+- Added regression coverage for `evaluated`, other and future statuses, missing
+  results, and native fallback behavior.
+
 ## 1.0.9 — 2026-10-22
 
 - Added opt-in timetable comparison, configured entirely in Timetable settings.

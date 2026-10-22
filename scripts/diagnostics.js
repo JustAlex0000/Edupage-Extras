@@ -380,7 +380,7 @@
   const inspector = { enabled: false, mode: "theme", items: [], highlighted: null, root: null, status: null };
 
   function inspectorText(key, fallback) {
-    try { return chrome.i18n?.getMessage(key) || fallback; } catch (_) { return fallback; }
+    try { return EE.getMessage(key) || fallback; } catch (_) { return fallback; }
   }
 
   function safeClassNames(element, limit = 8) {

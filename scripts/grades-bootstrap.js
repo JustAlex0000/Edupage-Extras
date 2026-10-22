@@ -104,13 +104,13 @@
     if (document.readyState === "loading") {
       domReadyHandler = () => {
         domReadyHandler = null;
-        GE.init();
+        EE.withLanguageReady(() => GE.init());
       };
       document.addEventListener("DOMContentLoaded", domReadyHandler, { once: true });
       return;
     }
 
-    GE.init();
+    EE.withLanguageReady(() => GE.init());
   }
 
   function waitForGradesTable() {

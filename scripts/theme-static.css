@@ -1049,42 +1049,11 @@ html.ee-hide-page-heroes .hwHeroDiv.results {
   display: none !important;
 }
 
-/* Visual privacy only: preserve the profile menu's layout and controls,
-   but replace displayed account details with a neutral placeholder. No
-   page data is read, stored, or sent. */
-html.ee-hide-personal-info .edubarProfilebox a.display > span,
-html.ee-hide-personal-info .edubarProfilebox .profilemenu .userName,
-html.ee-hide-personal-info .edubarProfilebox .profilemenu .userLogin,
-html.ee-hide-personal-info .edubarProfilebox .profilemenu h1 {
-  color: transparent !important;
-  text-shadow: none !important;
+/* Names are replaced by the reversible anonymizer; keep account logins private. */
+html.ee-hide-personal-info .edubarProfilebox .profilemenu .userLogin {
+  visibility: hidden !important;
 }
 
-html.ee-hide-personal-info .edubarProfilebox a.display > span::after,
-html.ee-hide-personal-info .edubarProfilebox .profilemenu .userName::after,
-html.ee-hide-personal-info .edubarProfilebox .profilemenu .userLogin::after,
-html.ee-hide-personal-info .edubarProfilebox .profilemenu h1::after {
-  color: var(--ee-text) !important;
-  content: "---";
-}
-
-/* The grade heading keeps the useful class label in its nested span. */
-html.ee-hide-personal-info form.zteFilterForm .zsvHeaderTitle > h1 {
-  color: transparent !important;
-  text-shadow: none !important;
-}
-
-html.ee-hide-personal-info form.zteFilterForm .zsvHeaderTitle > h1::before {
-  color: var(--ee-text) !important;
-  content: "---, ";
-}
-
-html.ee-hide-personal-info form.zteFilterForm .zsvHeaderTitle > h1 > span {
-  color: var(--ee-text) !important;
-}
-
-/* Likes are optional cleanup: hide the known message-page entry points, not
-   the surrounding message content or unrelated action controls. */
 html.ee-hide-likes .messageViewerTab[data-tab="likes"],
 html.ee-hide-likes a.likesBtn,
 html.ee-hide-likes a.thanksBtn,

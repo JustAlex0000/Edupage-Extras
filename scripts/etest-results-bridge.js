@@ -21,8 +21,8 @@
       banner.id = BANNER;
       banner.setAttribute("role", "note");
       banner.style.cssText = "--ee-results-info-accent:#3b82f6;margin:0 0 20px;padding:14px 18px;border:1px solid color-mix(in srgb,var(--ee-results-info-accent) 30%,var(--ee-card-bg,#fff));border-left:4px solid var(--ee-results-info-accent);border-radius:10px;background:linear-gradient(110deg,color-mix(in srgb,var(--ee-results-info-accent) 13%,var(--ee-card-bg,#fff)),color-mix(in srgb,var(--ee-results-info-accent) 5%,var(--ee-card-bg,#fff)));color:var(--ee-text,#1e3a5f);font-size:14px;font-weight:500;line-height:1.6;";
-      banner.textContent = chrome.i18n.getMessage("etestResultsInfo");
     }
+    banner.textContent = EE.getMessage("etestResultsInfo");
     if (banner.nextElementSibling !== question) question.before(banner);
   }
 
@@ -41,6 +41,7 @@
   }
 
   document.addEventListener("DOMContentLoaded", publish, { once: true });
+  EE.i18n?.subscribe(updateBanner);
   document.addEventListener("ee-etest-results-ready", publish);
   document.addEventListener("ee-etest-results-render", updateBanner);
   chrome.storage.onChanged.addListener((changes, area) => {
