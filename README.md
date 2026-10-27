@@ -109,9 +109,9 @@ EduPage, open a GitHub issue or report it on [Discord](https://discord.gg/eNZXHe
 
 - **Auto-login** (off by default) — clicks through EduPage's
   multi-step login (account picker included) and submits to log in.
-  No credentials are ever stored or read by the
-  extension, and it stops the moment you type anything yourself. A preferred
-  account can be chosen in settings.
+  It uses EduPage's native login form and does not save credentials. It stops
+  when you type, and cancels a queued login if the autofilled credentials change
+  before submission. A preferred account can be chosen in settings.
 
 ### Timetable
 

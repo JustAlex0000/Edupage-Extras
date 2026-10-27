@@ -87,11 +87,13 @@
 
   function submitVia(control, form, fields, terminal) {
     if (!control && !form) return;
+    const originalValues = fields.map((field) => String(field.value || ""));
     pendingSubmitTimer = window.setTimeout(() => {
       pendingSubmitTimer = null;
       if (!autoLoginEnabled || userTyped || submitted || !document.body
           || !/^\/login(?:\/|$)/i.test(window.location.pathname)
-          || fields.some((field) => !field.isConnected || !isVisible(field) || !isFieldFilled(field))
+          || fields.some((field, index) => !field.isConnected || !isVisible(field) || !isFieldFilled(field)
+            || String(field.value || "") !== originalValues[index])
           || (form && (!form.isConnected || fields.some((field) => field.closest("form") !== form)))
           || (control && (!control.isConnected || control.disabled))) return;
       if (terminal) {

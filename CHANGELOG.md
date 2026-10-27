@@ -27,7 +27,8 @@ log — this file starts at the Firefox-compatibility update.
   remaining page-world and browser-suspension limits.
 - Isolated attendance caches by verified student and period, bounded pending
   reads, and stopped self-triggered attendance rendering.
-- Canceled obsolete AI fills and delayed logins after setting changes or manual input.
+- Canceled obsolete AI fills and delayed logins after setting changes, manual input,
+  or replacement of autofilled credentials before the queued login executes.
 - Removed personal text from redacted diagnostics and bounded provider requests.
 - Fixed sparse/empty timetable weeks, missing-day date mapping, owner selection,
   date-aware cache expiry, retries, and disabled-highlight races.

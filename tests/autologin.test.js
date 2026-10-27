@@ -80,7 +80,7 @@ function loadLogin({ passwordStep = false } = {}) {
 
 for (const passwordStep of [false, true]) {
   const step = passwordStep ? "password" : "username";
-  for (const action of ["keydown", "beforeinput", "paste", "disable", "disconnect", "disconnect form", "disconnect field", "clear", "disabled control", "pagehide", "route change"]) {
+  for (const action of ["keydown", "beforeinput", "paste", "disable", "disconnect", "disconnect form", "disconnect field", "clear", "replace filled value", "disabled control", "pagehide", "route change"]) {
     test(`${step} auto-login cancels a queued submit after ${action}`, () => {
       const login = loadLogin({ passwordStep });
       login.tick();
@@ -90,6 +90,7 @@ for (const passwordStep of [false, true]) {
       else if (action === "disconnect form") login.form.isConnected = false;
       else if (action === "disconnect field") (passwordStep ? login.password : login.username).isConnected = false;
       else if (action === "clear") (passwordStep ? login.password : login.username).value = "";
+      else if (action === "replace filled value") (passwordStep ? login.password : login.username).value = "different synthetic value";
       else if (action === "disabled control") login.control.disabled = true;
       else if (action === "pagehide") login.leave();
       else login.window.location.pathname = "/user/";
