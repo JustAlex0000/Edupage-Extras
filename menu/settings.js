@@ -14,6 +14,13 @@ const hideAllCleanupButton = document.getElementById("HideAllCleanupButton");
 const showAllCleanupButton = document.getElementById("ShowAllCleanupButton");
 const hidePageHeroesToggle = document.getElementById("HidePageHeroesCheckbox");
 const hidePersonalInfoToggle = document.getElementById("HidePersonalInfoCheckbox");
+const anonymizerAliasInput = document.getElementById("ee-anonymizer-alias");
+const anonymizerSettings = EE.bindAnonymizerSettings({
+	toggle: hidePersonalInfoToggle, input: anonymizerAliasInput,
+	options: document.getElementById("ee-anonymizer-options"),
+	status: document.getElementById("ee-anonymizer-save-status"),
+	notify: () => notifyEdupageTabs(),
+});
 const hideLikesToggle = document.getElementById("HideLikesCheckbox");
 const timetableHighlightsToggle = document.getElementById("TimetableHighlightsCheckbox");
 const gradeBadgesToggle = document.getElementById("GradeBadgesCheckbox");
@@ -115,6 +122,7 @@ const {
 	hideHelpTextEnabled: HIDE_HELP_TEXT_KEY,
 	hidePageHeroesEnabled: HIDE_PAGE_HEROES_KEY,
 	hidePersonalInfoEnabled: HIDE_PERSONAL_INFO_KEY,
+	anonymizerAlias: ANONYMIZER_ALIAS_KEY,
 	hideLikesEnabled: HIDE_LIKES_KEY,
 	hideEdupageHelpEnabled: HIDE_EDUPAGE_HELP_KEY,
 	hideEducationalGamesEnabled: HIDE_EDUCATIONAL_GAMES_KEY,
@@ -439,6 +447,7 @@ function notifyEdupageTabs() {
 		hideHelpTextEnabled: hideHelpTextToggle.checked,
 		hidePageHeroesEnabled: hidePageHeroesToggle.checked,
 		hidePersonalInfoEnabled: hidePersonalInfoToggle.checked,
+		anonymizerAlias: anonymizerAliasInput.value,
 		hideLikesEnabled: hideLikesToggle.checked,
 		hideEdupageHelpEnabled: hideEdupageHelpToggle.checked,
 		hideEducationalGamesEnabled: hideEducationalGamesToggle.checked,
@@ -621,6 +630,7 @@ chrome.storage.local.get(
 		HIDE_HELP_TEXT_KEY,
 		HIDE_PAGE_HEROES_KEY,
 		HIDE_PERSONAL_INFO_KEY,
+		ANONYMIZER_ALIAS_KEY,
 		HIDE_LIKES_KEY,
 		HIDE_EDUPAGE_HELP_KEY,
 		HIDE_EDUCATIONAL_GAMES_KEY,
@@ -650,6 +660,7 @@ chrome.storage.local.get(
 		hideHelpTextToggle.checked = result[HIDE_HELP_TEXT_KEY] === true;
 		hidePageHeroesToggle.checked = result[HIDE_PAGE_HEROES_KEY] === true;
 		hidePersonalInfoToggle.checked = result[HIDE_PERSONAL_INFO_KEY] === true;
+		anonymizerSettings.load(result);
 		hideLikesToggle.checked = result[HIDE_LIKES_KEY] === true;
 		hideEdupageHelpToggle.checked = result[HIDE_EDUPAGE_HELP_KEY] === true;
 		hideEducationalGamesToggle.checked = result[HIDE_EDUCATIONAL_GAMES_KEY] === true;
@@ -753,7 +764,6 @@ function bindThemeToggle(element, storageKey) {
 bindThemeToggle(cleanUiToggle, CLEAN_UI_KEY);
 bindThemeToggle(hideHelpTextToggle, HIDE_HELP_TEXT_KEY);
 bindThemeToggle(hidePageHeroesToggle, HIDE_PAGE_HEROES_KEY);
-bindThemeToggle(hidePersonalInfoToggle, HIDE_PERSONAL_INFO_KEY);
 bindThemeToggle(hideLikesToggle, HIDE_LIKES_KEY);
 bindThemeToggle(hideEdupageHelpToggle, HIDE_EDUPAGE_HELP_KEY);
 bindThemeToggle(hideEducationalGamesToggle, HIDE_EDUCATIONAL_GAMES_KEY);
@@ -778,6 +788,8 @@ const cleanupVisibilitySettings = [
 function setAllCleanupHidden(hidden) {
 	const updates = Object.fromEntries(cleanupVisibilitySettings.map(([, key]) => [key, hidden]));
 	cleanupVisibilitySettings.forEach(([element]) => { element.checked = hidden; });
+	anonymizerSettings.syncVisibility();
+	updates[ANONYMIZER_ALIAS_KEY] = EE.normalizeAnonymizerAlias(anonymizerAliasInput.value);
 	chrome.storage.local.set(updates);
 	notifyEdupageTabs();
 }
@@ -1854,3 +1866,12 @@ if (standardSettingsContent) {
 }
 
 setActiveSettingsNav("appearance");
+
+EE.i18n?.subscribe(() => {
+	renderDefaultHalfyearHints();
+	renderShortcutStatus();
+	renderActivityShieldShortcutStatus();
+	renderAiShortcutStatus();
+	chrome.storage.local.get([UPDATE_STATUS_KEY], values => renderUpdateStatus(values[UPDATE_STATUS_KEY]));
+	applySettingsSearch();
+});

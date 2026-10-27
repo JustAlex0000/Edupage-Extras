@@ -1,4 +1,8 @@
 {
+  "languageLabel": { "message": "Jazyk" },
+  "languageDesc": { "message": "Vyber jazyk rozšíření. Otevřené karty EduPage obnov, aby se přeložily všechny texty rozšíření." },
+  "languageAutomatic": { "message": "Podle prohlížeče" },
+  "languageSaveError": { "message": "Jazyk se nepodařilo uložit. Zkus to znovu." },
   "extName": { "message": "Edupage Extras" },
   "extDescription": { "message": "Doplňky kvality života pro Edupage – motivy, nástroje na známky, statistiky docházky a export rozvrhu." },
 
@@ -93,9 +97,11 @@
   "hidePageHeroes": { "message": "Skrýt hlavičky stránek" },
   "hidePageHeroesDesc": { "message": "Odstraní velké hlavičky ze Zpráv, Úkolů, Učiva a Výsledků." },
   "togglePageHeroes": { "message": "Přepnout hlavičky stránek" },
-  "hidePersonalInfo": { "message": "Skrýt moje jméno a přihlášení" },
-  "hidePersonalInfoDesc": { "message": "Skryje název účtu a přihlášení v profilové nabídce EduPage na této obrazovce. Neodstraní je z EduPage ani nezmění váš účet." },
-  "togglePersonalInfo": { "message": "Přepnout skrytí osobních údajů" },
+  "hidePersonalInfo": { "message": "Anonymizér" },
+  "hidePersonalInfoDesc": { "message": "Nahradí tvoje celé jméno na EduPage zvoleným názvem a skryje přihlašovací jméno v profilu. Mění pouze zobrazení na tomto zařízení." },
+  "togglePersonalInfo": { "message": "Přepnout anonymizér" },
+  "anonymizerAliasLabel": { "message": "Zobrazené jméno" },
+  "anonymizerSaveError": { "message": "Zobrazené jméno se nepodařilo uložit. Zkus ho upravit znovu." },
   "hideLikes": { "message": "Skrýt lajky" },
   "hideLikesDesc": { "message": "Skryje tlačítka lajků a kartu Lajky tam, kde je EduPage zobrazuje." },
   "toggleLikes": { "message": "Přepnout skrytí lajků" },
@@ -512,7 +518,7 @@
   "gradesRowTooltip": { "message": "Aktuální pololetí ($1): $2/$3 zameškaných hodin. Vzorec: zameškané / dosud odučené hodiny v pololetí." },
   "gradesRowPredictedTooltip": { "message": "Pokud už v období $1 nic nezameškáte, předpokládaný součet ke konci pololetí je $2/$3." },
   "etestResults": { "message": "Zobrazit moje odpovědi v testech" },
-  "etestResultsDesc": { "message": "Zobrazí tvoje odpovědi z dokončených eTestů i při skrytém zobrazení otázek. Mění pouze viditelnost otázek, nevynucuje barevné hodnocení správnosti. Ve výchozím stavu vypnuto; vypnutí obnoví původní zobrazení." },
+  "etestResultsDesc": { "message": "Zobrazí tvoje odpovědi z eTestů, pokud je tvůj výsledek už načtený, i při skrytém zobrazení otázek a bez ohledu na stav vyhodnocení. Mění pouze viditelnost otázek, nevynucuje barevné hodnocení správnosti. Ve výchozím stavu vypnuto; vypnutí obnoví původní zobrazení." },
   "toggleEtestResults": { "message": "Přepnout zobrazování mých odpovědí v testech" },
   "etestResultsInfo": { "message": "Edupage Extras: Toto jsou odpovědi, které jsi vyplnil během testu, ne klíč správných odpovědí." },
 

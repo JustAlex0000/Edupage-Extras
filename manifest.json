@@ -75,6 +75,8 @@
       "css": ["scripts/instant-theme.css", "scripts/theme-static.css", "scripts/timetable-comparison.css"],
       "js": [
         "scripts/lib/ee-common.js",
+        "scripts/lib/ee-i18n.js",
+        "scripts/lib/ee-anonymizer.js",
         "scripts/theme-bootstrap.js",
         "scripts/diagnostics.js",
         "scripts/activity-shield-bridge.js",
@@ -105,7 +107,7 @@
     },
     {
       "matches": ["https://*.edupage.org/*"],
-      "js": ["scripts/etest-answer-bridge.js", "scripts/etest-results-main.js"],
+      "js": ["scripts/etest-answer-bridge.js", "scripts/etest-results-main.js", "scripts/anonymizer-main.js"],
       "run_at": "document_start",
       "all_frames": true,
       "match_about_blank": true,
@@ -124,7 +126,7 @@
     },
     {
       "matches": ["https://test.nop.wtf/*"],
-      "js": ["scripts/activity-shield-bridge.js"],
+      "js": ["scripts/lib/ee-common.js", "scripts/lib/ee-i18n.js", "scripts/activity-shield-bridge.js"],
       "run_at": "document_start",
       "all_frames": true,
       "match_about_blank": true

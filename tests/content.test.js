@@ -48,9 +48,14 @@ function loadContentInternals(pathname = "/") {
       return [];
     },
   };
+  const localValues = new Map();
 
   const context = {
     console,
+    localStorage: {
+      getItem(key) { return localValues.get(key) || null; },
+      setItem(key, value) { localValues.set(key, value); },
+    },
     location: { pathname },
     document: {
       readyState: "complete",
@@ -341,9 +346,8 @@ runTest("known late-rendered widgets have static first-paint theme coverage", ()
   assert.match(themeCss, /html\.ee-hide-home-educational-games li\.userButtonLast,/);
   assert.match(themeCss, /div:has\(> \.dash_dochadzka\.asc-dt\.ziak\) > div\[style\*="font-weight: bold"\]/);
   assert.match(themeCss, /html\.ee-dark \.etest-answer-num \{\s*color: var\(--ee-text\) !important;/);
-  assert.match(themeCss, /html\.ee-hide-personal-info \.edubarProfilebox \.profilemenu \.userName/);
-  assert.match(themeCss, /html\.ee-hide-personal-info form\.zteFilterForm \.zsvHeaderTitle > h1::before/);
-  assert.match(themeCss, /content: "---, ";/);
+  assert.match(themeCss, /html\.ee-hide-personal-info \.edubarProfilebox \.profilemenu \.userLogin/);
+  assert.doesNotMatch(themeCss, /content: "---, ";/);
   assert.doesNotMatch(themeCss, /border-width: 1px !important;/);
   assert.match(themeCss, /--ee-current-period: color-mix\(in srgb, var\(--ee-link\) 28%, var\(--ee-card-bg\)\)/);
   assert.match(themeCss, /--ee-current-period: color-mix\(in srgb, var\(--ee-custom-accent, #4fc3f7\) 28%, var\(--ee-custom-bg-raised, #171d28\)\)/);
@@ -388,4 +392,13 @@ runTest("dark theme preserves native eTest copy-button styling", () => {
     css,
     /html\.ee-dark button:not\(\.ee-etest-copyall-btn\):not\(\.ee-etest-question-copy-btn\)/,
   );
+});
+
+runTest("page theme cache excludes the extension-local anonymizer alias", () => {
+  const { writeThemeCache, readThemeCache } = loadContentInternals();
+  writeThemeCache({ personalInfoHidden: true, anonymizerAlias: "Synthetic alias", darkModeEnabled: true });
+  const cached = readThemeCache();
+  assert.equal(cached.personalInfoHidden, true);
+  assert.equal(cached.darkModeEnabled, true);
+  assert.equal("anonymizerAlias" in cached, false);
 });

@@ -69,7 +69,7 @@ async function mount(source = "import") {
       message() { requests++; return new Promise(resolve => { pendingRead = resolve; }); },
     },
   };
-  vm.runInNewContext(fs.readFileSync(require.resolve("../scripts/timetable-comparison.js"), "utf8"), context);
+  vm.runInNewContext(fs.readFileSync(require.resolve("../scripts/lib/ee-common.js"), "utf8") + "\n" + fs.readFileSync(require.resolve("../scripts/timetable-comparison.js"), "utf8"), context);
   await new Promise(setImmediate);
   return { widget, body, host, get row() { return host.children.find(node => node.id === "ee-comparison-view") || widget.children.find(node => node.id === "ee-comparison-view"); },
     get renders() { return renders; }, get requests() { return requests; },

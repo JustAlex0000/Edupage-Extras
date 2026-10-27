@@ -3,7 +3,8 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
 
-const source = fs.readFileSync(require.resolve("../scripts/etest-enhancer.js"), "utf8");
+const source = fs.readFileSync(require.resolve("../scripts/lib/ee-common.js"), "utf8") + "\n" +
+  fs.readFileSync(require.resolve("../scripts/etest-enhancer.js"), "utf8");
 
 function page({ enabled = true, copy = false, stale = false, pathname = "/user/" } = {}) {
   const buttons = [];

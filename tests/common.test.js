@@ -44,6 +44,7 @@ test("theme storage contract keeps every live page preference together", () => {
     hideHelpTextEnabled: true,
     eeHidePageHeroesEnabled: true,
     eeHidePersonalInfoEnabled: true,
+    eeAnonymizerAlias: "Demo account",
     eeHideLikesEnabled: true,
     eeHideEdupageHelpEnabled: true,
     eeHideEducationalGamesEnabled: true,
@@ -53,7 +54,7 @@ test("theme storage contract keeps every live page preference together", () => {
     eeHideRegistrationSurveysEnabled: true,
   };
 
-  assert.equal(THEME_STORAGE_KEY_LIST.length, 16);
+  assert.equal(THEME_STORAGE_KEY_LIST.length, 17);
   const message = createThemeMessage(readThemeSettings(values));
   assert.equal(message.type, "ee-set-theme");
   assert.equal(message.theme, "purple");
@@ -62,6 +63,7 @@ test("theme storage contract keeps every live page preference together", () => {
   assert.equal(message.hideHelpTextEnabled, true);
   assert.equal(message.hidePageHeroesEnabled, true);
   assert.equal(message.hidePersonalInfoEnabled, true);
+  assert.equal(message.anonymizerAlias, "Demo account");
   assert.equal(message.hideLikesEnabled, true);
   assert.equal(message.hideEdupageHelpEnabled, true);
   assert.equal(message.hideEducationalGamesEnabled, true);

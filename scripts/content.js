@@ -40,7 +40,9 @@ function readThemeCache() {
 
 function writeThemeCache(settings) {
   try {
-    localStorage.setItem(THEME_CACHE_KEY, JSON.stringify(settings));
+    // The chosen display name belongs only in extension storage, not page storage.
+    const { anonymizerAlias, ...cache } = settings;
+    localStorage.setItem(THEME_CACHE_KEY, JSON.stringify(cache));
   } catch (e) {
     // localStorage unavailable (private mode, quota, etc.) — cache is a
     // FOUC-prevention nicety, not required for correctness, so just skip.
@@ -116,6 +118,8 @@ let cleanUiEnabled = false;
 let hideHelpTextEnabled = false;
 let hidePageHeroesEnabled = false;
 let hidePersonalInfoEnabled = false;
+let currentAnonymizerAlias = "Anonymous";
+const nameAnonymizer = EE.createNameAnonymizer?.();
 let hideLikesEnabled = false;
 let hideEdupageHelpEnabled = false;
 let hideEducationalGamesEnabled = false;
@@ -523,6 +527,7 @@ function applyTheme({
   helpHidden = hideHelpTextEnabled,
   heroesHidden = hidePageHeroesEnabled,
   personalInfoHidden = hidePersonalInfoEnabled,
+  anonymizerAlias = currentAnonymizerAlias,
   likesHidden = hideLikesEnabled,
   edupageHelpHidden = hideEdupageHelpEnabled,
   educationalGamesHidden = hideEducationalGamesEnabled,
@@ -535,7 +540,7 @@ function applyTheme({
   etestAutoThemeOff = etestAutoThemeOffEnabled,
 } = {}) {
   lastThemeSettings = {
-    darkModeEnabled, theme, customTheme, cleanEnabled, helpHidden, heroesHidden, personalInfoHidden, likesHidden, edupageHelpHidden,
+    darkModeEnabled, theme, customTheme, cleanEnabled, helpHidden, heroesHidden, personalInfoHidden, anonymizerAlias, likesHidden, edupageHelpHidden,
     educationalGamesHidden, testYourselfHidden, interactiveBlackboardsHidden, photosHidden, registrationSurveysHidden,
     rozvrhRoomChangeColor, rozvrhSubstitutionColor, etestAutoThemeOff,
   };
@@ -554,6 +559,8 @@ function applyTheme({
   hideHelpTextEnabled = helpHidden;
   hidePageHeroesEnabled = heroesHidden;
   hidePersonalInfoEnabled = personalInfoHidden;
+  currentAnonymizerAlias = EE.normalizeAnonymizerAlias(anonymizerAlias);
+  nameAnonymizer?.setState(personalInfoHidden, currentAnonymizerAlias);
   hideLikesEnabled = likesHidden;
   hideEdupageHelpEnabled = edupageHelpHidden;
   hideEducationalGamesEnabled = educationalGamesHidden;
@@ -602,6 +609,7 @@ function initDarkMode() {
         helpHidden: themeSettings.hideHelpTextEnabled,
         heroesHidden: themeSettings.hidePageHeroesEnabled,
         personalInfoHidden: themeSettings.hidePersonalInfoEnabled,
+        anonymizerAlias: themeSettings.anonymizerAlias,
         likesHidden: themeSettings.hideLikesEnabled,
         edupageHelpHidden: themeSettings.hideEdupageHelpEnabled,
         educationalGamesHidden: themeSettings.hideEducationalGamesEnabled,
@@ -636,6 +644,8 @@ if (globalThis.__EE_TEST__) {
     resolveReviewUrl,
     getUpdateToastExitDuration,
     UPDATE_TOAST_DURATION_MS,
+    writeThemeCache,
+    readThemeCache,
   };
 }
 
@@ -693,7 +703,7 @@ function showUpdateToast(version) {
 
   const closeButton = document.createElement("button");
   closeButton.type = "button";
-  closeButton.setAttribute("aria-label", chrome.i18n.getMessage("updateToastClose") || "Close update notice");
+  closeButton.setAttribute("aria-label", EE.getMessage("updateToastClose") || "Close update notice");
   closeButton.style.cssText = [
     "position: absolute", "top: 18px", "right: 18px", "width: 34px", "height: 34px",
     "display: inline-flex", "align-items: center", "justify-content: center",
@@ -718,13 +728,13 @@ function showUpdateToast(version) {
   const title = document.createElement("strong");
   title.id = "ee-update-toast-title";
   title.style.cssText = "display: block; margin: 0 42px 8px 0; font-size: 16px;";
-  title.textContent = (chrome.i18n.getMessage("updateToastTitle") || "Edupage Extras updated to v{version}")
+  title.textContent = (EE.getMessage("updateToastTitle") || "Edupage Extras updated to v{version}")
     .replace("{version}", version);
 
   const body = document.createElement("p");
   body.id = "ee-update-toast-body";
   body.style.cssText = "margin: 0 0 18px 0; color: #b9c2cf;";
-  body.textContent = chrome.i18n.getMessage("updateToastBody") || "See what changed in this version.";
+  body.textContent = EE.getMessage("updateToastBody") || "See what changed in this version.";
 
   const actions = document.createElement("div");
   actions.style.cssText = "display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;";
@@ -741,14 +751,14 @@ function showUpdateToast(version) {
   viewLink.href = REPO_RELEASES_URL;
   viewLink.target = "_blank";
   viewLink.rel = "noopener noreferrer";
-  viewLink.textContent = chrome.i18n.getMessage("updateToastViewChanges") || "What's new";
+  viewLink.textContent = EE.getMessage("updateToastViewChanges") || "What's new";
   viewLink.style.cssText = actionButtonStyle;
 
   const rateLink = document.createElement("a");
   rateLink.href = resolveReviewUrl(navigator.userAgent);
   rateLink.target = "_blank";
   rateLink.rel = "noopener noreferrer";
-  rateLink.textContent = chrome.i18n.getMessage("updateToastRateUs") || "Rate us";
+  rateLink.textContent = EE.getMessage("updateToastRateUs") || "Rate us";
   rateLink.style.cssText = actionButtonStyle;
 
   const progressTrack = document.createElement("div");
@@ -839,6 +849,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
         helpHidden: themeSettings.hideHelpTextEnabled,
         heroesHidden: themeSettings.hidePageHeroesEnabled,
         personalInfoHidden: themeSettings.hidePersonalInfoEnabled,
+        anonymizerAlias: themeSettings.anonymizerAlias,
         likesHidden: themeSettings.hideLikesEnabled,
         edupageHelpHidden: themeSettings.hideEdupageHelpEnabled,
         educationalGamesHidden: themeSettings.hideEducationalGamesEnabled,
@@ -866,6 +877,7 @@ chrome.runtime.onMessage.addListener((message) => {
       helpHidden: message.hideHelpTextEnabled === true,
       heroesHidden: message.hidePageHeroesEnabled === true,
       personalInfoHidden: message.hidePersonalInfoEnabled === true,
+      anonymizerAlias: message.anonymizerAlias,
       likesHidden: message.hideLikesEnabled === true,
       edupageHelpHidden: message.hideEdupageHelpEnabled === true,
       educationalGamesHidden: message.hideEducationalGamesEnabled === true,

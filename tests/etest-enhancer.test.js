@@ -26,6 +26,7 @@ function loadInternals(overrides = {}) {
   context.globalThis = context;
   context.__EE_TEST__ = true;
   vm.runInNewContext(
+    fs.readFileSync(path.join(__dirname, "..", "scripts", "lib", "ee-common.js"), "utf8") + "\n" +
     fs.readFileSync(path.join(__dirname, "..", "scripts", "etest-enhancer.js"), "utf8"),
     context,
     { filename: "scripts/etest-enhancer.js" },

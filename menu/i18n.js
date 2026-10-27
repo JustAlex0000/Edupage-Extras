@@ -16,7 +16,7 @@
 
   function msg(key, substitutions) {
     if (!key) return "";
-    const value = chrome.i18n.getMessage(key, substitutions);
+    const value = EE.getMessage(key, substitutions);
     return value || key;
   }
 
@@ -83,9 +83,7 @@
       if (title) document.title = title;
     }
 
-    const uiLanguage = (typeof chrome.i18n.getUILanguage === "function"
-      ? chrome.i18n.getUILanguage()
-      : "en") || "en";
+    const uiLanguage = EE.getUILanguage() || "en";
     document.documentElement.lang = uiLanguage.slice(0, 2);
   }
 
@@ -95,6 +93,9 @@
   const isFirefox = /\bFirefox\//.test(navigator.userAgent || "");
 
   window.eeI18n = { msg, applyI18n, isFirefox };
+  EE.i18n?.subscribe(() => {
+    if (document.readyState !== "loading") applyI18n();
+  });
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => applyI18n(), { once: true });

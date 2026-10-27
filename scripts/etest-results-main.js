@@ -1,4 +1,4 @@
-// Restore the question view for the student's finished results; keep native evaluation.
+// Restore the question view for the student's loaded results; keep native evaluation.
 (() => {
   "use strict";
   if (window.top !== window) return;
@@ -19,9 +19,8 @@
     const student = window.EdubarUtils?.isStudentOrParent?.();
     if (!student || userid !== `Student${student}`) return false;
     const row = obj.getBestVysledokRow?.(userid);
-    return !!row && ["ev_man", "done", "part", "nexttime"].includes(
-      obj.getVysledokStav?.(userid, row.vysledokid),
-    );
+    // Visibility depends on a loaded own result, not EduPage's changing status names.
+    return !!row;
   }
 
   function restore() {

@@ -108,7 +108,7 @@
       if (!isFieldFilled(passwordInput)) return;
 
       submitted = true;
-      showBadge(chrome.i18n.getMessage("autoLoginSubmitting") || "Auto-logging in…");
+      showBadge(EE.getMessage("autoLoginSubmitting") || "Auto-logging in…");
       submitVia(findSubmitControl(container), form);
       return;
     }

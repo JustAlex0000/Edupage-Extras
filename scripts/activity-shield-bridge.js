@@ -68,7 +68,7 @@
 
   function t(key) {
     try {
-      return chrome.i18n.getMessage(key) || key;
+      return EE.getMessage(key) || key;
     } catch (_) {
       return key;
     }
@@ -143,6 +143,7 @@
   }
 
   refresh();
+  EE.i18n?.subscribe(refresh);
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local") return;

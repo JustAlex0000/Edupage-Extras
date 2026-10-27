@@ -81,7 +81,7 @@
 
   function getMessage(key, fallback, substitutions) {
     try {
-      return chrome.i18n.getMessage(key, substitutions) || fallback;
+      return EE.getMessage(key, substitutions) || fallback;
     } catch (_) {
       return fallback;
     }
@@ -1506,5 +1506,5 @@
     initStorage();
   }
 
-  init();
+  EE.withLanguageReady(init);
 })();

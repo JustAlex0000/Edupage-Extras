@@ -86,5 +86,5 @@
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local" && (changes[C.KEY] || changes[C.LIBRARY_KEY] || changes[C.ENABLED_KEY])) render();
   });
-  render();
+  EE.withLanguageReady(render);
 })();

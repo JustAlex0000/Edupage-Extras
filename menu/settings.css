@@ -482,6 +482,22 @@ code {
     padding-left: 34px;
 }
 
+.anonymizer-options {
+    margin-top: 14px;
+    max-width: 360px;
+}
+
+.anonymizer-options > label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+#ee-anonymizer-setting > .switch {
+    align-self: flex-start;
+    margin-top: 2px;
+}
+
 .custom-theme-row {
     align-items: flex-start;
 }

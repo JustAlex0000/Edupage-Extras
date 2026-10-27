@@ -1,7 +1,7 @@
 (function () {
   "use strict";
   const C = globalThis.EEComparison;
-  const t = (key) => chrome.i18n.getMessage(key) || key;
+  const t = (key) => EE.getMessage(key) || key;
   const el = (tag, text, className) => {
     const node = document.createElement(tag);
     if (text !== undefined) node.textContent = text;
@@ -65,7 +65,7 @@
   }
 
   function dateLabel(value) {
-    return new Date(`${value}T12:00:00`).toLocaleDateString(chrome.i18n.getUILanguage(), { weekday: "short", day: "numeric", month: "short" });
+    return new Date(`${value}T12:00:00`).toLocaleDateString(EE.getUILanguage(), { weekday: "short", day: "numeric", month: "short" });
   }
 
   function durationLabel(minutes) {
@@ -89,7 +89,7 @@
       currentMinute: date === C.dateKey(now) ? now.getHours() * 60 + now.getMinutes() : null });
     const details = el("details", undefined, "ee-comparison-compact-day");
     const summary = el("summary");
-    const owner = daily ? name : new Date(`${date}T12:00:00`).toLocaleDateString(chrome.i18n.getUILanguage(), { weekday: "short" });
+    const owner = daily ? name : new Date(`${date}T12:00:00`).toLocaleDateString(EE.getUILanguage(), { weekday: "short" });
     summary.append(el("strong", owner, "ee-comparison-compact-name"));
     if (daily) {
       const active = data.current.length ? data.current : data.next;

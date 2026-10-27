@@ -1,6 +1,7 @@
 // MV3 loads this file as the service worker, so load the shared library here.
-if (typeof importScripts === "function" && typeof globalThis.EE === "undefined") {
-  importScripts("lib/ee-common.js");
+if (typeof importScripts === "function") {
+  if (typeof globalThis.EE === "undefined") importScripts("lib/ee-common.js");
+  if (!EE.i18n) importScripts("lib/ee-i18n.js");
 }
 
 // Firefox's notifications API doesn't support the "buttons" option (silently
@@ -718,7 +719,7 @@ async function buildSettingsSummary() {
   const summary = {};
   for (const [key, value] of Object.entries(all || {})) {
     if (DIAGNOSTICS_SECRET_PATTERN.test(key)) continue;
-    if (key === TIMETABLE_SYNC_CACHE_KEY || key === "eeTimetableComparison" || key === "eeTimetableComparisons") continue; // private timetable data
+    if (key === TIMETABLE_SYNC_CACHE_KEY || key === "eeTimetableComparison" || key === "eeTimetableComparisons" || key === "eeAnonymizerAlias") continue; // private display and timetable data
     if (value === null || value === undefined) continue;
     const type = typeof value;
     if (type === "boolean" || type === "number") {

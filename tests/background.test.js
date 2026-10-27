@@ -141,6 +141,7 @@ runTest("theme shortcut messages carry the complete current theme state", () => 
     hideHelpTextEnabled: true,
     eeHidePageHeroesEnabled: true,
     eeHidePersonalInfoEnabled: true,
+    eeAnonymizerAlias: "Demo account",
     eeHideLikesEnabled: true,
     eeHideEdupageHelpEnabled: true,
     eeHideEducationalGamesEnabled: true,
@@ -161,6 +162,7 @@ runTest("theme shortcut messages carry the complete current theme state", () => 
     hideHelpTextEnabled: true,
     hidePageHeroesEnabled: true,
     hidePersonalInfoEnabled: true,
+    anonymizerAlias: "Demo account",
     hideLikesEnabled: true,
     hideEdupageHelpEnabled: true,
     hideEducationalGamesEnabled: true,
@@ -752,12 +754,14 @@ test("diagnostics omit saved comparison contents entirely", async () => {
   const { buildSettingsSummary } = loadBackgroundInternals({
     eeTimetableComparison: { name: "Synthetic private schedule", templates: [{ title: "Synthetic lesson" }] },
     eeTimetableComparisons: { schedules: [{ name: "Synthetic saved schedule" }] },
+    eeAnonymizerAlias: "Synthetic private alias",
     eeThemeEnabled: true,
   });
   const result = await buildSettingsSummary();
   assert.equal(result.eeThemeEnabled, true);
   assert.equal("eeTimetableComparison" in result, false);
   assert.equal("eeTimetableComparisons" in result, false);
+  assert.equal("eeAnonymizerAlias" in result, false);
   assert.equal(JSON.stringify(result).includes("Synthetic"), false);
 });
 

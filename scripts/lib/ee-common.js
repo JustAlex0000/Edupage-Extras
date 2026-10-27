@@ -14,6 +14,10 @@
   "use strict";
 
   const EE = {};
+  EE.getMessage = (key, substitutions) => EE.i18n
+    ? EE.i18n.msg(key, substitutions) : chrome.i18n.getMessage(key, substitutions);
+  EE.getUILanguage = () => EE.i18n?.locale || chrome.i18n.getUILanguage();
+  EE.withLanguageReady = callback => EE.i18n ? EE.i18n.ready.then(callback) : callback();
 
   // Keep "light" for existing installs that chose it before the theme picker
   // stopped showing it. It is a valid no-recolor theme, not an invalid value.
@@ -77,6 +81,7 @@
     hideHelpTextEnabled: "hideHelpTextEnabled",
     hidePageHeroesEnabled: "eeHidePageHeroesEnabled",
     hidePersonalInfoEnabled: "eeHidePersonalInfoEnabled",
+    anonymizerAlias: "eeAnonymizerAlias",
     hideLikesEnabled: "eeHideLikesEnabled",
     hideEdupageHelpEnabled: "eeHideEdupageHelpEnabled",
     hideEducationalGamesEnabled: "eeHideEducationalGamesEnabled",
@@ -88,6 +93,9 @@
     rozvrhSubstitutionColor: "eeRozvrhSubstitutionColor",
   });
   EE.THEME_STORAGE_KEY_LIST = Object.freeze(Object.values(EE.THEME_STORAGE_KEYS));
+  EE.normalizeAnonymizerAlias = function (value) {
+    return typeof value === "string" ? value.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 80) || "Anonymous" : "Anonymous";
+  };
 
   /**
    * Reads and normalizes theme and cleanup settings from storage values.
@@ -107,6 +115,7 @@
       hideHelpTextEnabled: values[keys.hideHelpTextEnabled] === true,
       hidePageHeroesEnabled: values[keys.hidePageHeroesEnabled] === true,
       hidePersonalInfoEnabled: values[keys.hidePersonalInfoEnabled] === true,
+      anonymizerAlias: EE.normalizeAnonymizerAlias(values[keys.anonymizerAlias]),
       hideLikesEnabled: values[keys.hideLikesEnabled] === true,
       hideEdupageHelpEnabled: values[keys.hideEdupageHelpEnabled] === true,
       hideEducationalGamesEnabled: values[keys.hideEducationalGamesEnabled] === true,
@@ -135,6 +144,7 @@
       hideHelpTextEnabled: settings.hideHelpTextEnabled === true,
       hidePageHeroesEnabled: settings.hidePageHeroesEnabled === true,
       hidePersonalInfoEnabled: settings.hidePersonalInfoEnabled === true,
+      anonymizerAlias: EE.normalizeAnonymizerAlias(settings.anonymizerAlias),
       hideLikesEnabled: settings.hideLikesEnabled === true,
       hideEdupageHelpEnabled: settings.hideEdupageHelpEnabled === true,
       hideEducationalGamesEnabled: settings.hideEducationalGamesEnabled === true,

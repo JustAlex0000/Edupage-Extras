@@ -26,7 +26,7 @@ async function content(settings, route = {}) {
     EEComparisonUI: { storage: async () => settings, el() { state.nodes++; throw new Error("Unexpected UI"); } },
     chrome: { storage: { onChanged: { addListener(fn) { state.storageListener = fn; ready(); } } } },
   };
-  vm.runInNewContext(fs.readFileSync(path.join(__dirname, "../scripts/timetable-comparison.js"), "utf8"), context);
+  vm.runInNewContext(fs.readFileSync(require.resolve("../scripts/lib/ee-common.js"), "utf8") + "\n" + fs.readFileSync(path.join(__dirname, "../scripts/timetable-comparison.js"), "utf8"), context);
   await initialized;
   return state;
 }
