@@ -12,10 +12,9 @@
  * other schools' EduPage instances while leaking as little personal data as
  * possible:
  *
- *   - redact = true  (default): structural skeleton only. Tag names, class
- *     names, ids and data-* attribute KEYS are kept; text content and attribute
- *     VALUES are dropped. This is what is needed to fix CSS selectors and DOM
- *     walking, and contains essentially no grades, names or marks.
+ *   - redact = true (default): standard tags and known structural classes and
+ *     data keys only. User text, identifiers, URLs beyond the origin, and raw
+ *     errors/context are omitted. Numeric marks retain only their format.
  *   - redact = false: also includes truncated text and attribute values, for
  *     the cases where structure alone is not enough.
  */
@@ -26,6 +25,22 @@
 
   const MAX_LOG_ENTRIES = 60;
   const TAG = "Edupage Extras";
+  const STRUCTURAL_CLASSES = new Set([
+    "znamkyTable", "znamky", "gradesView", "predmetRow", "fixedCell", "znPriemerCell",
+    "znPriemerOstatnychCell", "znZnamka", "tips", "rozvrhtable", "dp_calendar",
+    "timetableview", "dailyplan", "dailyAbsencesTable", "absenceTable", "dochadzkaTable",
+    "dochadzka", "dashboardWidget", "main-content",
+  ]);
+  const STRUCTURAL_DATA_KEYS = new Set([
+    "data-predmetid", "data-rt-component", "data-ee-original-average", "data-ee-original-grade-title",
+  ]);
+  const STANDARD_TAGS = new Set([
+    "a", "article", "aside", "b", "blockquote", "br", "button", "caption", "code", "col", "colgroup",
+    "dd", "details", "div", "dl", "dt", "em", "fieldset", "figcaption", "figure", "footer", "form",
+    "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "i", "iframe", "img", "input", "label",
+    "legend", "li", "main", "nav", "ol", "option", "p", "pre", "section", "select", "small", "span",
+    "strong", "sub", "summary", "sup", "table", "tbody", "td", "textarea", "th", "thead", "tr", "ul",
+  ]);
 
   const errorLog = [];
   const recordedContext = [];
@@ -33,6 +48,15 @@
   function pushLog(entry) {
     errorLog.push(entry);
     if (errorLog.length > MAX_LOG_ENTRIES) errorLog.shift();
+  }
+
+  function summarizeErrors() {
+    const counts = {};
+    for (const entry of errorLog) {
+      const level = ["error", "warn", "uncaught", "unhandledrejection"].includes(entry.level) ? entry.level : "other";
+      counts[level] = (counts[level] || 0) + 1;
+    }
+    return Object.entries(counts).map(([level, count]) => ({ level, count }));
   }
 
   function stringifyArg(value) {
@@ -170,7 +194,8 @@
   // without seeing the actual grade.
   function maskNumbers(value, redact) {
     const text = truncate(value, 40);
-    return redact ? text.replace(/\d/g, "N") : text;
+    if (!redact || !text) return text;
+    return /^[\d\s.,/%+()\-*–—]+$/.test(text) ? text.replace(/\d/g, "N") : "[text]";
   }
 
   // Text directly inside an element, ignoring nested elements (e.g. the subject
@@ -190,21 +215,23 @@
     if (!el || budget.count <= 0 || depth > options.maxDepth || el.classList?.contains("ee-comparison")) return null;
     budget.count -= 1;
 
-    const node = { tag: el.tagName ? el.tagName.toLowerCase() : "?" };
+    const tag = el.tagName ? el.tagName.toLowerCase() : "?";
+    const node = { tag: !options.redact || STANDARD_TAGS.has(tag) ? tag : "?" };
     if (el.id) node.id = options.redact ? "[id]" : el.id;
 
-    const classes = el.classList ? Array.from(el.classList) : [];
+    const classes = (el.classList ? Array.from(el.classList) : [])
+      .filter((name) => !options.redact || STRUCTURAL_CLASSES.has(name));
     if (classes.length) node.class = classes;
 
-    // data-* attributes are very useful for EduPage parsing; keep their keys
-    // always, and their values only when not redacting.
+    // Keep known structural data keys in redacted reports; opt-in reports can
+    // include additional keys and their values.
     const dataKeys = [];
     const attrs = {};
     if (el.attributes) {
       for (const attr of Array.from(el.attributes)) {
         if (attr.name === "class" || attr.name === "id") continue;
         if (attr.name.startsWith("data-")) {
-          dataKeys.push(attr.name);
+          if (!options.redact || STRUCTURAL_DATA_KEYS.has(attr.name)) dataKeys.push(attr.name);
           if (!options.redact) attrs[attr.name] = truncate(attr.value, 80);
         } else if (!options.redact && ["role", "type", "name", "href", "src", "colspan", "rowspan"].includes(attr.name)) {
           attrs[attr.name] = truncate(attr.value, 80);
@@ -300,14 +327,14 @@
         })
         .filter(Boolean);
 
-      const tooltips = Array.from(row.querySelectorAll("[data-ee-original-grade-title]"))
+      const tooltips = redact ? [] : Array.from(row.querySelectorAll("[data-ee-original-grade-title]"))
         .slice(0, 3)
         .map((node) => maskNumbers(node.getAttribute("data-ee-original-grade-title"), redact))
         .filter(Boolean);
 
       return {
-        subjectId: row.getAttribute("data-predmetid") || null,
-        subject: subject || null,
+        subjectId: redact ? null : row.getAttribute("data-predmetid") || null,
+        subject: redact ? null : subject || null,
         averageText: maskNumbers(rawAverage, redact),
         marks,
         tooltips,
@@ -320,7 +347,7 @@
       subjectCount: subjects.length,
       truncated: table.querySelectorAll("tr.predmetRow").length > subjectRows.length,
       scaleGuess,
-      tableClasses: Array.from(table.classList || []),
+      tableClasses: Array.from(table.classList || []).filter((name) => !redact || STRUCTURAL_CLASSES.has(name)),
       subjects,
     };
   }
@@ -335,31 +362,32 @@
 
     let containers = [];
     try { containers = captureContainers(options); } catch (error) {
-      containers = [{ error: stringifyArg(error) }];
+      containers = [{ error: redact ? "Capture failed" : stringifyArg(error) }];
     }
 
     let gradesSample = null;
     try { gradesSample = captureGradesSample(options); } catch (error) {
-      gradesSample = { error: stringifyArg(error) };
+      gradesSample = { error: redact ? "Capture failed" : stringifyArg(error) };
     }
 
     return {
       frame: {
         isTop: window.top === window.self,
-        url: redact ? `${location.origin}${location.pathname}` : location.href,
+        url: redact ? location.origin : location.href,
         origin: location.origin,
         title: redact ? "[hidden]" : truncate(document.title, 120),
       },
       pageType: detectPageType(),
       redacted: redact,
-      errors: errorLog.slice(),
-      recordedContext: recordedContext.slice(),
+      errors: redact ? summarizeErrors() : errorLog.slice(),
+      recordedContext: redact ? [] : recordedContext.slice(),
+      recordedContextCount: recordedContext.length,
       gradesAttendanceDebugDataset: (() => {
         const raw = document.documentElement?.dataset?.eeGradesAttendanceDebug;
         if (!raw) return null;
         try {
           const parsed = JSON.parse(raw);
-          return redact ? { present: true, keys: Object.keys(parsed) } : parsed;
+          return redact ? { present: true } : parsed;
         } catch (_) {
           return { present: true, parseError: true };
         }
@@ -682,7 +710,7 @@
         data = collect(message);
       } catch (error) {
         data = {
-          collectError: stringifyArg(error),
+          collectError: message.redact !== false ? "Capture failed" : stringifyArg(error),
           frame: { isTop: window.top === window.self, origin: location.origin },
           containers: [],
         };

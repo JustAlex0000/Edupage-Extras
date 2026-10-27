@@ -20,6 +20,7 @@
   let watcherTimer = null;
   let watcherObserver = null;
   let watcherDomReadyHandler = null;
+  let pendingSubmitTimer = null;
 
   function injectStyles() {
     if (document.getElementById(STYLE_ID)) return;
@@ -84,18 +85,29 @@
     );
   }
 
-  function submitVia(control, form) {
-    setTimeout(() => {
-      if (control) {
-        control.click();
-      } else if (form) {
-        form.requestSubmit();
+  function submitVia(control, form, fields, terminal) {
+    if (!control && !form) return;
+    pendingSubmitTimer = window.setTimeout(() => {
+      pendingSubmitTimer = null;
+      if (!autoLoginEnabled || userTyped || submitted || !document.body
+          || !/^\/login(?:\/|$)/i.test(window.location.pathname)
+          || fields.some((field) => !field.isConnected || !isVisible(field) || !isFieldFilled(field))
+          || (form && (!form.isConnected || fields.some((field) => field.closest("form") !== form)))
+          || (control && (!control.isConnected || control.disabled))) return;
+      if (terminal) {
+        submitted = true;
+        showBadge(EE.getMessage("autoLoginSubmitting") || "Auto-logging in…");
+        stopWatching();
+      } else {
+        usernameSubmitted = true;
       }
+      if (control) control.click();
+      else form.requestSubmit();
     }, 200);
   }
 
   function tryAdvance() {
-    if (submitted || !autoLoginEnabled || userTyped) return;
+    if (submitted || pendingSubmitTimer !== null || !autoLoginEnabled || userTyped) return;
 
     const passwordInput = document.querySelector('input[type="password"]');
     if (isVisible(passwordInput)) {
@@ -107,18 +119,16 @@
       if (isVisible(usernameInput) && !isFieldFilled(usernameInput)) return;
       if (!isFieldFilled(passwordInput)) return;
 
-      submitted = true;
-      showBadge(EE.getMessage("autoLoginSubmitting") || "Auto-logging in…");
-      submitVia(findSubmitControl(container), form);
+      const fields = isVisible(usernameInput) ? [usernameInput, passwordInput] : [passwordInput];
+      submitVia(findSubmitControl(container), form, fields, true);
       return;
     }
 
     const usernameField = document.getElementById("usernamefield");
     if (!usernameSubmitted && isVisible(usernameField)) {
       if (!isFieldFilled(usernameField)) return;
-      usernameSubmitted = true;
       const form = usernameField.closest("form");
-      submitVia(form && findSubmitControl(form), form);
+      submitVia(form && findSubmitControl(form), form, [usernameField], false);
       return;
     }
 
@@ -162,7 +172,7 @@
     const target = event.target;
     if (!target || target.tagName !== "INPUT") return;
     if (
-      target.type === "password" ||
+      ["password", "text", "email"].includes(target.type) ||
       target.id === "usernamefield" ||
       /username|current-password/.test(target.autocomplete || "")
     ) {
@@ -172,6 +182,8 @@
   }
 
   function stopWatching() {
+    window.clearTimeout(pendingSubmitTimer);
+    pendingSubmitTimer = null;
     window.clearInterval(watcherTimer);
     watcherTimer = null;
     watcherObserver?.disconnect();
@@ -181,12 +193,16 @@
       watcherDomReadyHandler = null;
     }
     document.removeEventListener("keydown", watchManualTyping, true);
+    document.removeEventListener("beforeinput", watchManualTyping, true);
+    document.removeEventListener("paste", watchManualTyping, true);
   }
 
   function startWatching() {
     stopWatching();
     if (!autoLoginEnabled || userTyped || submitted) return;
     document.addEventListener("keydown", watchManualTyping, true);
+    document.addEventListener("beforeinput", watchManualTyping, true);
+    document.addEventListener("paste", watchManualTyping, true);
 
     let attempts = 0;
     const maxAttempts = 40;
@@ -245,6 +261,8 @@
     }
     startWatching();
   });
+
+  window.addEventListener("pagehide", stopWatching, { once: true });
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init, { once: true });

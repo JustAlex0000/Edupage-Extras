@@ -33,6 +33,22 @@ function, update that export list in the same change; a missing name fails
 loudly. Run `npm test` after touching any file that has a matching
 `tests/*.test.js`.
 
+Browser regressions run against both Chromium and Firefox with synthetic local
+fixtures, including the full unpacked extension installed through each browser's
+extension API. They do not use a personal browser profile or school account:
+
+```sh
+npx playwright install chromium firefox
+npm run test:browser
+```
+
+Use `PLAYWRIGHT_BROWSERS_PATH` for a custom browser-cache location. Set
+`EE_HEADED_BROWSER_TESTS=1` to run activity scheduling checks in desktop windows.
+Browser tests exercise default-off/on/off activity behavior, native callback
+migration, direct namespace removal without callback wrappers, diagnostic redaction,
+attendance render settling, and obsolete AI response rejection. Live school skins, monitoring, and sleep/resume still need
+an authorized manual check.
+
 `npm run lint:firefox` runs web-ext lint (also run by CI on every push/PR).
 CI also builds and verifies the Firefox and Chrome archives. Both builders stage
 the same explicit shipping allowlist, so ignored local files cannot enter a
@@ -89,3 +105,14 @@ school-specific defaults off.
    notes from `CHANGELOG.md`.
 6. Verify the run succeeded (`gh run watch`) — a green tag push doesn't
    guarantee the publish steps passed.
+
+## Toolchain advisory boundary
+
+The upgraded toolchain removes the audit's critical advisories. `node-forge` is
+still pulled in by web-ext's Android ADB tooling and has no released fix for
+[GHSA-86w9-cpqp-85rv](https://github.com/advisories/GHSA-86w9-cpqp-85rv).
+This repository's desktop Firefox wrapper selects `firefox-desktop`; Android ADB
+operations are not part of the validation workflow. The inherited npm-audit entries
+are retained and must not be hidden by an unsafe downgrade or an unreviewed
+cryptographic patch. None of these development dependencies ship in either browser
+archive. Recheck the advisory and upgrade when a patched release is available.

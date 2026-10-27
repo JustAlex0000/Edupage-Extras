@@ -27,7 +27,8 @@
   const STYLE_ID = "ee-timetable-enhancer-style";
   const HIGHLIGHTS_KEY = "timetableHighlightsEnabled";
 
-  let highlightsEnabled = true;
+  let highlightsEnabled = false;
+  let highlightGeneration = 0;
 
   // ── Styles ─────────────────────────────────────────────────────────────────
 
@@ -102,11 +103,47 @@
     "changed": "ee-rozvrh-changed",
   };
 
-  let substitutionSectionsPromise = null;
-  let substitutionSectionsResolved = null;
-  let substitutionLastFetchedAt = 0;
-  const SUBSTITUTION_REFRESH_COOLDOWN_MS = 30 * 60 * 1000;
+  const WIDGET_CACHE_TTL_MS = 30 * 60 * 1000;
+  const WIDGET_RETRY_MS = 30 * 1000;
+  const substitutionCache = createWidgetCache();
+  const roomCache = createWidgetCache();
+  const classificationVersions = new WeakMap();
+  const roomVersions = new WeakMap();
+  const originalTitles = new WeakMap();
   let rozvrhScheduleTimer = null;
+
+  function createWidgetCache() {
+    return { date: "", value: null, fetchedAt: 0, attemptedAt: -Infinity, pending: null, generation: 0 };
+  }
+
+  function freshWidgetValue(cache, date = getWidgetDateKey()) {
+    return cache.date === date && Date.now() - cache.fetchedAt < WIDGET_CACHE_TTL_MS ? cache.value : null;
+  }
+
+  async function readWidgetCache(cache, date, fetcher) {
+    if (cache.date !== date) {
+      cache.date = date;
+      cache.value = null;
+      cache.pending = null;
+      cache.attemptedAt = -Infinity;
+      cache.generation++;
+    }
+    const fresh = freshWidgetValue(cache, date);
+    if (fresh !== null) return fresh;
+    if (cache.pending) return cache.pending;
+    if (Date.now() - cache.attemptedAt < WIDGET_RETRY_MS) return null;
+    cache.attemptedAt = Date.now();
+    const stamp = cache.generation;
+    const pending = (async () => {
+      const value = await fetcher(date);
+      if (stamp !== cache.generation || cache.date !== date) return null;
+      if (value !== null) { cache.value = value; cache.fetchedAt = Date.now(); }
+      return value;
+    })();
+    cache.pending = pending;
+    try { return await pending; }
+    finally { if (cache.pending === pending) cache.pending = null; }
+  }
 
   // .trieda starts out holding the student's own class label (or, for shared
   // elective groups, a comma list of classes). Matching against Suplovanie
@@ -197,7 +234,7 @@
   // the same section HTML over a plain fetch() when given the gsechash (verified
   // live 2026-06-18). Returns parsed sections, or null on failure (no hash,
   // network error, or an expired hash — EduPage answers those with
-  // `{ reload: true }`), which the caller treats as "no substitutions".
+  // `{ reload: true }`), which leaves the native appearance available for retry.
   async function fetchSubstitutionSectionsDirect(dateKey) {
     const gsh = getGsecHash();
     if (!gsh) return null;
@@ -226,17 +263,8 @@
     }
   }
 
-  function getSubstitutionSections() {
-    if (!substitutionSectionsPromise) {
-      substitutionLastFetchedAt = Date.now();
-      substitutionSectionsPromise = (async () => {
-        const direct = await fetchSubstitutionSectionsDirect(getWidgetDateKey());
-        const sections = direct !== null ? direct : [];
-        substitutionSectionsResolved = sections;
-        return sections;
-      })();
-    }
-    return substitutionSectionsPromise;
+  function getSubstitutionSections(date) {
+    return readWidgetCache(substitutionCache, date, fetchSubstitutionSectionsDirect);
   }
 
   // Picks the Suplovanie row for a given homepage item across all sections that
@@ -290,6 +318,7 @@
 
   function applyRozvrhClassification(item, sections) {
     if (item.hasAttribute(ROZVRH_PROCESSED_ATTR)) return;
+    if (!originalTitles.has(item)) originalTitles.set(item, item.getAttribute("title") ?? null);
 
     const { subjectMatchedRow, periodMatchedRows } = findRowForItem(item, sections);
 
@@ -319,22 +348,41 @@
 
   async function enhanceRozvrhWidget() {
     if (!highlightsEnabled) return;
+    if (!document.querySelectorAll("ul.rozvrh > li.rozvrhItem.hasChange").length) return;
+    const date = getWidgetDateKey();
+    const stamp = highlightGeneration;
+    const sections = await getSubstitutionSections(date);
+    if (!highlightsEnabled || stamp !== highlightGeneration || date !== getWidgetDateKey()) return;
+    const items = Array.from(document.querySelectorAll("ul.rozvrh > li.rozvrhItem.hasChange"));
+    if (sections === null) { items.forEach(item => clearItemClassification(item)); return; }
+    applyCurrentClassifications(items, sections);
+  }
 
-    const items = Array.from(document.querySelectorAll("ul.rozvrh > li.rozvrhItem.hasChange"))
-      .filter((item) => !item.hasAttribute(ROZVRH_PROCESSED_ATTR));
-    if (items.length === 0) return;
-
-    // If sections are already resolved, classify synchronously — no flash on
-    // Edupage's ~10s widget re-renders.
-    if (substitutionSectionsResolved) {
-      items.forEach((item) => applyRozvrhClassification(item, substitutionSectionsResolved));
-      return;
+  function clearItemClassification(item, preserveRoom = false) {
+    Object.values(ROZVRH_CLASS_BY_TYPE).forEach((cls) => item.classList.remove(cls));
+    item.removeAttribute(ROZVRH_PROCESSED_ATTR);
+    classificationVersions.delete(item);
+    if (originalTitles.has(item)) {
+      const title = originalTitles.get(item);
+      if (title === null) item.removeAttribute("title"); else item.title = title;
     }
+    if (preserveRoom) return;
+    delete item.dataset.eeNewRoom;
+    const map = freshWidgetValue(roomCache);
+    if (item.hasAttribute(ROOM_PROCESSED_ATTR)) {
+      const span = item.querySelector(".trieda");
+      if (span) span.textContent = map ? map.get(periodDigits(item.querySelector(".hodina")?.textContent)) || "—" : getOriginalTrieda(item);
+      if (!map) { item.removeAttribute(ROOM_PROCESSED_ATTR); roomVersions.delete(item); }
+    }
+  }
 
-    const sections = await getSubstitutionSections();
-    items
-      .filter((item) => !item.hasAttribute(ROZVRH_PROCESSED_ATTR))
-      .forEach((item) => applyRozvrhClassification(item, sections));
+  function applyCurrentClassifications(items, sections) {
+    for (const item of items) {
+      if (classificationVersions.get(item) === sections) continue;
+      clearItemClassification(item);
+      applyRozvrhClassification(item, sections);
+      classificationVersions.set(item, sections);
+    }
   }
 
   // ── Room display ────────────────────────────────────────────────────────────
@@ -348,9 +396,6 @@
   //   dbi.classrooms[id].short       -> human-readable room code, e.g. "012"
 
   const ROOM_PROCESSED_ATTR = "data-ee-rozvrh-room-done";
-
-  let roomMapPromise = null;
-  let roomMapResolved = null; // the already-resolved Map — applied synchronously on re-renders
 
   function extractBalanced(text, openIndex) {
     let depth = 0;
@@ -431,24 +476,23 @@
 
   window.__eeTimetableWidgetDate = getWidgetDateKey;
 
-  async function fetchRoomMap() {
+  async function fetchRoomMap(widgetDateKey) {
     try {
       const response = await fetch("/dashboard/eb.php?mode=ttday", { credentials: "include" });
-      if (!response.ok) return new Map();
+      if (!response.ok) return null;
       const html = await response.text();
 
       const marker = "classbook.fill";
       const markerIndex = html.indexOf(marker);
-      if (markerIndex === -1) return new Map();
+      if (markerIndex === -1) return null;
       const openParenIndex = html.indexOf("(", markerIndex + marker.length);
       const balanced = openParenIndex === -1 ? null : extractBalanced(html, openParenIndex);
-      if (!balanced) return new Map();
+      if (!balanced) return null;
       const args = splitTopLevelArguments(balanced.slice(1, -1));
       const classbookData = JSON.parse(args[1]);
 
-      const widgetDateKey = getWidgetDateKey();
       const plan = classbookData?.dates?.[widgetDateKey]?.plan;
-      if (!Array.isArray(plan)) return new Map();
+      if (!Array.isArray(plan)) return null;
 
       const map = new Map();
       plan.forEach((entry) => {
@@ -463,21 +507,19 @@
           .filter(Boolean);
         if (roomNames.length > 0) map.set(period, roomNames.join(", "));
       });
-      roomMapResolved = map;
       return map;
     } catch {
-      return new Map();
+      return null;
     }
   }
 
-  function getRoomMap() {
-    if (!roomMapPromise) roomMapPromise = fetchRoomMap();
-    return roomMapPromise;
+  function getRoomMap(date) {
+    return readWidgetCache(roomCache, date, fetchRoomMap);
   }
 
   function applyRoomNames(items, roomMap) {
     items.forEach((item) => {
-      if (item.hasAttribute(ROOM_PROCESSED_ATTR)) return;
+      if (item.hasAttribute(ROOM_PROCESSED_ATTR) && roomVersions.get(item) === roomMap) return;
       item.setAttribute(ROOM_PROCESSED_ATTR, "1");
 
       const triedaSpan = item.querySelector(".trieda");
@@ -490,26 +532,27 @@
       // student actually needs to go, not where they were originally assigned.
       const room = item.dataset.eeNewRoom || roomMap.get(period);
       triedaSpan.textContent = room || "—";
+      roomVersions.set(item, roomMap);
     });
   }
 
   async function enhanceRozvrhRooms() {
-    const items = Array.from(document.querySelectorAll("ul.rozvrh > li.rozvrhItem"))
-      .filter((item) => !item.hasAttribute(ROOM_PROCESSED_ATTR));
-    if (items.length === 0) return;
-
-    // If the room map is already resolved, apply it synchronously — no await,
-    // no flash between re-renders.
-    if (roomMapResolved) {
-      applyRoomNames(items, roomMapResolved);
-      return;
+    if (!document.querySelectorAll("ul.rozvrh > li.rozvrhItem").length) return;
+    const date = getWidgetDateKey();
+    if (freshWidgetValue(substitutionCache, date) === null) {
+      document.querySelectorAll("ul.rozvrh > li.rozvrhItem").forEach(item => clearItemClassification(item));
     }
-
-    const roomMap = await getRoomMap();
-    applyRoomNames(
-      items.filter((item) => !item.hasAttribute(ROOM_PROCESSED_ATTR)), // re-filter after await
-      roomMap,
-    );
+    const roomMap = await getRoomMap(date);
+    if (date !== getWidgetDateKey()) return;
+    const items = Array.from(document.querySelectorAll("ul.rozvrh > li.rozvrhItem"));
+    if (roomMap !== null) applyRoomNames(items, roomMap);
+    else for (const item of items) {
+      if (!item.hasAttribute(ROOM_PROCESSED_ATTR)) continue;
+      const span = item.querySelector(".trieda");
+      if (span) span.textContent = getOriginalTrieda(item);
+      item.removeAttribute(ROOM_PROCESSED_ATTR);
+      roomVersions.delete(item);
+    }
   }
 
   function scheduleRozvrhEnhance() {
@@ -527,26 +570,14 @@
     const items = Array.from(document.querySelectorAll("ul.rozvrh > li.rozvrhItem"));
     if (items.length === 0) return;
 
-    if (roomMapResolved) {
-      applyRoomNames(
-        items.filter((item) => !item.hasAttribute(ROOM_PROCESSED_ATTR)),
-        roomMapResolved,
-      );
-    }
-
-    if (highlightsEnabled && substitutionSectionsResolved) {
-      items
-        .filter((item) => item.classList.contains("hasChange") && !item.hasAttribute(ROZVRH_PROCESSED_ATTR))
-        .forEach((item) => applyRozvrhClassification(item, substitutionSectionsResolved));
-    }
+    const roomMap = freshWidgetValue(roomCache);
+    if (roomMap) applyRoomNames(items, roomMap);
+    const sections = freshWidgetValue(substitutionCache);
+    if (highlightsEnabled && sections) applyCurrentClassifications(items.filter((item) => item.classList.contains("hasChange")), sections);
   }
 
   function clearRozvrhHighlights() {
-    document.querySelectorAll("ul.rozvrh > li.rozvrhItem").forEach((item) => {
-      Object.values(ROZVRH_CLASS_BY_TYPE).forEach((cls) => item.classList.remove(cls));
-      item.removeAttribute(ROZVRH_PROCESSED_ATTR);
-      item.removeAttribute("title");
-    });
+    document.querySelectorAll("ul.rozvrh > li.rozvrhItem").forEach(item => clearItemClassification(item, true));
   }
 
   function initRozvrhObserver() {
@@ -561,15 +592,6 @@
         // Apply cached data immediately so the new items render with outlines
         // and rooms in the same frame Edupage swaps them in — no ~10s flash.
         applyCachedRozvrhData();
-        // Only re-fetch the Suplovanie data if enough time has passed — avoids
-        // a viewer.js POST on every frequent widget re-render.
-        if (Date.now() - substitutionLastFetchedAt > SUBSTITUTION_REFRESH_COOLDOWN_MS) {
-          substitutionSectionsPromise = null;
-          // substitutionSectionsResolved intentionally retained — it keeps
-          // serving the old outlines until the next fetch resolves.
-        }
-        // roomMapPromise intentionally not reset — rooms don't change intraday,
-        // and roomMapResolved lets re-renders apply names synchronously (no flash).
         scheduleRozvrhEnhance();
       }
     });
@@ -585,6 +607,8 @@
   function initStorage() {
     chrome.storage.local.get([HIGHLIGHTS_KEY], (result) => {
       highlightsEnabled = result[HIGHLIGHTS_KEY] !== false;
+      highlightGeneration++;
+      if (!highlightsEnabled) clearRozvrhHighlights();
       if (highlightsEnabled) enhanceRozvrhWidget().catch(() => {});
       enhanceRozvrhRooms().catch(() => {});
     });
@@ -592,8 +616,9 @@
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== "local" || !changes[HIGHLIGHTS_KEY]) return;
       highlightsEnabled = changes[HIGHLIGHTS_KEY].newValue !== false;
+      highlightGeneration++;
       if (highlightsEnabled) {
-        enhanceRozvrhWidget();
+        enhanceRozvrhWidget().catch(() => {});
       } else {
         clearRozvrhHighlights();
       }
@@ -621,7 +646,7 @@
 
   // Deliberate test hook — see tests/timetable-enhancer.test.js.
   if (globalThis.__EE_TEST__) {
-    globalThis.__eeTestExports = { applyRozvrhClassification, findRowForItem };
+    globalThis.__eeTestExports = { applyRozvrhClassification, findRowForItem, enhanceRozvrhWidget, enhanceRozvrhRooms, applyCachedRozvrhData };
   }
 
   init();

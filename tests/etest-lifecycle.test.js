@@ -39,7 +39,7 @@ function page({ enabled = true, copy = false, stale = false, pathname = "/user/"
     },
     addEventListener(name) { listeners.push(name); },
   };
-  const window = { location: { pathname, search: "" } }; window.top = window;
+  const window = { location: { pathname, search: "" }, addEventListener() {} }; window.top = window;
   const context = {
     window, document,
     setTimeout(fn) { const id = timers.size + 1; timers.set(id, fn); return id; },

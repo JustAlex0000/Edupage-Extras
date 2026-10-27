@@ -20,6 +20,7 @@ function loadBackgroundInternals(settings = {}, overrides = {}) {
     Date,
     Math,
     Promise,
+    AbortController,
     fetch: async () => {
       throw new Error("fetch should not be called in unit tests");
     },
@@ -87,6 +88,7 @@ function loadBackgroundInternals(settings = {}, overrides = {}) {
         launchWebAuthFlow: noop,
       },
     },
+    ...overrides,
   };
 
   Object.assign(context.chrome, overrides);
@@ -755,14 +757,81 @@ test("diagnostics omit saved comparison contents entirely", async () => {
     eeTimetableComparison: { name: "Synthetic private schedule", templates: [{ title: "Synthetic lesson" }] },
     eeTimetableComparisons: { schedules: [{ name: "Synthetic saved schedule" }] },
     eeAnonymizerAlias: "Synthetic private alias",
-    eeThemeEnabled: true,
+    darkModeEnabled: true,
   });
   const result = await buildSettingsSummary();
-  assert.equal(result.eeThemeEnabled, true);
+  assert.equal(result.darkModeEnabled, true);
   assert.equal("eeTimetableComparison" in result, false);
   assert.equal("eeTimetableComparisons" in result, false);
   assert.equal("eeAnonymizerAlias" in result, false);
   assert.equal(JSON.stringify(result).includes("Synthetic"), false);
+});
+
+test("redacted reports allowlist settings and summarize raw background failures", async () => {
+  const privateText = "Synthetic private account and diagnostic text";
+  const logger = { error() {} };
+  const settings = {
+    darkModeEnabled: true,
+    themeMode: "forest",
+    eeAiProvider: "openai",
+    eeAutoLoginPreferredAccount: privateText,
+    eeAiModelOpenai: privateText,
+    eeUnknownBoolean: true,
+    eeAiApiKeyOpenai: "SYNTHETIC_SECRET",
+    eeUpdateStatus: { localVersion: "1.0.9", latestVersion: privateText, error: privateText, checkedAt: 1 },
+    eeTimetableSyncCache: { byOrigin: { [privateText]: { fetchedAt: 1 } } },
+  };
+  const { buildDiagnosticsReport } = loadBackgroundInternals(settings, {
+    console: logger,
+    navigator: { userAgent: "Synthetic browser", platform: "Synthetic platform", languages: ["en"] },
+  });
+  logger.error(privateText);
+  const redacted = await buildDiagnosticsReport();
+  assert.equal(redacted.settings.darkModeEnabled, true);
+  assert.equal(redacted.settings.themeMode, "forest");
+  assert.equal(redacted.settings.eeAiProvider, "openai");
+  assert.equal("eeUnknownBoolean" in redacted.settings, false);
+  assert.equal(JSON.stringify(redacted).includes(privateText), false);
+  assert.deepEqual(JSON.parse(JSON.stringify(redacted.backgroundErrors)), [{ level: "error", count: 1 }]);
+  const unredacted = await buildDiagnosticsReport({ redact: false });
+  assert.equal(unredacted.settings.eeAutoLoginPreferredAccount, privateText);
+  assert.equal(unredacted.backgroundErrors[0].message, privateText);
+  assert.equal(unredacted.updateStatus.error, privateText);
+  assert.equal(JSON.stringify(unredacted).includes("SYNTHETIC_SECRET"), false);
+});
+
+test("provider requests abort before Chromium's fetch lifetime and return an honest timeout", async () => {
+  let timerCallback;
+  let timeout;
+  let requestSignal;
+  let cleared;
+  const { fetchAiJson, AI_REQUEST_TIMEOUT_MS } = loadBackgroundInternals({}, {
+    setTimeout(callback, ms) { timerCallback = callback; timeout = ms; return 7; },
+    clearTimeout(id) { cleared = id; },
+    fetch: (_url, options) => new Promise((_resolve, reject) => {
+      requestSignal = options.signal;
+      requestSignal.addEventListener("abort", () => reject(Object.assign(new Error("aborted"), { name: "AbortError" })));
+    }),
+  });
+  const result = fetchAiJson("http://127.0.0.1:11434/api/chat");
+  assert.equal(timeout, AI_REQUEST_TIMEOUT_MS);
+  assert.equal(timeout, 25_000);
+  assert.ok(timeout < 30_000);
+  timerCallback();
+  await assert.rejects(result, /did not respond within 25 seconds/);
+  assert.equal(requestSignal.aborted, true);
+  assert.equal(cleared, 7);
+});
+
+test("successful provider requests still parse responses and clear their deadline", async () => {
+  let cleared = false;
+  const { fetchAiJson } = loadBackgroundInternals({}, {
+    setTimeout() { return 3; },
+    clearTimeout(id) { cleared = id === 3; },
+    fetch: async () => ({ ok: true, headers: { get: () => null }, text: async () => '{"ok":true}' }),
+  });
+  assert.equal((await fetchAiJson("http://127.0.0.1:11434/api/tags")).ok, true);
+  assert.equal(cleared, true);
 });
 
 runTest("extension calendar exports round-trip lesson groups into comparison templates", () => {
