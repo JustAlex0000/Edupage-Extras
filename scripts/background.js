@@ -721,7 +721,7 @@ const DIAGNOSTICS_BOOLEAN_SETTINGS = new Set([
   "gradesAttendanceDebugEnabled", "attendancePercentagesEnabled", "eeAutoLoginEnabled",
   "eeUcivoExportEnabled", "eeGradesSortFilterEnabled", "eeGradesExportEnabled",
   "eeTimetableExportEnabled", "eeTimetableComparisonEnabled", "eeEtestAutoThemeOffEnabled",
-  "eeEtestCopyEnabled", "eeEtestResultsEnabled", "eeEtestQuestionButtonsEnabled",
+  "eeEtestCopyEnabled", "eeTestArchiveEnabled", "eeEtestResultsEnabled", "eeEtestQuestionButtonsEnabled",
   "eeEtestWholeTestButtonEnabled", "eeEtestIncludeAnswers", "eeEtestIncludeImages",
   AI_HELPER_ENABLED_KEY, "eeAiHelperMessagesEnabled", "eeAiVisualFallbackEnabled",
   ACTIVITY_SHIELD_ENABLED_KEY, "eeActivityShieldVisibilityState", "eeActivityShieldHidden",
@@ -749,7 +749,7 @@ async function buildSettingsSummary({ redact = true } = {}) {
       continue;
     }
     if (DIAGNOSTICS_SECRET_PATTERN.test(key)) continue;
-    if (key === TIMETABLE_SYNC_CACHE_KEY || key === "eeTimetableComparison" || key === "eeTimetableComparisons" || key === "eeAnonymizerAlias") continue; // private display and timetable data
+    if (key === TIMETABLE_SYNC_CACHE_KEY || key === "eeTimetableComparison" || key === "eeTimetableComparisons" || key === "eeTestArchive" || key === "eeAnonymizerAlias") continue; // private saved data
     if (value === null || value === undefined) continue;
     const type = typeof value;
     if (type === "boolean" || type === "number") {
@@ -1260,8 +1260,8 @@ function notifyOpenEdupageTabs(message) {
 }
 
 async function ensureOpenEtestHelpers() {
-  const settings = await storageGet([AI_HELPER_ENABLED_KEY, "eeEtestCopyEnabled"]);
-  if (settings[AI_HELPER_ENABLED_KEY] !== true && settings.eeEtestCopyEnabled !== true) return;
+  const settings = await storageGet([AI_HELPER_ENABLED_KEY, "eeEtestCopyEnabled", "eeTestArchiveEnabled"]);
+  if (settings[AI_HELPER_ENABLED_KEY] !== true && settings.eeEtestCopyEnabled !== true && settings.eeTestArchiveEnabled !== true) return;
   // Attach controls to existing documents after enabling/updating the extension;
   // never navigate or reload an in-progress test. The content script is idempotent.
   chrome.tabs.query({ url: "https://*.edupage.org/*" }, (tabs) => {
@@ -2286,7 +2286,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
 
-  if (changes[AI_HELPER_ENABLED_KEY]?.newValue === true || changes.eeEtestCopyEnabled?.newValue === true) {
+  if (changes[AI_HELPER_ENABLED_KEY]?.newValue === true || changes.eeEtestCopyEnabled?.newValue === true || changes.eeTestArchiveEnabled?.newValue === true) {
     ensureOpenEtestHelpers().catch(() => {});
   }
 
@@ -2400,5 +2400,5 @@ chrome.notifications.onButtonClicked.addListener((notificationId) => {
 });
 
 if (typeof importScripts === "function") {
-  importScripts("lib/ee-timetable-comparison.js", "timetable-comparison-background.js");
+  importScripts("lib/ee-timetable-comparison.js", "timetable-comparison-background.js", "etest-archive-background.js");
 }

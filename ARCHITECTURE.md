@@ -159,6 +159,36 @@ the legacy export cache version was incremented to invalidate ambiguous entries.
 
 ## Grades and eTest
 
+Saved tests are a separate, default-off `eeTestArchiveEnabled` preference.
+`etest-enhancer.js` observes and snapshots the native player while this setting
+is on, even if Copy and AI are off. It sends only changed questions on a bounded
+debounce, flushing pending changes before native question navigation and page
+exit. Captures use random per-opening IDs; native question IDs and route/query
+data stay in memory. Replaced players/reopened pages start separate captures so
+unverified test identities cannot merge different attempts. The native
+`.etest-player-title-name` supplies the display title; late titles update an
+existing capture without requiring an answer change. Missing headers do not
+erase a previously recorded name.
+
+`etest-archive-background.js` validates top-frame HTTPS EduPage senders (the
+content script checks the live route because Chrome can retain a document's
+original URL across smart navigation), normalizes text/answer/raster-only messages, and serializes all writes
+and deletions under `eeTestArchive`. Limits are 50 captures, 300 questions per
+capture, and 3 MiB. Failed/oversized writes preserve previous data and store only
+a bounded error key in `eeTestArchiveStatus`. Per-capture sequence numbers reject
+out-of-order snapshots. Deleted capture IDs are blocked (last 200 IDs only) so
+an open tab cannot immediately recreate the deleted test. Delete all clears
+those markers and atomically turns recording off. Disabled recording retains
+the collection; no archive data enters diagnostics.
+
+Only the extension's Settings page may list/delete saves via runtime messages.
+`menu/etest-archive-settings.js` renders a read-only text-based review with local
+PNG/JPEG/WebP data images. It never inserts captured HTML or fetches saved page
+URLs. Canvas copying of already-loaded raster pixels is bounded; inaccessible
+images and unsupported visuals are labelled as omitted. Saved answers are local
+observations, never a submission receipt or inferred answer key. No new host
+permissions or AI calls are required.
+
 The eTest helper remains registered across native smart navigation. It reads
 its opt-in settings on every top-level EduPage document, observes native content
 changes only while a helper feature is enabled, and renders controls only on

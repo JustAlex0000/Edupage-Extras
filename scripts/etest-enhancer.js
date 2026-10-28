@@ -9,6 +9,7 @@
   const isEtestPage = () => /^\/elearning(?:\/|$)/i.test(window.location.pathname);
 
   const ETEST_COPY_KEY = "eeEtestCopyEnabled";
+  const ARCHIVE_ENABLED_KEY = "eeTestArchiveEnabled";
   const ETEST_QUESTION_BUTTONS_KEY = "eeEtestQuestionButtonsEnabled";
   const ETEST_WHOLE_TEST_BUTTON_KEY = "eeEtestWholeTestButtonEnabled";
   const ETEST_INCLUDE_ANSWERS_KEY = "eeEtestIncludeAnswers";
@@ -60,6 +61,10 @@
   const ANSWER_INPUT_TYPES = new Set([...BLANK_INPUT_TYPES].filter((type) => type !== "password"));
 
   let etestCopyEnabled = false;
+  let archiveEnabled = false;
+  let archiveSession = null;
+  let archiveTimer = null;
+  const archiveImages = new WeakMap();
   let questionButtonsEnabled = true;
   let wholeTestButtonEnabled = true;
   let includeSelectedAnswers = true;
@@ -387,7 +392,7 @@
         addAnswer(control.value, `field-${index}`);
       } else if (tagName === "INPUT" && ["checkbox", "radio"].includes(type) && control.checked) {
         const host = typeof control.closest === "function"
-          ? control.closest(".etest-alist-answer, label")
+          ? (control.closest(".etest-alist-answer") || control.closest("label"))
           : null;
         if (!host || !hasClass(host, "etest-alist-answer")) {
           addAnswer(host ? extractElementText(host) : control.value, `check-${index}`);
@@ -655,6 +660,103 @@
       snapshotQuestion(content, index);
     });
     return contents;
+  }
+
+  function archiveImage(image) {
+    const source = image.currentSrc || image.src || "";
+    const cached = archiveImages.get(image);
+    if (cached?.source === source && image.complete) return cached.result;
+    if (!image.complete || !image.naturalWidth || !image.naturalHeight) return null;
+    let result = null;
+    try {
+      // Copy only already-loaded pixels. Never retain/fetch signed image URLs.
+      if (image.naturalWidth * image.naturalHeight > 16000000) return null;
+      const scale = Math.min(1, 1400 / Math.max(image.naturalWidth, image.naturalHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+      const data = canvas.toDataURL("image/png");
+      if (data.length <= 220000) result = { data, alt: String(image.alt || "").slice(0, 300) };
+    } catch (_) { /* Unreadable cross-origin pixels are marked as omitted. */ }
+    archiveImages.set(image, { source, result });
+    return result;
+  }
+
+  function flushArchive() {
+    clearTimeout(archiveTimer);
+    archiveTimer = null;
+    const session = archiveSession;
+    if (!archiveEnabled || !session?.pending.size) return;
+    const snapshot = { id: session.id, title: session.title, sequence: ++session.sequence, questions: [...session.pending.values()] };
+    session.pending.clear();
+    try {
+      chrome.runtime.sendMessage({ type: "ee-test-archive-save", snapshot }, (response) => {
+        if (chrome.runtime.lastError || !response?.ok) {
+          if (archiveEnabled && archiveSession === session) {
+            for (const question of snapshot.questions) {
+              const latest = [...session.seen.values()].find((entry) => entry.id === question.id);
+              if (latest?.signature === JSON.stringify(question) && !session.pending.has(question.id)) session.pending.set(question.id, question);
+            }
+          }
+          chrome.storage.local.set({ eeTestArchiveStatus: response?.error === "eeArchiveFull" ? "eeArchiveFull"
+            : response?.error === "eeArchiveUnsupported" ? "eeArchiveUnsupported" : "eeArchiveStorageError" });
+        }
+      });
+    } catch (_) { /* An invalidated extension context cannot save; never interrupt the test. */ }
+  }
+
+  function getArchiveTestTitle(root) {
+    for (const selector of [".etest-player-title-name", ".etest-header-title", ".etest-introslide-hero-title"]) {
+      const title = String(root?.querySelector(selector)?.textContent || "").replace(/\s+/g, " ").trim();
+      if (title) return title.slice(0, 160);
+    }
+    return "";
+  }
+
+  function captureArchiveVisible() {
+    if (!archiveEnabled || !isEtestPage()) return;
+    const root = document.querySelector(".etest-player");
+    if (!root) { flushArchive(); archiveSession = null; return; }
+    const route = `${window.location.pathname}${window.location.search}`;
+    if (!archiveSession || archiveSession.root !== root || archiveSession.route !== route) {
+      flushArchive();
+      archiveSession = { id: crypto.randomUUID(), root, route, sequence: 0, pending: new Map(), seen: new Map(),
+        title: getArchiveTestTitle(root) };
+    }
+    const session = archiveSession;
+    const title = getArchiveTestTitle(root);
+    const titleChanged = Boolean(title && title !== session.title);
+    if (titleChanged) session.title = title;
+    root.querySelectorAll(".etest-question-content").forEach((content, index) => {
+      const model = { plainBody: normalizeStructuredText(serializeNode(content, false).plain),
+        number: getQuestionNumber(content), answers: collectSelectedAnswers(content) };
+      let body = model.plainBody.replaceAll(SELECTED_MARKER_TOKEN, "");
+      if (model.number && body.startsWith(`${model.number}\n`)) body = body.slice(model.number.length + 1);
+      const identity = getQuestionIdentity(content, index, body);
+      const previous = session.seen.get(identity);
+      if (!previous && session.seen.size >= 300) {
+        chrome.storage.local.set({ eeTestArchiveStatus: "eeArchiveFull" });
+        return;
+      }
+      const imageNodes = [...content.querySelectorAll("img")].filter((image) => !shouldExcludeElement(image));
+      const images = imageNodes.slice(0, 4).map(archiveImage).filter(Boolean);
+      const visualsOmitted = images.length < imageNodes.length || Boolean(content.querySelector("svg, canvas"));
+      if (!body && !images.length && !visualsOmitted) return;
+      const choices = [...content.querySelectorAll(".etest-alist-answer")].filter(isSelectedChoice).map(extractElementText);
+      const question = { id: previous?.id || `q${session.seen.size}`, number: model.number, body, answers: [...choices, ...model.answers],
+        images, visualsOmitted };
+      const signature = JSON.stringify(question);
+      if (previous?.signature === signature) {
+        // Persist a late native title even when no answers changed. Resend one
+        // current question using the existing validated snapshot contract.
+        if (titleChanged && !session.pending.size) session.pending.set(question.id, question);
+        return;
+      }
+      session.seen.set(identity, { id: question.id, signature });
+      session.pending.set(question.id, question);
+    });
+    if (session.pending.size && !archiveTimer) archiveTimer = setTimeout(flushArchive, 250);
   }
 
   function getSeenQuestionModels() {
@@ -1274,7 +1376,10 @@
 
   function ensureButtons() {
     refreshTestScope();
-    if (!isEtestPage() || (!etestCopyEnabled && !aiHelperEnabled)) {
+    if (!isEtestPage() || (!etestCopyEnabled && !aiHelperEnabled && !archiveEnabled)) {
+      if (isEtestPage()) { clearTimeout(archiveTimer); archiveTimer = null; }
+      else flushArchive();
+      archiveSession = null;
       removeButtons();
       seenQuestions.clear();
       activeTestScope = "";
@@ -1282,7 +1387,8 @@
       lastAiQuestionContent = null;
       return;
     }
-    ensureStyles();
+    if (etestCopyEnabled || aiHelperEnabled) ensureStyles();
+    captureArchiveVisible();
     if (etestCopyEnabled) snapshotVisibleQuestions();
     document.querySelectorAll(".etest-question-playactions").forEach((playactions) => {
       if (!etestCopyEnabled || !questionButtonsEnabled) {
@@ -1318,16 +1424,19 @@
   }
 
   function scheduleSnapshotFromEvent(event) {
-    if (!etestCopyEnabled || snapshotTimer) return;
+    if ((!etestCopyEnabled && !archiveEnabled) || snapshotTimer) return;
     const target = event && event.target;
     if (!target || typeof target.closest !== "function") return;
     const content = target.closest(".etest-question-content");
     if (!content) return;
     snapshotTimer = setTimeout(() => {
       snapshotTimer = null;
-      refreshTestScope();
-      const visibleQuestions = Array.from(document.querySelectorAll(".etest-question-content"));
-      snapshotQuestion(content, Math.max(0, visibleQuestions.indexOf(content)));
+      if (etestCopyEnabled) {
+        refreshTestScope();
+        const visibleQuestions = Array.from(document.querySelectorAll(".etest-question-content"));
+        snapshotQuestion(content, Math.max(0, visibleQuestions.indexOf(content)));
+      }
+      captureArchiveVisible();
     }, 0);
   }
 
@@ -1362,17 +1471,20 @@
   }
 
   function snapshotBeforeNavigation(event) {
+    if (!etestCopyEnabled && !archiveEnabled && !aiHelperEnabled) return;
     const target = event && event.target;
     if (!target || typeof target.closest !== "function") return;
     if (target.closest(`.${COPY_BTN_CLASS}, .${COPY_ALL_BTN_CLASS}, .${AI_BTN_CLASS}`)) return;
     if (target.closest(".etest-player-sidebar-question, .etest-screen-action-btn, .etest-header-nav")) {
       cancelAiRequests();
       if (etestCopyEnabled) snapshotVisibleQuestions();
+      captureArchiveVisible();
+      flushArchive();
     }
   }
 
   function initObserver() {
-    if (!etestCopyEnabled && !aiHelperEnabled) {
+    if (!etestCopyEnabled && !aiHelperEnabled && !archiveEnabled) {
       observer?.disconnect();
       observer = null;
       clearTimeout(observerTimer);
@@ -1398,10 +1510,15 @@
     window.addEventListener("pagehide", cancelAiRequests);
     document.addEventListener("input", scheduleSnapshotFromEvent, true);
     document.addEventListener("change", scheduleSnapshotFromEvent, true);
+    document.addEventListener("pointerup", scheduleSnapshotFromEvent, true);
     document.addEventListener("focusin", rememberAiQuestion, true);
     document.addEventListener("pointerdown", rememberAiQuestion, true);
     document.addEventListener("keydown", acceptAiSuggestionWithTab, true);
     document.addEventListener("click", snapshotBeforeNavigation, true);
+    document.addEventListener("load", (event) => {
+      if (archiveEnabled && event.target?.tagName === "IMG" && event.target.closest(".etest-question-content")) scheduleEnsure();
+    }, true);
+    window.addEventListener("pagehide", () => { captureArchiveVisible(); flushArchive(); });
     document.addEventListener("click", (event) => {
       rememberAiQuestion(event);
       scheduleSnapshotFromEvent(event);
@@ -1411,6 +1528,7 @@
   function resolvePreferences(values = {}) {
     return {
       copyEnabled: values[ETEST_COPY_KEY] === true,
+      archiveEnabled: values[ARCHIVE_ENABLED_KEY] === true,
       questionButtons: values[ETEST_QUESTION_BUTTONS_KEY] !== false,
       wholeTestButton: values[ETEST_WHOLE_TEST_BUTTON_KEY] !== false,
       selectedAnswers: values[ETEST_INCLUDE_ANSWERS_KEY] !== false,
@@ -1427,6 +1545,7 @@
   function initStorage() {
     const keys = [
       ETEST_COPY_KEY,
+      ARCHIVE_ENABLED_KEY,
       ETEST_QUESTION_BUTTONS_KEY,
       ETEST_WHOLE_TEST_BUTTON_KEY,
       ETEST_INCLUDE_ANSWERS_KEY,
@@ -1439,6 +1558,7 @@
     chrome.storage.local.get(keys, (result) => {
       const preferences = resolvePreferences({ ...result, ...preferenceOverrides });
       etestCopyEnabled = preferences.copyEnabled;
+      archiveEnabled = preferences.archiveEnabled;
       questionButtonsEnabled = preferences.questionButtons;
       wholeTestButtonEnabled = preferences.wholeTestButton;
       includeSelectedAnswers = preferences.selectedAnswers;
@@ -1455,6 +1575,10 @@
       if (area !== "local") return;
       for (const key of keys) if (changes[key]) preferenceOverrides[key] = changes[key].newValue;
       if (changes[ETEST_COPY_KEY]) etestCopyEnabled = changes[ETEST_COPY_KEY].newValue === true;
+      if (changes[ARCHIVE_ENABLED_KEY]) {
+        archiveEnabled = changes[ARCHIVE_ENABLED_KEY].newValue === true;
+        if (!archiveEnabled) { clearTimeout(archiveTimer); archiveTimer = null; archiveSession = null; }
+      }
       if (changes[ETEST_QUESTION_BUTTONS_KEY]) {
         questionButtonsEnabled = changes[ETEST_QUESTION_BUTTONS_KEY].newValue !== false;
       }
@@ -1495,6 +1619,7 @@
       getQuestionInteractionData,
       buildQuestionModel,
       getSeenQuestionModels,
+      getArchiveTestTitle,
       renderQuestionPlain,
       renderQuestionHtml,
       renderTestPayload,

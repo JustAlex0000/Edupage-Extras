@@ -164,6 +164,25 @@ test("question rendering only adds a separate answer block for non-choice answer
   );
 });
 
+test("nested labels do not duplicate a selected choice as a separate answer field", () => {
+  const { collectSelectedAnswers } = loadInternals().exports;
+  const row = element("div", { className: "etest-alist-answer" });
+  const label = element("label", { children: [text("Choice A")] });
+  const checkbox = { tagName: "INPUT", type: "checkbox", checked: true,
+    closest: selector => selector === ".etest-alist-answer" ? row : label };
+  const content = { querySelectorAll: selector => selector === "input, textarea, select" ? [checkbox] : [] };
+  assert.deepEqual(Array.from(collectSelectedAnswers(content)), []);
+});
+
+test("saved test title uses EduPage's dedicated name, not the page title or header counters", () => {
+  const { getArchiveTestTitle } = loadInternals().exports;
+  const root = { querySelector: selector => selector === ".etest-player-title-name"
+    ? { textContent: "  Practice\n  fractions  " } : { textContent: "Header with time and score" } };
+  assert.equal(getArchiveTestTitle(root), "Practice fractions");
+  assert.equal(getArchiveTestTitle({ querySelector: () => null }), "");
+  assert.equal(getArchiveTestTitle({ querySelector: () => ({ textContent: "x".repeat(180) }) }).length, 160);
+});
+
 test("stable card ids keep paginated questions distinct", () => {
   const { getQuestionIdentity } = loadInternals().exports;
   const first = element("div", { attributes: { "data-cardid": "card-1" } });
@@ -195,6 +214,7 @@ test("test copying is opt-in while its child preferences default on", () => {
     { ...resolvePreferences({}) },
     {
       copyEnabled: false,
+      archiveEnabled: false,
       questionButtons: true,
       wholeTestButton: true,
       selectedAnswers: true,
@@ -212,6 +232,7 @@ test("test copying is opt-in while its child preferences default on", () => {
     }) },
     {
       copyEnabled: false,
+      archiveEnabled: false,
       questionButtons: false,
       wholeTestButton: true,
       selectedAnswers: true,

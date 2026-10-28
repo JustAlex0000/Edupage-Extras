@@ -296,6 +296,41 @@ for (const browserName of ["chromium", "firefox"]) {
       assert.equal(detailed.settings.eeAutoLoginPreferredAccount, PRIVATE_TEXT);
       assert.ok(JSON.stringify(detailed.page).includes(PRIVATE_TEXT));
       assert.equal(JSON.stringify(detailed).includes("SYNTHETIC_SECRET"), false);
+      if (settings) await t.test("language and anonymizer settings coexist with saved-test review", async () => {
+        const catalog = (language) => JSON.parse(fs.readFileSync(path.join(ROOT, `_locales/${language}/messages.json`), "utf8"));
+        await settings.locator("#nav-appearance").click();
+        await settings.locator("#ee-language-select").selectOption("sk");
+        await settings.waitForFunction(() => document.documentElement.lang === "sk");
+        await settings.locator("#nav-cleanup").click();
+        await settings.locator('label[for="HidePersonalInfoCheckbox"]').click();
+        assert.equal(await settings.locator("#HidePersonalInfoCheckbox").isChecked(), true);
+        await settings.locator("#ee-anonymizer-alias").fill("Review alias");
+        await settings.locator("#ee-anonymizer-alias").blur();
+        await settings.waitForFunction(async () => (await chrome.storage.local.get("eeAnonymizerAlias")).eeAnonymizerAlias === "Review alias");
+        await saveStorage({ eeTestArchive: { version: 1, blocked: [], tests: [{
+          id: "00000000-0000-4000-8000-000000000001", title: "Synthetic saved test", origin: ORIGIN,
+          openedAt: 1, updatedAt: 2, sequence: 1,
+          questions: [{ id: "q0", number: "1", body: "Synthetic saved question", answers: ["Recorded answer"], images: [] }],
+        }] } });
+        await settings.locator("#ExperimentalSettingsButton").click();
+        if (await settings.locator("#ExperimentalConfirmDialog").evaluate(el => el.open))
+          await settings.locator("#ExperimentalConfirmContinue").click();
+        await settings.waitForFunction(expected => document.querySelector("#ee-test-archive-questions strong")?.textContent === expected,
+          catalog("sk").eeArchiveYourAnswer.message);
+        assert.equal(await settings.locator("#ee-test-archive-card").isVisible(), true);
+        assert.equal(await settings.locator("#ee-test-archive-card").evaluate(card => {
+          const heading = document.getElementById("etest-tools-heading");
+          const nextSection = document.getElementById("activity-heading");
+          return Boolean(heading.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING)
+            && Boolean(card.compareDocumentPosition(nextSection) & Node.DOCUMENT_POSITION_FOLLOWING);
+        }), true);
+        assert.equal(await settings.locator("#ee-test-archive-enabled").isChecked(), false);
+        await settings.locator("#nav-appearance").click();
+        await settings.locator("#ee-language-select").selectOption("cs");
+        await settings.waitForFunction(expected => document.querySelector("#ee-test-archive-questions strong")?.textContent === expected,
+          catalog("cs").eeArchiveYourAnswer.message);
+        assert.equal(await settings.locator("#ee-test-archive-questions p").first().textContent(), "Synthetic saved question");
+      });
       assert.equal(fs.existsSync(path.join(ROOT, FIREFOX_CONTROL_FILE)), false);
       assert.deepEqual(errors, []);
       t.diagnostic(`${browserName}: ${await context.browser().version()}, real extension and isolated/MAIN/background paths exercised; exact eTest registrations are deleted on both targets and stay absent when disabled, while fresh disabled-mode registrations work until reactivation`);

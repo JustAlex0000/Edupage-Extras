@@ -597,5 +597,74 @@
   "eeCompareEarlier": { "message": "skôr" },
   "eeCompareActiveSchedule": { "message": "Zobrazené porovnanie" },
   "eeCompareSavedHint": { "message": "Na EduPage sa zobrazuje iba vybraný rozvrh. Pridaním rozvrhu zostanú ostatné uložené rozvrhy zachované." },
-  "eeCompareAddSchedule": { "message": "Pridať rozvrh" }
+  "eeCompareAddSchedule": { "message": "Pridať rozvrh" },
+  "eeArchiveHeading": {
+    "message": "Uložené testy"
+  },
+  "eeArchiveToggle": {
+    "message": "Ukladať testy na neskoršie prezretie"
+  },
+  "eeArchiveToggleDesc": {
+    "message": "Predvolene vypnuté. Po zapnutí automaticky ukladá otvorené otázky eTestov a vaše naposledy zaznamenané odpovede v tomto profile prehliadača."
+  },
+  "eeArchiveNotice": {
+    "message": "Ukladajú sa iba načítané otázky. Zaznamenané odpovede nepotvrdzujú odovzdanie ani správnosť. Každé otvorenie sa ukladá samostatne."
+  },
+  "eeArchiveEmpty": {
+    "message": "Zatiaľ nemáte uložené testy."
+  },
+  "eeArchiveChoose": {
+    "message": "Uložený test"
+  },
+  "eeArchiveDelete": {
+    "message": "Odstrániť test"
+  },
+  "eeArchiveDeleteAll": {
+    "message": "Odstrániť všetky uložené testy"
+  },
+  "eeArchiveQuestions": {
+    "message": "Zaznamenané otázky"
+  },
+  "eeArchiveCaptured": {
+    "message": "Zaznamenaných otázok: $1 · Posledný záznam: $2"
+  },
+  "eeArchiveQuestion": {
+    "message": "Otázka $1"
+  },
+  "eeArchiveYourAnswer": {
+    "message": "Vaša zaznamenaná odpoveď"
+  },
+  "eeArchiveNoAnswer": {
+    "message": "Odpoveď nebola zaznamenaná."
+  },
+  "eeArchiveUntitled": {
+    "message": "Zaznamenaný test"
+  },
+  "eeArchiveVisualsOmitted": {
+    "message": "Niektoré obrázky alebo diagramy sa nepodarilo uložiť. Otázka môže byť neúplná."
+  },
+  "eeArchiveEnabled": {
+    "message": "Ukladanie je zapnuté. Otvorené otázky eTestov sa uložia lokálne."
+  },
+  "eeArchiveDisabled": {
+    "message": "Ukladanie je vypnuté. Uložené testy zostanú zachované, kým ich neodstránite."
+  },
+  "eeArchiveFull": {
+    "message": "Úložisko testov je plné (najviac 50 testov, 300 otázok na test, spolu 3 MB). Nové zmeny sa nepodarilo uložiť. Uvoľnite miesto odstránením uložených testov."
+  },
+  "eeArchiveUnsupported": {
+    "message": "Časť testu je príliš veľká alebo nepodporovaná a nepodarilo sa ju uložiť. Predtým uložené odpovede zostali zachované."
+  },
+  "eeArchiveStorageError": {
+    "message": "Testy sa nepodarilo načítať alebo uložiť. Niektoré posledné odpovede môžu chýbať. Skúste to po uvoľnení úložiska prehliadača."
+  },
+  "eeArchiveConfirmDelete": {
+    "message": "Odstrániť tento lokálny test a jeho zaznamenané odpovede? Znova sa bude ukladať až po opätovnom otvorení."
+  },
+  "eeArchiveConfirmDeleteAll": {
+    "message": "Odstrániť všetky uložené testy a odpovede a vypnúť ukladanie? Túto akciu nemožno vrátiť späť."
+  },
+  "eeArchiveReview": {
+    "message": "Prezrieť otázky a odpovede"
+  }
 }

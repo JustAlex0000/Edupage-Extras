@@ -849,7 +849,7 @@ runTest("extension calendar exports round-trip lesson groups into comparison tem
 });
 
 test("existing-tab eTest bootstrap only injects its fixed helper when opted in, without reloading", async () => {
-  for (const settings of [{}, { eeAiQuestionHelperEnabled: true }, { eeEtestCopyEnabled: true }]) {
+  for (const settings of [{}, { eeAiQuestionHelperEnabled: true }, { eeEtestCopyEnabled: true }, { eeTestArchiveEnabled: true }]) {
     const injections = [];
     let queries = 0;
     const { ensureOpenEtestHelpers } = loadBackgroundInternals(settings, {
@@ -869,4 +869,12 @@ test("existing-tab eTest bootstrap only injects its fixed helper when opted in, 
       target: { tabId: 1 }, files: ["scripts/etest-enhancer.js"],
     });
   }
+});
+
+
+test("diagnostics exclude saved tests and deletion markers", async () => {
+  const { buildSettingsSummary } = loadBackgroundInternals({ eeTestArchiveEnabled: true, eeTestArchive: { tests: [{ body: "private" }], blocked: ["private"] } });
+  const summary = await buildSettingsSummary();
+  assert.equal("eeTestArchive" in summary, false);
+  assert.equal(summary.eeTestArchiveEnabled, true);
 });

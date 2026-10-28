@@ -597,5 +597,74 @@
   "eeCompareEarlier": { "message": "earlier" },
   "eeCompareActiveSchedule": { "message": "Shown comparison" },
   "eeCompareSavedHint": { "message": "Only the selected timetable appears on EduPage. Adding a timetable keeps your other saved schedules." },
-  "eeCompareAddSchedule": { "message": "Add timetable" }
+  "eeCompareAddSchedule": { "message": "Add timetable" },
+  "eeArchiveHeading": {
+    "message": "Saved tests"
+  },
+  "eeArchiveToggle": {
+    "message": "Save tests for review"
+  },
+  "eeArchiveToggleDesc": {
+    "message": "Off by default. When enabled, automatically save opened eTest questions and your latest recorded answers in this browser profile."
+  },
+  "eeArchiveNotice": {
+    "message": "Only loaded questions are captured. Recorded answers are not proof of submission or an answer key. Each opening is saved separately."
+  },
+  "eeArchiveEmpty": {
+    "message": "No saved tests yet."
+  },
+  "eeArchiveChoose": {
+    "message": "Saved test"
+  },
+  "eeArchiveDelete": {
+    "message": "Delete test"
+  },
+  "eeArchiveDeleteAll": {
+    "message": "Delete all saved tests"
+  },
+  "eeArchiveQuestions": {
+    "message": "Captured questions"
+  },
+  "eeArchiveCaptured": {
+    "message": "$1 questions captured · Last recorded: $2"
+  },
+  "eeArchiveQuestion": {
+    "message": "Question $1"
+  },
+  "eeArchiveYourAnswer": {
+    "message": "Your recorded answer"
+  },
+  "eeArchiveNoAnswer": {
+    "message": "No answer recorded."
+  },
+  "eeArchiveUntitled": {
+    "message": "Captured test"
+  },
+  "eeArchiveVisualsOmitted": {
+    "message": "Some images or diagrams could not be saved. This question may be incomplete."
+  },
+  "eeArchiveEnabled": {
+    "message": "Recording enabled. Opened eTest questions will be saved locally."
+  },
+  "eeArchiveDisabled": {
+    "message": "Recording stopped. Saved tests are kept until you delete them."
+  },
+  "eeArchiveFull": {
+    "message": "Test storage is full (up to 50 tests, 300 questions per test, 3 MB total). New changes could not be saved. Delete saved tests to make room."
+  },
+  "eeArchiveUnsupported": {
+    "message": "Some test content is too large or unsupported and could not be saved. Previously saved answers are kept."
+  },
+  "eeArchiveStorageError": {
+    "message": "Could not read or save tests. Some recent answers may be missing. Try again after freeing browser storage."
+  },
+  "eeArchiveConfirmDelete": {
+    "message": "Delete this local test and its recorded answers? It will not be recorded again until you reopen it."
+  },
+  "eeArchiveConfirmDeleteAll": {
+    "message": "Delete all saved tests and answers, and turn recording off? This cannot be undone."
+  },
+  "eeArchiveReview": {
+    "message": "Review questions and answers"
+  }
 }

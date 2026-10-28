@@ -2,6 +2,18 @@
     box-sizing: border-box;
 }
 
+/* Saved eTests use the same compact controls and document layout as Settings. */
+#ee-test-archive-library { min-width: 0; width: 100%; }
+#ee-test-archive-select { width: 100%; min-height: 44px; margin: 8px 0 12px; }
+#ee-test-archive-questions { list-style: none; padding: 0; margin: 0; }
+#ee-test-archive-questions > li { padding: 14px 0; border-top: 1px solid var(--border-subtle); }
+#ee-test-archive-questions h4 { margin: 0 0 8px; }
+#ee-test-archive-questions p { max-width: none; white-space: pre-wrap; overflow-wrap: anywhere; }
+#ee-test-archive-questions img { display: block; max-width: 100%; height: auto; margin: 10px 0; }
+#ee-test-archive-status[data-error="true"] { color: var(--danger-color); }
+#ee-test-archive-review > summary { cursor: pointer; min-height: 44px; padding: 12px 0; font-weight: 600; }
+#ee-test-archive-review > summary:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 2px; }
+
 :root {
     /* Make native controls (date picker internals, calendar icon, spinners,
        scrollbars) match the theme — without this the date inputs render with the

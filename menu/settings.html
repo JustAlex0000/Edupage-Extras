@@ -983,6 +983,48 @@
             </div>
           </div>
 
+          <div class="setting-card" id="ee-test-archive-card">
+            <div class="setting-row">
+              <div>
+                <h3 data-i18n="eeArchiveToggle">Save tests for review</h3>
+                <p data-i18n="eeArchiveToggleDesc">Off by default. When enabled, automatically save opened eTest questions and your latest recorded answers in this browser profile.</p>
+              </div>
+              <label class="switch switch-compact" for="ee-test-archive-enabled">
+                <input type="checkbox" id="ee-test-archive-enabled">
+                <span class="switch-track" aria-hidden="true"></span>
+                <span class="sr-only" data-i18n="eeArchiveToggle">Save tests for review</span>
+              </label>
+            </div>
+            <div class="setting-row setting-row-stack">
+              <p class="setting-note" data-i18n="eeArchiveNotice">Only loaded questions are captured. Recorded answers are not proof of submission or an answer key. Each opening is saved separately. Nothing is sent to AI.</p>
+              <p id="ee-test-archive-status" role="status" aria-live="polite" class="setting-note"></p>
+              <p id="ee-test-archive-empty" class="setting-note" data-i18n="eeArchiveEmpty">No saved tests yet.</p>
+              <div id="ee-test-archive-library" hidden>
+                <label for="ee-test-archive-select" data-i18n="eeArchiveChoose">Saved test</label>
+                <select id="ee-test-archive-select"></select>
+                <div class="actions-row">
+                  <button type="button" class="secondary-button" id="ee-test-archive-delete" data-i18n="eeArchiveDelete">Delete test</button>
+                </div>
+                <p class="setting-note" id="ee-test-archive-meta"></p>
+                <details id="ee-test-archive-review">
+                  <summary data-i18n="eeArchiveReview">Review questions and answers</summary>
+                  <ol id="ee-test-archive-questions" aria-label="Captured questions" data-i18n-attr="aria-label:eeArchiveQuestions"></ol>
+                </details>
+              </div>
+              <div class="actions-row">
+                <button type="button" class="secondary-button" id="ee-test-archive-clear" data-i18n="eeArchiveDeleteAll" disabled>Delete all saved tests</button>
+              </div>
+            </div>
+          </div>
+          <dialog class="confirm-dialog" id="ee-test-archive-confirm" aria-labelledby="ee-test-archive-confirm-title">
+            <h2 id="ee-test-archive-confirm-title" data-i18n="eeArchiveDelete">Delete test</h2>
+            <p id="ee-test-archive-confirm-description"></p>
+            <div class="actions-row confirm-dialog-actions">
+              <button type="button" class="secondary-button" id="ee-test-archive-cancel" data-i18n="experimentalConfirmCancel">Cancel</button>
+              <button type="button" class="secondary-button confirm-dialog-confirm" id="ee-test-archive-confirm-delete" data-i18n="eeArchiveDelete">Delete test</button>
+            </div>
+          </dialog>
+
           <div class="section-heading">
             <h3 id="activity-heading" data-i18n="samHeading">Stay Active Mode</h3>
             <p data-i18n="samDesc">Controls how Edupage sees tab activity, focus, mouse movement, and clipboard actions. Changes apply live, but reloading open Edupage tabs gives the cleanest start.</p>
@@ -1266,5 +1308,6 @@
     <script src="../scripts/timetable-comparison-ui.js"></script>
     <script src="timetable-comparison-settings.js"></script>
     <script src="etest-image-export.js"></script>
+    <script src="etest-archive-settings.js"></script>
   </body>
 </html>

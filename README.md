@@ -93,6 +93,21 @@ EduPage, open a GitHub issue or report it on [Discord](https://discord.gg/eNZXHe
 
 ### Test results
 
+- **Saved tests (Experimental, off by default)** — Settings → Experimental →
+  eTest tools → Save tests for review automatically keeps opened eTest questions and the latest
+  answers recorded on this device, independently of Copy and AI. Review and
+  delete them in the same settings section. Turning recording off retains saved
+  tests; deleting all also turns recording off.
+  Only loaded questions are captured: unvisited questions may be missing, and
+  recorded answers do not confirm submission or correctness. Each opening or
+  player replacement is a separate capture. Readable raster images are copied
+  locally at reduced resolution; inaccessible images, SVGs, and canvases are
+  marked as omitted. The viewer never reloads original image URLs.
+  Storage is limited to 50 tests, 300 questions per test, and 3 MiB total. Full
+  storage or unsupported content leaves previous saves intact and shows a notice
+  in Experimental settings. Saves use the current browser profile, are not
+  synced, and remain until deleted or the extension is removed.
+
 - **Show My Test Answers (WIP, off by default)** — enable in Settings →
   Enhancements to open Answers / detailed results for your eTests
   when EduPage has already loaded your result but hides the question view,
@@ -222,6 +237,10 @@ The extension does not request access to all websites.
   question text and any responses already chosen in that question.
 - No Edupage credentials are collected.
 - Settings are stored locally.
+- Saved tests contain question text, recorded answers, locally copied raster
+  images when readable, the school origin, and capture timestamps. They stay in
+  this browser profile and are excluded from diagnostics. Saving does not call
+  AI providers, navigate questions, fetch hidden answers, or submit tests.
 - Structured attendance and timetable data used by enhancements is cached
   locally.
 - Grade enhancements are generated from data already present in the currently

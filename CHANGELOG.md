@@ -6,6 +6,9 @@ log — this file starts at the Firefox-compatibility update.
 
 ## Unreleased
 
+- Added default-off Saved tests under Experimental → eTest tools, with local
+  question and recorded-answer review, capture titles, and deletion controls.
+
 - Added a language selector at the top of Appearance: Browser language, Slovak,
   Czech and English. The saved choice applies to Settings, the popup and
   extension labels on EduPage, using the existing bundled translations.

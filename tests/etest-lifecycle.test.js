@@ -6,7 +6,7 @@ const vm = require("node:vm");
 const source = fs.readFileSync(require.resolve("../scripts/lib/ee-common.js"), "utf8") + "\n" +
   fs.readFileSync(require.resolve("../scripts/etest-enhancer.js"), "utf8");
 
-function page({ enabled = true, copy = false, stale = false, pathname = "/user/" } = {}) {
+function page({ enabled = true, copy = false, archive = false, stale = false, pathname = "/user/" } = {}) {
   const buttons = [];
   let storageListener;
   let observer;
@@ -14,7 +14,18 @@ function page({ enabled = true, copy = false, stale = false, pathname = "/user/"
   let reads = 0;
   const timers = new Map();
   const listeners = [];
-  const content = { dataset: stale ? { eeAiRequestPending: "true" } : {}, querySelectorAll: () => [] };
+  const handlers = {};
+  const recorded = [];
+  let testTitle = "";
+  const field = { nodeType: 1, tagName: "TEXTAREA", value: "", childNodes: [], classList: { contains: () => false }, closest: () => content };
+  const content = { nodeType: 1, tagName: "DIV", classList: { contains: () => false },
+    dataset: stale ? { eeAiRequestPending: "true" } : {},
+    childNodes: [{ nodeType: 3, nodeValue: "Explain your choice." }, field],
+    getAttribute: () => "synthetic-question",
+    querySelector: () => null,
+    querySelectorAll: selector => selector === "input, textarea, select" ? [field] : [] };
+  const root = { querySelector: selector => selector === ".etest-player-title-name" ? { textContent: testTitle } : null,
+    querySelectorAll: () => [content] };
   const actions = {
     querySelector(selector) { return buttons.find(b => b.className.includes(selector.slice(1))) || null; },
     querySelectorAll(selector) { return buttons.filter(b => b.className.includes(selector.slice(1))); },
@@ -27,7 +38,7 @@ function page({ enabled = true, copy = false, stale = false, pathname = "/user/"
     head: { appendChild: node => nodes.push(node) },
     documentElement: {},
     getElementById: id => nodes.find(node => node.id === id),
-    querySelector: () => null,
+    querySelector: selector => archive && selector === ".etest-player" ? root : null,
     querySelectorAll(selector) {
       if (selector === ".etest-question-playactions") return [actions];
       if (selector === ".etest-question-content") return [content];
@@ -37,11 +48,12 @@ function page({ enabled = true, copy = false, stale = false, pathname = "/user/"
       return { className: "", setAttribute() {}, appendChild() {}, addEventListener() {},
         remove() { const i = buttons.indexOf(this); if (i >= 0) buttons.splice(i, 1); } };
     },
-    addEventListener(name) { listeners.push(name); },
+    addEventListener(name, fn) { listeners.push(name); (handlers[name] ||= []).push(fn); },
   };
   const window = { location: { pathname, search: "" }, addEventListener() {} }; window.top = window;
   const context = {
     window, document,
+    crypto: require("node:crypto").webcrypto,
     setTimeout(fn) { const id = timers.size + 1; timers.set(id, fn); return id; },
     clearTimeout(id) { timers.delete(id); },
     MutationObserver: class {
@@ -50,9 +62,12 @@ function page({ enabled = true, copy = false, stale = false, pathname = "/user/"
       disconnect() { observerCount--; }
     },
     chrome: {
-      storage: { local: { get(_keys, cb) { reads++; cb({ eeAiQuestionHelperEnabled: enabled, eeEtestCopyEnabled: copy }); } },
+      storage: { local: { get(_keys, cb) { reads++; cb({ eeAiQuestionHelperEnabled: enabled, eeEtestCopyEnabled: copy, eeTestArchiveEnabled: archive }); }, set() {} },
         onChanged: { addListener(fn) { storageListener = fn; } } },
-      runtime: { onMessage: { addListener() {} }, sendMessage() { throw Error("Unexpected automatic provider request"); } },
+      runtime: { onMessage: { addListener() {} }, sendMessage(message, cb) {
+        if (message.type !== "ee-test-archive-save") throw Error("Unexpected automatic provider request");
+        recorded.push(JSON.parse(JSON.stringify(message.snapshot))); cb({ ok: true, saved: true });
+      } },
       i18n: { getMessage: () => "" },
     },
   };
@@ -62,14 +77,20 @@ function page({ enabled = true, copy = false, stale = false, pathname = "/user/"
     }
   }
   vm.runInNewContext(source, context);
-  return { buttons, content, listeners, get reads() { return reads; }, get observerCount() { return observerCount; },
+  function flush() {
+    for (let i = 0; timers.size && i < 8; i++) { const jobs = [...timers.values()]; timers.clear(); jobs.forEach(fn => fn()); }
+  }
+  return { buttons, content, listeners, recorded, get reads() { return reads; }, get observerCount() { return observerCount; },
     navigate(path) {
       window.location.pathname = path;
       observer?.fn();
-      const jobs = [...timers.values()]; timers.clear(); jobs.forEach(fn => fn());
+      flush();
     },
     enable(value) { storageListener({ eeAiQuestionHelperEnabled: { newValue: value } }, "local"); },
     reinject() { vm.runInNewContext(source, context); },
+    answer(value) { field.value = value; (handlers.input || []).forEach(fn => fn({ target: field })); flush(); },
+    archiveToggle(value) { storageListener({ eeTestArchiveEnabled: { newValue: value } }, "local"); flush(); },
+    title(value) { testTitle = value; observer?.fn(); flush(); },
   };
 }
 
@@ -124,4 +145,44 @@ test("copy-only attachment works independently of AI", () => {
   const state = page({ copy: true, enabled: false, pathname: "/elearning/" });
   assert.equal(state.buttons.length, 1);
   assert.match(state.buttons[0].className, /ee-etest-question-copy-btn/);
+});
+
+test("archive alone records after smart navigation, updates cleared answers, and stops independently", () => {
+  const state = page({ enabled: false, archive: true });
+  assert.equal(state.recorded.length, 0);
+  state.navigate("/elearning/");
+  assert.equal(state.recorded.length, 1);
+  assert.equal(state.buttons.length, 0);
+  const id = state.recorded[0].id;
+  state.answer("Written answer");
+  assert.deepEqual(state.recorded.at(-1).questions[0].answers, ["Written answer"]);
+  assert.equal(state.recorded.at(-1).id, id);
+  state.answer("");
+  assert.deepEqual(state.recorded.at(-1).questions[0].answers, []);
+  const count = state.recorded.length;
+  state.archiveToggle(false);
+  assert.equal(state.observerCount, 0);
+  state.answer("Do not save");
+  assert.equal(state.recorded.length, count);
+  state.archiveToggle(true);
+  assert.notEqual(state.recorded.at(-1).id, id);
+  state.navigate("/user/");
+  const left = state.recorded.length;
+  state.answer("Outside test");
+  assert.equal(state.recorded.length, left);
+});
+
+test("a late native test title updates the same saved capture without changing answers", () => {
+  const state = page({ enabled: false, archive: true });
+  state.navigate("/elearning/");
+  const first = state.recorded[0];
+  assert.equal(first.title, "");
+  state.title("Practice fractions");
+  const named = state.recorded.at(-1);
+  assert.equal(state.recorded.length, 2);
+  assert.equal(named.title, "Practice fractions");
+  assert.equal(named.id, first.id);
+  assert.deepEqual(named.questions, first.questions);
+  state.title("");
+  assert.equal(state.recorded.length, 2);
 });
