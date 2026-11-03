@@ -219,6 +219,8 @@ Edupage Extras requests:
   and lets the settings UI find and reload open Edupage tabs (no separate
   `tabs` permission is requested).
 - `https://test.nop.wtf/*` host access - runs the experimental activity shields on the testing site and lets settings reload its tabs.
+- `https://analytics.kryptosss.xyz/*` host access - sends usage analytics to the
+  self-hosted Umami server when analytics are enabled.
 - `https://raw.githubusercontent.com/JustAlex0000/Edupage-Extras/*` host access -
   reads the public project manifest for update checks.
 - Optional access to `localhost`, `127.0.0.1`, `integrate.api.nvidia.com`, or
@@ -229,9 +231,13 @@ The extension does not request access to all websites.
 
 ## Privacy
 
-- No backend server.
-- No analytics.
-- External requests are limited to the optional public GitHub update check and
+- Usage analytics send a fixed extension-use pageview on EduPage page loads and
+  events when Stay Active Mode is enabled or disabled or its test page is opened
+  to the self-hosted Umami server. Settings → Privacy can turn it off. Firefox
+  also requires its optional technical and interaction data permission. The
+  events contain no EduPage URLs, school names, page content, or account details;
+  the server receives the request IP address and browser user agent.
+- Other external requests include the optional public GitHub update check and
   user-triggered Test Question Helper requests. Ollama and LM Studio stay on
   the local computer; OpenAI, Gemini, NVIDIA, and OpenRouter receive the current
   question text and any responses already chosen in that question.
@@ -265,6 +271,16 @@ loading it unpacked in Chrome/Edge — that still works directly from source.
 
 See the [architecture guide](ARCHITECTURE.md) and [contributor workflow](CONTRIBUTING.md)
 for development details.
+
+### Configure Umami
+
+The HTTPS origin and website ID are configured in `scripts/background.js`.
+If the server address changes, update `UMAMI_ORIGIN` and its corresponding
+host permission in `manifest.json`. The extension sends a fixed event to `/api/send`
+without credentials or a referrer. Test the integration and both browser consent
+paths against the configured server before release. Update the store listing,
+privacy policy, and in-product disclosure to reflect the actual data practices
+before enabling collection for users.
 
 Recommended checks before publishing:
 

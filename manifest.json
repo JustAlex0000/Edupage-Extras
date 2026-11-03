@@ -15,7 +15,8 @@
       "id": "edupage-extras@alexosavrua.github.io",
       "strict_min_version": "142.0",
       "data_collection_permissions": {
-        "required": ["none"]
+        "required": ["none"],
+        "optional": ["technicalAndInteraction"]
       }
     }
   },
@@ -30,6 +31,7 @@
   ],
   "host_permissions": [
     "https://test.nop.wtf/*",
+    "https://analytics.kryptosss.xyz/*",
     "https://*.edupage.org/*",
     "https://raw.githubusercontent.com/JustAlex0000/Edupage-Extras/*"
   ],

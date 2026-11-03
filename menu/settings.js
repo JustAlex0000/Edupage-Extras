@@ -55,6 +55,8 @@ const rozvrhSubstitutionColorInput = document.getElementById("RozvrhSubstitution
 const customRozvrhRoomChangeInput = document.getElementById("CustomRozvrhRoomChange");
 const customRozvrhSubstitutionInput = document.getElementById("CustomRozvrhSubstitution");
 const updateReminderToggle = document.getElementById("UpdateReminderCheckbox");
+const analyticsToggle = document.getElementById("AnalyticsCheckbox");
+const analyticsPermissionStatus = document.getElementById("AnalyticsPermissionStatus");
 const checkUpdatesButton = document.getElementById("CheckUpdatesButton");
 const openRepositoryButton = document.getElementById("OpenRepositoryButton");
 const updateStatusText = document.getElementById("UpdateStatusText");
@@ -146,6 +148,13 @@ const GRADES_ATTENDANCE_CACHE_KEY = "eeGradesAttendanceStatsCache";
 const TIMETABLE_SYNC_CACHE_KEY = "eeTimetableSyncCache";
 const UPDATE_STATUS_KEY = "eeUpdateStatus";
 const UPDATE_REMINDER_ENABLED_KEY = "eeUpdateReminderEnabled";
+const ANALYTICS_ENABLED_KEY = "eeAnalyticsEnabled";
+let analyticsPreference = true;
+let analyticsPermissionSupported = false;
+let analyticsPermissionGranted = true;
+let analyticsPermissionAvailable = true;
+let analyticsSettingsLoaded = false;
+let analyticsPermissionLoaded = false;
 const THEME_TOGGLE_COMMAND = "toggle-theme-mode";
 const REPO_URL = "https://github.com/JustAlex0000/Edupage-Extras";
 const ACTIVITY_SHIELD_COMMAND = "toggle-stay-active-mode";
@@ -649,6 +658,7 @@ chrome.storage.local.get(
 		HALFYEAR_END_KEY,
 		UPDATE_STATUS_KEY,
 		UPDATE_REMINDER_ENABLED_KEY,
+		ANALYTICS_ENABLED_KEY,
 	],
 	(result) => {
 		const enabled = result[STORAGE_KEY] === true;
@@ -679,6 +689,9 @@ chrome.storage.local.get(
 		halfyearStartInput.value = normalizeDateInput(result[HALFYEAR_START_KEY]);
 		halfyearEndInput.value = normalizeDateInput(result[HALFYEAR_END_KEY]);
 		updateReminderToggle.checked = result[UPDATE_REMINDER_ENABLED_KEY] !== false;
+		analyticsPreference = result[ANALYTICS_ENABLED_KEY] !== false;
+		analyticsSettingsLoaded = true;
+		renderAnalyticsToggle();
 		syncCustomThemeInputs(customTheme);
 		customThemeImport.value = customThemeExportText(customTheme);
 		applySettingsTheme(theme, enabled, customTheme);
@@ -892,6 +905,79 @@ clearCachedSchoolDataButton?.addEventListener("click", () => {
 updateReminderToggle.addEventListener("change", () => {
 	chrome.storage.local.set({ [UPDATE_REMINDER_ENABLED_KEY]: updateReminderToggle.checked });
 });
+
+function renderAnalyticsToggle() {
+	analyticsToggle.checked = analyticsPreference && analyticsPermissionGranted;
+	if (analyticsSettingsLoaded && analyticsPermissionLoaded) analyticsToggle.disabled = !analyticsPermissionAvailable;
+}
+
+async function initializeAnalyticsPermission() {
+	if (window.eeI18n?.isFirefox) {
+		try {
+			if (!globalThis.browser?.permissions?.getAll || !globalThis.browser?.permissions?.request) throw new Error("Permission API unavailable");
+			const permissions = await browser.permissions.getAll();
+			analyticsPermissionSupported = Array.isArray(permissions.data_collection);
+			if (!analyticsPermissionSupported) throw new Error("Data collection permission unavailable");
+			analyticsPermissionGranted = permissions.data_collection.includes("technicalAndInteraction");
+		} catch (_) {
+			analyticsPermissionGranted = false;
+			analyticsPermissionAvailable = false;
+			analyticsPermissionStatus.textContent = t("analyticsPermissionUnavailable");
+		}
+	}
+	analyticsPermissionLoaded = true;
+	renderAnalyticsToggle();
+}
+
+analyticsToggle.addEventListener("change", () => {
+	if (!analyticsToggle.checked) {
+		analyticsPreference = false;
+		analyticsPermissionStatus.textContent = "";
+		chrome.storage.local.set({ [ANALYTICS_ENABLED_KEY]: false });
+		return;
+	}
+	if (analyticsPermissionSupported && !analyticsPermissionGranted) {
+		analyticsToggle.disabled = true;
+		let request;
+		try {
+			request = browser.permissions.request({ data_collection: ["technicalAndInteraction"] });
+		} catch (_) {
+			request = Promise.resolve(false);
+		}
+		Promise.resolve(request).catch(() => false).then((granted) => {
+			analyticsPermissionGranted = granted === true;
+			analyticsPreference = analyticsPermissionGranted;
+			analyticsPermissionStatus.textContent = granted ? "" : t("analyticsPermissionDenied");
+			chrome.storage.local.set({ [ANALYTICS_ENABLED_KEY]: analyticsPreference });
+			renderAnalyticsToggle();
+			analyticsToggle.disabled = false;
+		});
+		return;
+	}
+	analyticsPreference = true;
+	analyticsPermissionStatus.textContent = "";
+	chrome.storage.local.set({ [ANALYTICS_ENABLED_KEY]: true });
+});
+
+if (window.eeI18n?.isFirefox && globalThis.browser?.permissions?.onRemoved) {
+	browser.permissions.onRemoved.addListener((permissions) => {
+		if (!permissions.data_collection?.includes("technicalAndInteraction")) return;
+		analyticsPermissionGranted = false;
+		analyticsPreference = false;
+		analyticsPermissionStatus.textContent = t("analyticsPermissionDenied");
+		chrome.storage.local.set({ [ANALYTICS_ENABLED_KEY]: false });
+		renderAnalyticsToggle();
+	});
+}
+if (window.eeI18n?.isFirefox && globalThis.browser?.permissions?.onAdded) {
+	browser.permissions.onAdded.addListener((permissions) => {
+		if (!permissions.data_collection?.includes("technicalAndInteraction")) return;
+		analyticsPermissionGranted = true;
+		analyticsPermissionStatus.textContent = "";
+		renderAnalyticsToggle();
+	});
+}
+initializeAnalyticsPermission();
 
 checkUpdatesButton.addEventListener("click", checkForUpdates);
 
@@ -1252,6 +1338,14 @@ activityShieldSettings.forEach(([elementId, key]) => {
 			setExperimentalStatus(t("savedStatus"));
 		});
 	});
+});
+
+document.getElementById("ee-test-shields")?.addEventListener("click", () => {
+	try {
+		chrome.runtime.sendMessage({ type: "ee-analytics-feature", name: "stay_active_test_opened" }, () => {
+			void chrome.runtime.lastError;
+		});
+	} catch (_) {}
 });
 
 if (resetActivityShieldButton) {
@@ -1673,6 +1767,10 @@ chrome.storage.onChanged.addListener((changes, area) => {
 	if (area !== "local") return;
 	if (changes[UPDATE_STATUS_KEY]) {
 		renderUpdateStatus(changes[UPDATE_STATUS_KEY].newValue);
+	}
+	if (changes[ANALYTICS_ENABLED_KEY]) {
+		analyticsPreference = changes[ANALYTICS_ENABLED_KEY].newValue !== false;
+		renderAnalyticsToggle();
 	}
 });
 
