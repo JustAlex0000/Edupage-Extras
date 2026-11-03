@@ -4,10 +4,13 @@ const path = require("node:path");
 const vm = require("node:vm");
 const { test } = require("node:test");
 
-function loadBackgroundInternals(settings = {}, overrides = {}) {
+function loadBackgroundInternals(settings = {}, overrides = {}, options = {}) {
   const scriptPath = path.join(__dirname, "..", "scripts", "background.js");
-  const source = fs.readFileSync(scriptPath, "utf8");
-
+  let source = fs.readFileSync(scriptPath, "utf8");
+  if (options.analyticsConfig) {
+    source = source.replace(/const UMAMI_ORIGIN = "[^"]*";/, `const UMAMI_ORIGIN = ${JSON.stringify(options.analyticsConfig.origin)};`)
+      .replace(/const UMAMI_WEBSITE_ID = "[^"]*";/, `const UMAMI_WEBSITE_ID = ${JSON.stringify(options.analyticsConfig.websiteId)};`);
+  }
   const noop = () => {};
   const context = {
     console,
@@ -48,7 +51,7 @@ function loadBackgroundInternals(settings = {}, overrides = {}) {
             if (callback) callback();
           },
         },
-        onChanged: { addListener: noop },
+        onChanged: { addListener(listener) { options.storageListeners?.push(listener); } },
       },
       alarms: {
         clear(_name, callback) {
@@ -58,12 +61,16 @@ function loadBackgroundInternals(settings = {}, overrides = {}) {
         onAlarm: { addListener: noop },
       },
       runtime: {
+        id: "test-extension-id",
+        getURL(relativePath) {
+          return `chrome-extension://test-extension-id/${relativePath}`;
+        },
         getManifest() {
           return { version: "0.0.0" };
         },
         onInstalled: { addListener: noop },
         onStartup: { addListener: noop },
-        onMessage: { addListener: noop },
+        onMessage: { addListener(listener) { options.listeners?.push(listener); } },
       },
       commands: { onCommand: { addListener: noop } },
       notifications: {
@@ -877,4 +884,187 @@ test("diagnostics exclude saved tests and deletion markers", async () => {
   const summary = await buildSettingsSummary();
   assert.equal("eeTestArchive" in summary, false);
   assert.equal(summary.eeTestArchiveEnabled, true);
+});
+
+const analyticsOrigin = "https://analytics.example.test";
+const analyticsWebsiteId = "12345678-1234-1234-1234-123456789abc";
+
+test("analytics stays inactive without a valid HTTPS origin and website ID", async () => {
+  let requests = 0;
+  const { sendAnalyticsPageview } = loadBackgroundInternals({}, { fetch: async () => { requests++; } });
+  assert.equal(await sendAnalyticsPageview("", analyticsWebsiteId), false);
+  for (const origin of ["", "http://analytics.example.test", "https://user:pass@analytics.example.test", "https://analytics.example.test/path"]) {
+    assert.equal(await sendAnalyticsPageview(origin, analyticsWebsiteId), false);
+  }
+  assert.equal(await sendAnalyticsPageview(analyticsOrigin, "invalid"), false);
+  assert.equal(requests, 0);
+});
+
+test("configured analytics sends to the configured Umami website", async () => {
+  let request;
+  const { sendAnalyticsPageview } = loadBackgroundInternals({}, {
+    fetch: async (url, options) => { request = { url, options }; return { ok: true }; },
+  });
+  assert.equal(await sendAnalyticsPageview(), true);
+  assert.equal(request.url, "https://analytics.kryptosss.xyz/api/send");
+  assert.equal(JSON.parse(request.options.body).payload.website, "9b04c428-8c61-49db-906e-b046a038c0b4");
+});
+
+test("analytics sends only a synthetic pageview with credentials and referrer omitted", async () => {
+  let request;
+  const { sendAnalyticsPageview } = loadBackgroundInternals({}, {
+    fetch: async (url, options) => { request = { url, options }; return { ok: true }; },
+  });
+  assert.equal(await sendAnalyticsPageview(analyticsOrigin, analyticsWebsiteId), true);
+  assert.equal(request.url, `${analyticsOrigin}/api/send`);
+  assert.equal(request.options.method, "POST");
+  assert.equal(request.options.credentials, "omit");
+  assert.equal(request.options.referrerPolicy, "no-referrer");
+  assert.deepEqual(JSON.parse(request.options.body), {
+    type: "event",
+    payload: { website: analyticsWebsiteId, hostname: "edupage-extras.analytics", url: "/extension" },
+  });
+});
+
+test("analytics opt-out prevents requests", async () => {
+  let requests = 0;
+  const { sendAnalyticsPageview } = loadBackgroundInternals({ eeAnalyticsEnabled: false }, {
+    fetch: async () => { requests++; return { ok: true }; },
+  });
+  assert.equal(await sendAnalyticsPageview(analyticsOrigin, analyticsWebsiteId), false);
+  assert.equal(requests, 0);
+});
+
+test("Firefox requires the browser's technical and interaction data permission", async () => {
+  let requests = 0;
+  const overrides = {
+    navigator: { userAgent: "Mozilla/5.0 Firefox/142.0" },
+    browser: { permissions: { getAll: async () => ({ data_collection: [] }) } },
+    fetch: async () => { requests++; return { ok: true }; },
+  };
+  assert.equal(await loadBackgroundInternals({}, overrides).sendAnalyticsPageview(analyticsOrigin, analyticsWebsiteId), false);
+  overrides.browser.permissions.getAll = async () => ({ data_collection: ["technicalAndInteraction"] });
+  assert.equal(await loadBackgroundInternals({}, overrides).sendAnalyticsPageview(analyticsOrigin, analyticsWebsiteId), true);
+  assert.equal(requests, 1);
+  overrides.browser.permissions.getAll = async () => { throw new Error("unavailable"); };
+  assert.equal(await loadBackgroundInternals({}, overrides).sendAnalyticsPageview(analyticsOrigin, analyticsWebsiteId), false);
+  assert.equal(requests, 1);
+});
+
+test("analytics reads the opt-out after Firefox's asynchronous permission check", async () => {
+  let resolvePermission;
+  let requests = 0;
+  const settings = {};
+  const { sendAnalyticsPageview } = loadBackgroundInternals(settings, {
+    navigator: { userAgent: "Mozilla/5.0 Firefox/142.0" },
+    browser: { permissions: { getAll: () => new Promise((resolve) => { resolvePermission = resolve; }) } },
+    fetch: async () => { requests++; },
+  });
+  const pending = sendAnalyticsPageview(analyticsOrigin, analyticsWebsiteId);
+  settings.eeAnalyticsEnabled = false;
+  resolvePermission({ data_collection: ["technicalAndInteraction"] });
+  assert.equal(await pending, false);
+  assert.equal(requests, 0);
+});
+
+test("analytics ignores network and HTTP failures", async () => {
+  const failed = loadBackgroundInternals({}, { fetch: async () => { throw new Error("offline"); } });
+  assert.equal(await failed.sendAnalyticsPageview(analyticsOrigin, analyticsWebsiteId), false);
+  const rejected = loadBackgroundInternals({}, { fetch: async () => ({ ok: false }) });
+  assert.equal(await rejected.sendAnalyticsPageview(analyticsOrigin, analyticsWebsiteId), false);
+});
+
+test("only top-frame EduPage page-context events trigger analytics", async () => {
+  const listeners = [];
+  const requests = [];
+  loadBackgroundInternals({}, {
+    fetch: async (url, options) => { requests.push({ url, options }); return { ok: true }; },
+  }, { listeners, analyticsConfig: { origin: analyticsOrigin, websiteId: analyticsWebsiteId } });
+  const listener = listeners.at(-1);
+  const message = { type: "ee-edupage-page-context", origin: "https://school.edupage.org", href: "https://school.edupage.org/private?secret=1" };
+  const dispatch = (sender) => new Promise((resolve) => { listener(message, sender, resolve); });
+  await dispatch({ frameId: 2, url: message.href });
+  await dispatch({ frameId: 0, url: "https://example.test/" });
+  await dispatch(undefined);
+  assert.equal(requests.length, 0);
+  await dispatch({ frameId: 0, url: message.href });
+  assert.equal(requests.length, 1);
+  assert.deepEqual(JSON.parse(requests[0].options.body), {
+    type: "event",
+    payload: { website: analyticsWebsiteId, hostname: "edupage-extras.analytics", url: "/extension" },
+  });
+});
+
+test("feature analytics rejects names outside the allowlist", async () => {
+  let requests = 0;
+  const { sendAnalytics } = loadBackgroundInternals({}, {
+    fetch: async () => { requests++; return { ok: true }; },
+  });
+  assert.equal(await sendAnalytics("example_feature", analyticsOrigin, analyticsWebsiteId), false);
+  assert.equal(requests, 0);
+});
+
+test("test-page event accepts messages only from the extension settings page", async () => {
+  const listeners = [];
+  const requests = [];
+  loadBackgroundInternals({}, {
+    fetch: async (url, options) => { requests.push({ url, options }); return { ok: true }; },
+  }, { listeners, analyticsConfig: { origin: analyticsOrigin, websiteId: analyticsWebsiteId } });
+  const listener = listeners.at(-1);
+  const message = { type: "ee-analytics-feature", name: "stay_active_test_opened", data: { secret: "private" }, url: "https://school.edupage.org/private" };
+  const dispatch = (value, sender) => new Promise((resolve) => { listener(value, sender, resolve); });
+  const id = "test-extension-id";
+  await dispatch(message, { id, frameId: 2, url: "https://school.edupage.org/private?student=1" });
+  await dispatch(message, { id, url: "chrome-extension://test-extension-id/menu/settings.html?tab=privacy" });
+  await dispatch(message, { id, url: "https://example.test/" });
+  await dispatch(message, { id, url: "https://school.edupage.org.evil.test/" });
+  await dispatch(message, { id: "other-extension", url: "https://school.edupage.org/" });
+  await dispatch(message, { id, url: "chrome-extension://test-extension-id.evil/menu/settings.html" });
+  await dispatch(message, { id, url: "chrome-extension://test-extension-id/menu/menu.html" });
+  await dispatch({ ...message, name: "stay_active_enabled" }, { id, url: "chrome-extension://test-extension-id/menu/settings.html" });
+  await dispatch({ ...message, name: "unlisted" }, { id, url: "https://school.edupage.org/" });
+  assert.equal(requests.length, 1);
+  for (const request of requests) {
+    assert.equal(request.url, `${analyticsOrigin}/api/send`);
+    assert.equal(request.options.credentials, "omit");
+    assert.equal(request.options.referrerPolicy, "no-referrer");
+    assert.deepEqual(JSON.parse(request.options.body), {
+      type: "event",
+      payload: { website: analyticsWebsiteId, hostname: "edupage-extras.analytics", url: "/extension", name: "stay_active_test_opened" },
+    });
+  }
+});
+
+test("feature analytics respects opt-out and Firefox data permission", async () => {
+  let requests = 0;
+  const fetch = async () => { requests++; return { ok: true }; };
+  const optedOut = loadBackgroundInternals({ eeAnalyticsEnabled: false }, { fetch });
+  assert.equal(await optedOut.sendAnalytics("stay_active_enabled", analyticsOrigin, analyticsWebsiteId), false);
+  const denied = loadBackgroundInternals({}, {
+    fetch,
+    navigator: { userAgent: "Firefox/142.0" },
+    browser: { permissions: { getAll: async () => ({ data_collection: [] }) } },
+  });
+  assert.equal(await denied.sendAnalytics("stay_active_enabled", analyticsOrigin, analyticsWebsiteId), false);
+  assert.equal(requests, 0);
+});
+
+test("Stay Active transitions record only real enable and disable changes", async () => {
+  const storageListeners = [];
+  const events = [];
+  loadBackgroundInternals({}, {
+    fetch: async (_url, options) => { events.push(JSON.parse(options.body).payload.name); return { ok: true }; },
+  }, { storageListeners, analyticsConfig: { origin: analyticsOrigin, websiteId: analyticsWebsiteId } });
+  const onChanged = storageListeners.at(-1);
+  const change = (oldValue, newValue, area = "local") => onChanged({ eeActivityShieldEnabled: { oldValue, newValue } }, area);
+  change(undefined, false);
+  change(false, false);
+  change(true, true);
+  change(true, undefined);
+  change(false, true, "sync");
+  change(undefined, true);
+  change(true, false);
+  change(false, true);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(events, ["stay_active_enabled", "stay_active_disabled", "stay_active_enabled"]);
 });

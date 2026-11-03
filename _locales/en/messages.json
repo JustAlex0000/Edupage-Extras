@@ -313,6 +313,12 @@
   "reportDownloaded": { "message": "Report downloaded." },
   "reportIssueOpened": { "message": "Opened a new GitHub issue — attach the downloaded report or paste it in." },
 
+  "groupPrivacy": { "message": "Privacy" },
+  "analyticsTitle": { "message": "Usage analytics" },
+  "analyticsDesc": { "message": "Usage analytics send data to our self-hosted Umami server: pageviews when EduPage pages load, and events when Stay Active Mode is enabled, disabled, or its test page is opened. No EduPage page data is sent. The server receives your IP address and browser user agent. Firefox may also require browser permission." },
+  "analyticsPermissionDenied": { "message": "Firefox permission was not granted. Usage analytics is off." },
+  "analyticsPermissionUnavailable": { "message": "Could not check Firefox permission. Usage analytics is unavailable." },
+  "toggleAnalytics": { "message": "Toggle usage analytics" },
   "groupUpdates": { "message": "Updates" },
   "updateReminders": { "message": "Unpacked Update Reminders" },
   "updateRemindersDesc": { "message": "Check GitHub for newer versions." },

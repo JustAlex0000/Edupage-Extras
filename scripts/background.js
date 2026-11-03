@@ -9,6 +9,15 @@ if (typeof importScripts === "function") {
 // onClicked listener already handles a click on the notification body itself.
 const IS_FIREFOX = typeof navigator !== "undefined" && /\bFirefox\//.test(navigator.userAgent || "");
 
+const UMAMI_ORIGIN = "https://analytics.kryptosss.xyz";
+const UMAMI_WEBSITE_ID = "9b04c428-8c61-49db-906e-b046a038c0b4";
+const ANALYTICS_ENABLED_KEY = "eeAnalyticsEnabled";
+const ANALYTICS_FEATURE_EVENTS = new Set([
+  "stay_active_enabled",
+  "stay_active_disabled",
+  "stay_active_test_opened",
+]);
+
 const UPDATE_ALARM_NAME = "ee-update-check";
 const UPDATE_STATUS_KEY = "eeUpdateStatus";
 const UPDATE_REMINDER_ENABLED_KEY = "eeUpdateReminderEnabled";
@@ -87,6 +96,68 @@ function storageSet(values) {
   return new Promise((resolve) => {
     chrome.storage.local.set(values, resolve);
   });
+}
+
+function analyticsEndpoint(origin, websiteId) {
+  if (typeof origin !== "string" || typeof websiteId !== "string"
+      || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(websiteId)) return null;
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== "https:" || url.username || url.password || url.pathname !== "/" || url.search || url.hash) return null;
+    return `${url.origin}/api/send`;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function sendAnalytics(name, origin = UMAMI_ORIGIN, websiteId = UMAMI_WEBSITE_ID) {
+  if (name !== null && !ANALYTICS_FEATURE_EVENTS.has(name)) return false;
+  const endpoint = analyticsEndpoint(origin, websiteId);
+  if (!endpoint) return false;
+  try {
+    if (IS_FIREFOX) {
+      if (typeof browser === "undefined" || !browser.permissions?.getAll) return false;
+      const permissions = await browser.permissions.getAll();
+      if (!permissions?.data_collection?.includes("technicalAndInteraction")) return false;
+    }
+    const enabled = await new Promise((resolve) => {
+      chrome.storage.local.get([ANALYTICS_ENABLED_KEY], (values) => {
+        resolve(!chrome.runtime.lastError && values?.[ANALYTICS_ENABLED_KEY] !== false);
+      });
+    });
+    if (!enabled) return false;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    try {
+      const payload = { website: websiteId, hostname: "edupage-extras.analytics", url: "/extension" };
+      if (name !== null) payload.name = name;
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "omit",
+        referrerPolicy: "no-referrer",
+        signal: controller.signal,
+        body: JSON.stringify({
+          type: "event",
+          payload,
+        }),
+      });
+      return response.ok;
+    } finally {
+      clearTimeout(timeout);
+    }
+  } catch (_) {
+    return false;
+  }
+}
+
+function sendAnalyticsPageview(origin = UMAMI_ORIGIN, websiteId = UMAMI_WEBSITE_ID) {
+  return sendAnalytics(null, origin, websiteId);
+}
+
+function isAnalyticsSender(sender) {
+  if (!sender || sender.id !== chrome.runtime.id || typeof sender.url !== "string") return false;
+  return sender.url.split(/[?#]/, 1)[0] === chrome.runtime.getURL("menu/settings.html");
 }
 
 function normalizeAiText(value, maxLength) {
@@ -2168,6 +2239,10 @@ async function collectLiveEdupageWeek(config) {
 // silently no-opping after a refactor. Never set in the real extension.
 if (globalThis.__EE_TEST__) {
   globalThis.__eeTestExports = {
+    analyticsEndpoint,
+    sendAnalyticsPageview,
+    sendAnalytics,
+    isAnalyticsSender,
     parseDateOnly,
     toRfc3339,
     buildTemplateWeekMap,
@@ -2286,6 +2361,14 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
 
+  const activityShieldChange = changes[ACTIVITY_SHIELD_ENABLED_KEY];
+  if (activityShieldChange?.newValue === true
+      && (activityShieldChange.oldValue === false || activityShieldChange.oldValue === undefined)) {
+    void sendAnalytics("stay_active_enabled");
+  } else if (activityShieldChange?.oldValue === true && activityShieldChange.newValue === false) {
+    void sendAnalytics("stay_active_disabled");
+  }
+
   if (changes[AI_HELPER_ENABLED_KEY]?.newValue === true || changes.eeEtestCopyEnabled?.newValue === true || changes.eeTestArchiveEnabled?.newValue === true) {
     ensureOpenEtestHelpers().catch(() => {});
   }
@@ -2300,6 +2383,15 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === "ee-analytics-feature") {
+    if (!isAnalyticsSender(sender) || message.name !== "stay_active_test_opened") {
+      sendResponse({ ok: false });
+      return false;
+    }
+    sendAnalytics(message.name).then((ok) => sendResponse({ ok }));
+    return true;
+  }
+
   if (message?.type === "ee-check-update") {
     checkForUpdates({ notify: message.notify === true })
       .then((status) => sendResponse({ ok: true, status }))
@@ -2359,10 +2451,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message?.type === "ee-edupage-page-context") {
-    if (sender.frameId === 0 && typeof message.origin === "string" && message.origin.startsWith("https://")) {
-      storageSet({
-        [LAST_EDUPAGE_ORIGIN_KEY]: message.origin,
-      }).then(() => sendResponse({ ok: true }));
+    if (sender?.frameId === 0 && typeof message.origin === "string" && message.origin.startsWith("https://")) {
+      Promise.all([
+        storageSet({ [LAST_EDUPAGE_ORIGIN_KEY]: message.origin }),
+        typeof sender.url === "string" && /^https:\/\/[^/]+\.edupage\.org\//i.test(sender.url)
+          ? sendAnalyticsPageview()
+          : Promise.resolve(false),
+      ]).then(() => sendResponse({ ok: true }));
       return true;
     }
     sendResponse({ ok: true });

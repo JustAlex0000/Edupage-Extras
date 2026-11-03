@@ -313,6 +313,12 @@
   "reportDownloaded": { "message": "Report stiahnutý." },
   "reportIssueOpened": { "message": "Otvorené nové GitHub issue — priložte stiahnutý report alebo ho vložte." },
 
+  "groupPrivacy": { "message": "Súkromie" },
+  "analyticsTitle": { "message": "Analytika používania" },
+  "analyticsDesc": { "message": "Analytika používania posiela na náš vlastný server Umami zobrazenia pri načítaní stránok EduPage a udalosti pri zapnutí alebo vypnutí režimu Stay Active a otvorení jeho testovacej stránky. Údaje zo stránok EduPage sa neodosielajú. Server dostane vašu IP adresu a informácie o prehliadači (user agent). Firefox môže vyžadovať aj povolenie prehliadača." },
+  "analyticsPermissionDenied": { "message": "Povolenie Firefoxu nebolo udelené. Analytika používania je vypnutá." },
+  "analyticsPermissionUnavailable": { "message": "Povolenie Firefoxu sa nepodarilo overiť. Analytika používania nie je dostupná." },
+  "toggleAnalytics": { "message": "Zapnúť alebo vypnúť analytiku používania" },
   "groupUpdates": { "message": "Aktualizácie" },
   "updateReminders": { "message": "Aktualizácie ručne nainštalovanej verzie" },
   "updateRemindersDesc": { "message": "Kontroluje GitHub na novšie verzie, ak bolo rozšírenie nainštalované ručne." },
