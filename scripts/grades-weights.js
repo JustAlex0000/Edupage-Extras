@@ -14,6 +14,16 @@
     return value && typeof value === "object" ? Object.values(value) : [];
   }
 
+  function readSubjectName(row) {
+    const cell = row.querySelector(".fixedCell");
+    if (!cell) return GE.normalizeWhitespace(GE.attendance.readPrimaryRowSubjectText(row));
+    const label = (cell.querySelector("b") || cell).cloneNode(true);
+    // EduPage nests the teacher in a block inside the bold subject label.
+    label.querySelectorAll("div, small, .ee-subject-attendance").forEach((node) => node.remove());
+    label.querySelectorAll("br").forEach((node) => node.replaceWith("\n"));
+    return GE.normalizeWhitespace(label.textContent.split(/\r?\n/).find((line) => line.trim()) || "");
+  }
+
   function buildWeightDefinitions(blob) {
     const subjects = new Map();
     function add(entries, kind) {
@@ -112,8 +122,7 @@
     else waitForViewerData(table);
     const subjects = Array.from(table.querySelectorAll("tr.predmetRow"), (row) => ({
       id: String(row.dataset.predmetid || ""),
-      name: GE.normalizeWhitespace(row.querySelector(".fixedCell > b")?.textContent
-        || GE.attendance.readPrimaryRowSubjectText(row)),
+      name: readSubjectName(row),
       items: definitions.get(String(row.dataset.predmetid || "")),
     })).filter((subject) => subject.items?.length);
     if (!subjects.length) {

@@ -61,13 +61,32 @@ for (const [name, engine] of Object.entries({ chromium, firefox })) {
       __eeGrades.enhanceGradesTable();
     });
     assert.equal(await page.locator(".ee-grade-weights option").first().textContent(), "Synthetic subject");
+    // Some skins put the teacher inside the bold label itself.
+    await page.evaluate(() => {
+      const cell = document.querySelector(".fixedCell");
+      cell.querySelector("b").append(cell.querySelector("br"), cell.querySelector("small"));
+      __eeGrades.enhanceGradesTable();
+    });
+    assert.equal(await page.locator(".ee-grade-weights option").first().textContent(), "Synthetic subject");
+    assert.equal(await page.locator(".fixedCell small").textContent(), "Synthetic teacher");
+    // Native EduPage markup: <b>Subject<div>Teacher</div></b>.
+    await page.evaluate(() => {
+      const teacher = document.querySelector(".fixedCell small");
+      const block = document.createElement("div");
+      block.textContent = teacher.textContent;
+      teacher.replaceWith(block);
+      document.querySelector(".fixedCell br").remove();
+      __eeGrades.enhanceGradesTable();
+    });
+    assert.equal(await page.locator(".ee-grade-weights option").first().textContent(), "Synthetic subject");
+    assert.equal(await page.locator(".fixedCell b div").textContent(), "Synthetic teacher");
     await page.evaluate(() => {
       window.originalDisclosure = document.querySelector(".ee-grade-weights");
       __eeGrades.enhanceGradesTable();
       __eeGrades.enhanceGradesTable();
     });
     assert.equal(await page.evaluate(() => originalDisclosure === document.querySelector(".ee-grade-weights") && originalDisclosure.open), true);
-    assert.equal(await page.locator(".fixedCell b").textContent(), "Synthetic subject");
+    assert.equal(await page.locator(".fixedCell b").textContent(), "Synthetic subjectSynthetic teacher");
     assert.equal(await page.locator("#znamkyTableHeaderBg").innerHTML(), "Native header");
     await page.locator(".ee-grade-weights select").press("Escape");
     assert.equal(await page.locator(".ee-grade-weights").getAttribute("open"), null);

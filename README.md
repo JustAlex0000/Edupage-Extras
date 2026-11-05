@@ -74,7 +74,8 @@ EduPage, open a GitHub issue or report it on [Discord](https://discord.gg/eNZXHe
 
 - **Category and event weights** — enable in Settings → Grades to show an
   compact **Weights** panel in the existing Grades toolbar. Choose a subject
-  to see its definitions, including entries with no grades yet. The panel
+  to see its definitions, including entries with no grades yet. Subject options
+  show the subject name without the teacher label. The panel
   closes with Escape or a click outside and leaves grade rows unchanged.
   Weights come from the currently loaded viewer and use EduPage's
   display units (server weight divided by 20). Off by default; nothing is saved
