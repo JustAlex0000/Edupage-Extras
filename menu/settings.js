@@ -74,6 +74,7 @@ const autoLoginPreferredAccountInput = document.getElementById("AutoLoginPreferr
 const ucivoExportToggle = document.getElementById("UcivoExportCheckbox");
 const gradesSortFilterToggle = document.getElementById("GradesSortFilterCheckbox");
 const gradesExportToggle = document.getElementById("GradesExportCheckbox");
+const gradesWeightsToggle = document.getElementById("ee-grades-weights-checkbox");
 const timetableExportToggle = document.getElementById("TimetableExportCheckbox");
 const timetableExportContent = document.getElementById("TimetableExportContent");
 const etestCopyToggle = document.getElementById("EtestCopyCheckbox");
@@ -165,6 +166,7 @@ const AUTOLOGIN_PREFERRED_ACCOUNT_KEY = "eeAutoLoginPreferredAccount";
 const UCIVO_EXPORT_KEY = "eeUcivoExportEnabled";
 const GRADES_SORT_FILTER_KEY = "eeGradesSortFilterEnabled";
 const GRADES_EXPORT_KEY = "eeGradesExportEnabled";
+const GRADES_WEIGHTS_KEY = "eeGradesWeightsEnabled";
 const TIMETABLE_EXPORT_KEY = "eeTimetableExportEnabled";
 const ETEST_COPY_KEY = "eeEtestCopyEnabled";
 const ETEST_RESULTS_KEY = "eeEtestResultsEnabled";
@@ -1452,6 +1454,15 @@ if (gradesExportToggle) {
 	});
 	gradesExportToggle.addEventListener("change", () => {
 		chrome.storage.local.set({ [GRADES_EXPORT_KEY]: gradesExportToggle.checked });
+	});
+}
+
+if (gradesWeightsToggle) {
+	chrome.storage.local.get([GRADES_WEIGHTS_KEY], (result) => {
+		gradesWeightsToggle.checked = result[GRADES_WEIGHTS_KEY] === true;
+	});
+	gradesWeightsToggle.addEventListener("change", () => {
+		chrome.storage.local.set({ [GRADES_WEIGHTS_KEY]: gradesWeightsToggle.checked });
 	});
 }
 

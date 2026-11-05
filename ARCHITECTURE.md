@@ -205,6 +205,18 @@ Grades sorting/filtering works on the real subject table and moves a subject
 with its following category rows. Never modify `#znamkyTableHeaderBg` or
 EduPage's floating header clone: EduPage keeps them in sync itself.
 
+`grades-weights.js` adds an opt-in `eeGradesWeightsEnabled` panel to the existing
+Grades toolbar, with a subject selector and aligned name/weight pairs. Its
+Escape/outside-click listeners are removed when disabled or rebound; table
+replacement preserves the selected subject and open state. Grade rows stay
+unchanged. It finds `.znamkyStudentViewer(` initializers by
+method name and resolves their dynamic target to the current table. Only
+`kategorie` and `vsetkyUdalosti.edupage` definitions are projected by `PredmetID`,
+without joining to grades, so empty definitions remain visible. `p_vaha` is
+divided by 20. Definitions stay in memory and DOM; disabling removes the UI.
+The shared body observer handles table replacements; if definitions are still
+missing, a head-only observer waits for an initializer for at most ten seconds.
+
 Attendance cache version 16 includes student identity in its cache key. Every load
 verifies the current sole owner from a fresh attendance response before considering
 memory or storage; a completed full read verifies the owner again. Ambiguous owners

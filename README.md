@@ -72,6 +72,14 @@ EduPage, open a GitHub issue or report it on [Discord](https://discord.gg/eNZXHe
 
 ### Grades
 
+- **Category and event weights** — enable in Settings → Grades to show an
+  compact **Weights** panel in the existing Grades toolbar. Choose a subject
+  to see its definitions, including entries with no grades yet. The panel
+  closes with Escape or a click outside and leaves grade rows unchanged.
+  Weights come from the currently loaded viewer and use EduPage's
+  display units (server weight divided by 20). Off by default; nothing is saved
+  or requested from another server.
+
 - **Color-coded average bars** for subject averages.
 - **Subject sorting and filtering** Search by subject, name, grade count, or average, and hide subjects without grades.
 - **Virtual Grade Calculator** — add grades to any subject and

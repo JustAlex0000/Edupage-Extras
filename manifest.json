@@ -96,6 +96,7 @@
         "scripts/grades-attendance.js",
         "scripts/grades-sort-filter.js",
         "scripts/grades-export.js",
+        "scripts/grades-weights.js",
         "scripts/grades-bootstrap.js",
         "scripts/attendance-enhancer.js",
         "scripts/ucivo-enhancer.js",

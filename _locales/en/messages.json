@@ -1,4 +1,12 @@
 {
+  "eeGradeWeightsTitle": { "message": "Category and Event Weights" },
+  "eeGradeWeightsDesc": { "message": "Add a Weights button to the Grades toolbar. Choose a subject to see its category and event weights, including entries without grades." },
+  "eeGradeWeightsButton": { "message": "Weights" },
+  "eeGradeWeightsSubject": { "message": "Subject" },
+  "eeGradeWeightsToggle": { "message": "Toggle category and event weights" },
+  "eeGradeWeightsSummary": { "message": "Category and event weights" },
+  "eeGradeWeightsCategories": { "message": "Categories" },
+  "eeGradeWeightsEvents": { "message": "Events" },
   "languageLabel": { "message": "Language" },
   "languageDesc": { "message": "Choose the extension language. Reload open EduPage tabs to update all extension text there." },
   "languageAutomatic": { "message": "Browser language" },

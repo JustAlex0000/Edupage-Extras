@@ -1,4 +1,12 @@
 {
+  "eeGradeWeightsTitle": { "message": "Váhy kategorií a událostí" },
+  "eeGradeWeightsDesc": { "message": "Do lišty nad známkami přidá tlačítko Váhy. Vyber si předmět a prohlédni si váhy jeho kategorií a událostí, i když v nich ještě nemáš známku." },
+  "eeGradeWeightsButton": { "message": "Váhy" },
+  "eeGradeWeightsSubject": { "message": "Předmět" },
+  "eeGradeWeightsToggle": { "message": "Přepnout váhy kategorií a událostí" },
+  "eeGradeWeightsSummary": { "message": "Váhy kategorií a událostí" },
+  "eeGradeWeightsCategories": { "message": "Kategorie" },
+  "eeGradeWeightsEvents": { "message": "Události" },
   "languageLabel": { "message": "Jazyk" },
   "languageDesc": { "message": "Vyber jazyk rozšíření. Otevřené karty EduPage obnov, aby se přeložily všechny texty rozšíření." },
   "languageAutomatic": { "message": "Podle prohlížeče" },

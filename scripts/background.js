@@ -791,6 +791,7 @@ const DIAGNOSTICS_BOOLEAN_SETTINGS = new Set([
   "timetableHighlightsEnabled", "gradeBadgesEnabled", "gradesAttendanceStatsEnabled",
   "gradesAttendanceDebugEnabled", "attendancePercentagesEnabled", "eeAutoLoginEnabled",
   "eeUcivoExportEnabled", "eeGradesSortFilterEnabled", "eeGradesExportEnabled",
+  "eeGradesWeightsEnabled",
   "eeTimetableExportEnabled", "eeTimetableComparisonEnabled", "eeEtestAutoThemeOffEnabled",
   "eeEtestCopyEnabled", "eeTestArchiveEnabled", "eeEtestResultsEnabled", "eeEtestQuestionButtonsEnabled",
   "eeEtestWholeTestButtonEnabled", "eeEtestIncludeAnswers", "eeEtestIncludeImages",
