@@ -116,3 +116,15 @@ operations are not part of the validation workflow. The inherited npm-audit entr
 are retained and must not be hidden by an unsafe downgrade or an unreviewed
 cryptographic patch. None of these development dependencies ship in either browser
 archive. Recheck the advisory and upgrade when a patched release is available.
+
+## Licensing contributions
+
+New contributions are submitted under **AGPL-3.0-only**, the project's license
+in [LICENSE](LICENSE). Contributors retain their copyright; contributing does
+not assign ownership. Preserve the existing notices in [NOTICE](NOTICE).
+Do not import code under incompatible terms. Previously published MIT code
+retains its MIT permissions; this change does not revoke earlier grants.
+
+When distributing a build, provide its corresponding source under the applicable
+license terms, including local modifications and the build scripts. For official
+releases, link to the exact release tag or commit rather than a moving branch.

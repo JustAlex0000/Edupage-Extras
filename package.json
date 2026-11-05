@@ -1,7 +1,7 @@
 {
   "name": "edupage-extras",
   "private": true,
-  "version": "1.0.10",
+  "version": "1.0.11",
   "scripts": {
     "version": "node scripts-dev/sync-version.js && git add manifest.json",
     "sync-version": "node scripts-dev/sync-version.js",
@@ -28,5 +28,6 @@
     "jquery": "^3.7.1",
     "playwright": "^1.64.1",
     "web-ext": "^10.8.0"
-  }
+  },
+  "license": "AGPL-3.0-only"
 }

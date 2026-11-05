@@ -108,6 +108,7 @@ test("store package allowlist rejects repository and ignored local files", () =>
   for (const entry of [
     "manifest.json",
     "LICENSE",
+    "NOTICE",
     "_locales/en/messages.json",
     "images/icon-128.png",
     "menu/settings.html",
@@ -235,4 +236,16 @@ test("virtual grade popover exposes accessible semantics and viewport handling",
   assert.match(virtual, /event\.key !== "Escape"/);
   assert.match(virtual, /restoreFocus: true/);
   assert.match(virtual, /computeVirtualPopoverPosition/);
+});
+
+test("AGPL project metadata and retained MIT notice ship together", () => {
+  assert.equal(readJson("package.json").license, "AGPL-3.0-only");
+  assert.equal(readJson("package-lock.json").packages[""].license, "AGPL-3.0-only");
+  const license = fs.readFileSync(path.join(ROOT, "LICENSE"), "utf8");
+  const notice = fs.readFileSync(path.join(ROOT, "NOTICE"), "utf8");
+  assert.match(license, /GNU AFFERO GENERAL PUBLIC LICENSE/);
+  assert.match(notice, /MIT License/);
+  assert.match(notice, /Copyright \(c\) 2026 JustAlex/);
+  assert.match(notice, /The above copyright notice and this permission notice/);
+  assert.equal(isShippableEntry("NOTICE"), true);
 });
