@@ -325,4 +325,9 @@ If a feature stops working:
 
 ## License
 
-MIT
+GNU Affero General Public License version 3 only (**AGPL-3.0-only**).
+See [LICENSE](LICENSE) for the full terms and [NOTICE](NOTICE) for the retained
+MIT notice covering previously published code and contributions. Earlier MIT
+releases retain their original permissions.
+
+Corresponding source: https://github.com/JustAlex0000/Edupage-Extras

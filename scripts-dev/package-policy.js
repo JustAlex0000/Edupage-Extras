@@ -4,7 +4,7 @@ const path = require("node:path");
 
 const ROOT = path.join(__dirname, "..");
 const ARTIFACTS_DIR = path.join(ROOT, "web-ext-artifacts");
-const SHIP_ROOTS = ["manifest.json", "_locales", "images", "menu", "scripts", "LICENSE"];
+const SHIP_ROOTS = ["manifest.json", "_locales", "images", "menu", "scripts", "LICENSE", "NOTICE"];
 const EXCLUDED_ENTRIES = new Set(["scripts/_template-enhancer.js"]);
 
 function createPackageStaging(prefix) {

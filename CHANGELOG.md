@@ -4,10 +4,30 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
-## Unreleased
+## 1.0.11 — 2026-11-05
+
+- Switched the project license to AGPL-3.0-only, retaining the original MIT
+  notice for previously published code in NOTICE. Both notices ship in builds.
+- Added Umami usage analytics and Privacy settings, with Firefox collection
+  permission checks and no school-page content in event payloads.
 
 - Added default-off Saved tests under Experimental → eTest tools, with local
   question and recorded-answer review, capture titles, and deletion controls.
+
+- Removed Stay Active's recursive jQuery wrappers and retained the intended direct
+  namespace removal while enabled, with no default-off polling. Repaired reload-
+  guard ordering, cleanup, and pending animation scheduling.
+- Removed DOM activity preferences and native-hidden broadcasts. Documented the
+  remaining page-world and browser-suspension limits.
+- Isolated attendance caches by verified student and period, bounded pending
+  reads, and stopped self-triggered attendance rendering.
+- Canceled obsolete AI fills and delayed logins after setting changes, manual input,
+  or replacement of autofilled credentials before the queued login executes.
+- Removed personal text from redacted diagnostics and bounded provider requests.
+- Fixed sparse/empty timetable weeks, missing-day date mapping, owner selection,
+  date-aware cache expiry, retries, and disabled-highlight races.
+- Updated development tools and added browser regression coverage for Chromium
+  and Firefox.
 
 - Added a language selector at the top of Appearance: Browser language, Slovak,
   Czech and English. The saved choice applies to Settings, the popup and
@@ -23,20 +43,6 @@ log — this file starts at the Firefox-compatibility update.
   evaluation status; missing results and native correctness checks stay unchanged.
 - Added regression coverage for `evaluated`, other and future statuses, missing
   results, and native fallback behavior.
-- Removed Stay Active's recursive jQuery wrappers and retained the intended direct
-  namespace removal while enabled, with no default-off polling. Repaired reload-
-  guard ordering, cleanup, and pending animation scheduling.
-- Removed DOM activity preferences and native-hidden broadcasts. Documented the
-  remaining page-world and browser-suspension limits.
-- Isolated attendance caches by verified student and period, bounded pending
-  reads, and stopped self-triggered attendance rendering.
-- Canceled obsolete AI fills and delayed logins after setting changes, manual input,
-  or replacement of autofilled credentials before the queued login executes.
-- Removed personal text from redacted diagnostics and bounded provider requests.
-- Fixed sparse/empty timetable weeks, missing-day date mapping, owner selection,
-  date-aware cache expiry, retries, and disabled-highlight races.
-- Updated development tools and added browser regression coverage for Chromium
-  and Firefox.
 
 ## 1.0.10 — 2026-10-23
 

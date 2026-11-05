@@ -51,7 +51,7 @@ if (offenders.length > 0) {
   process.exit(1);
 }
 
-for (const required of ["manifest.json", "LICENSE"]) {
+for (const required of ["manifest.json", "LICENSE", "NOTICE"]) {
   if (!entries.includes(required)) {
     console.error(`FAILED: ${zipName} is missing required entry ${required}.`);
     process.exit(1);
