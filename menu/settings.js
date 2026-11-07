@@ -77,6 +77,7 @@ const gradesExportToggle = document.getElementById("GradesExportCheckbox");
 const gradesWeightsToggle = document.getElementById("ee-grades-weights-checkbox");
 const timetableExportToggle = document.getElementById("TimetableExportCheckbox");
 const timetableExportContent = document.getElementById("TimetableExportContent");
+const etestInputLengthToggle = document.getElementById("EtestInputLengthCheckbox");
 const etestCopyToggle = document.getElementById("EtestCopyCheckbox");
 const etestResultsToggle = document.getElementById("EtestResultsCheckbox");
 const openEtestCopyShortcutSettingsButton = document.getElementById("OpenEtestCopyShortcutSettingsButton");
@@ -168,6 +169,7 @@ const GRADES_SORT_FILTER_KEY = "eeGradesSortFilterEnabled";
 const GRADES_EXPORT_KEY = "eeGradesExportEnabled";
 const GRADES_WEIGHTS_KEY = "eeGradesWeightsEnabled";
 const TIMETABLE_EXPORT_KEY = "eeTimetableExportEnabled";
+const ETEST_INPUT_LENGTH_KEY = "eeEtestInputLengthEnabled";
 const ETEST_COPY_KEY = "eeEtestCopyEnabled";
 const ETEST_RESULTS_KEY = "eeEtestResultsEnabled";
 const ETEST_QUESTION_BUTTONS_KEY = "eeEtestQuestionButtonsEnabled";
@@ -1483,6 +1485,15 @@ if (etestResultsToggle) {
 	});
 	etestResultsToggle.addEventListener("change", () => {
 		chrome.storage.local.set({ [ETEST_RESULTS_KEY]: etestResultsToggle.checked });
+	});
+}
+
+if (etestInputLengthToggle) {
+	chrome.storage.local.get([ETEST_INPUT_LENGTH_KEY], (result) => {
+		etestInputLengthToggle.checked = result[ETEST_INPUT_LENGTH_KEY] === true;
+	});
+	etestInputLengthToggle.addEventListener("change", () => {
+		chrome.storage.local.set({ [ETEST_INPUT_LENGTH_KEY]: etestInputLengthToggle.checked });
 	});
 }
 

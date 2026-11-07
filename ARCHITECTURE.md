@@ -159,6 +159,12 @@ the legacy export cache version was incremented to invalidate ambiguous entries.
 
 ## Grades and eTest
 
+`eeEtestInputLengthEnabled` is default-off and WIP. `ensureInputLength()` reads
+inline widths in `ch` from `.etest-answer-input-field`, estimates character counts
+as `round((width - 3) / 0.9)`, and shows a localized tooltip on hover/focus.
+Native titles are suppressed to avoid duplicate EduPage/browser tooltips and
+restored on disable/route exit; class and style changes trigger reapplication.
+
 Saved tests are a separate, default-off `eeTestArchiveEnabled` preference.
 `etest-enhancer.js` observes and snapshots the native player while this setting
 is on, even if Copy and AI are off. It sends only changed questions on a bounded

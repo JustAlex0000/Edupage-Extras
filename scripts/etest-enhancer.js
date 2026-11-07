@@ -8,6 +8,7 @@
 
   const isEtestPage = () => /^\/elearning(?:\/|$)/i.test(window.location.pathname);
 
+  const ETEST_INPUT_LENGTH_KEY = "eeEtestInputLengthEnabled";
   const ETEST_COPY_KEY = "eeEtestCopyEnabled";
   const ARCHIVE_ENABLED_KEY = "eeTestArchiveEnabled";
   const ETEST_QUESTION_BUTTONS_KEY = "eeEtestQuestionButtonsEnabled";
@@ -60,6 +61,42 @@
   ]);
   const ANSWER_INPUT_TYPES = new Set([...BLANK_INPUT_TYPES].filter((type) => type !== "password"));
 
+  let etestInputLengthEnabled = false;
+  const inputLengthTitles = new Map();
+  let inputLengthTooltip = null;
+  let inputLengthTooltipOwner = null;
+
+  function hideInputLengthTooltip() {
+    window.removeEventListener("scroll", hideInputLengthTooltip, true);
+    window.removeEventListener("resize", hideInputLengthTooltip);
+    document.removeEventListener("keydown", dismissInputLengthTooltip);
+    inputLengthTooltip?.remove();
+    inputLengthTooltip = null;
+    inputLengthTooltipOwner = null;
+  }
+
+  function dismissInputLengthTooltip(event) {
+    if (event.key === "Escape") hideInputLengthTooltip();
+  }
+
+  function showInputLengthTooltip(input) {
+    hideInputLengthTooltip();
+    const entry = inputLengthTitles.get(input);
+    if (!entry || !document.body) return;
+    const rect = input.getBoundingClientRect();
+    const tooltip = document.createElement("span");
+    tooltip.className = "ee-etest-input-length-tooltip";
+    tooltip.textContent = entry.label;
+    tooltip.style.cssText = "position:fixed;z-index:2147483647;pointer-events:none;padding:4px 7px;border-radius:4px;font:12px/1.4 sans-serif;background:var(--ee-bg,#20262e);color:var(--ee-text,#fff);box-shadow:0 2px 6px #0003;";
+    document.body.appendChild(tooltip);
+    tooltip.style.left = `${Math.max(4, Math.min(rect.left, window.innerWidth - tooltip.offsetWidth - 4))}px`;
+    tooltip.style.top = `${Math.max(4, Math.min(rect.bottom + 6, window.innerHeight - tooltip.offsetHeight - 4))}px`;
+    inputLengthTooltip = tooltip;
+    inputLengthTooltipOwner = input;
+    window.addEventListener("scroll", hideInputLengthTooltip, true);
+    window.addEventListener("resize", hideInputLengthTooltip);
+    document.addEventListener("keydown", dismissInputLengthTooltip);
+  }
   let etestCopyEnabled = false;
   let archiveEnabled = false;
   let archiveSession = null;
@@ -1374,7 +1411,60 @@
     document.querySelectorAll(".etest-question-content").forEach(clearAiSuggestion);
   }
 
+  function ensureInputLength() {
+    const restoreTitle = (input, entry) => {
+      if (entry.title === null) input.removeAttribute("title");
+      else input.setAttribute("title", entry.title);
+      input.removeEventListener("mouseenter", entry.show);
+      input.removeEventListener("mouseleave", entry.hide);
+      input.removeEventListener("focus", entry.show);
+      input.removeEventListener("blur", entry.hide);
+      if (inputLengthTooltipOwner === input) hideInputLengthTooltip();
+    };
+    if (!isEtestPage() || !etestInputLengthEnabled) {
+      inputLengthTitles.forEach((title, input) => restoreTitle(input, title));
+      inputLengthTitles.clear();
+      return;
+    }
+    inputLengthTitles.forEach((title, input) => {
+      if (!input.isConnected || !input.matches(".etest-answer-input-field")) {
+        restoreTitle(input, title);
+        inputLengthTitles.delete(input);
+      }
+    });
+    document.querySelectorAll(".etest-answer-input-field").forEach((input) => {
+      const width = /^\s*(\d+(?:\.\d+)?)ch\s*$/i.exec(input.style.width);
+      const count = width ? Math.round((Number(width[1]) - 3) / 0.9) : NaN;
+      if (!Number.isFinite(count) || count < 0) {
+        if (inputLengthTitles.has(input)) {
+          restoreTitle(input, inputLengthTitles.get(input));
+          inputLengthTitles.delete(input);
+        }
+        return;
+      }
+      if (!inputLengthTitles.has(input)) {
+        const entry = {
+          title: input.getAttribute("title"),
+          show: () => showInputLengthTooltip(input),
+          hide: () => { if (inputLengthTooltipOwner === input) hideInputLengthTooltip(); },
+        };
+        inputLengthTitles.set(input, entry);
+        input.addEventListener("mouseenter", entry.show);
+        input.addEventListener("mouseleave", entry.hide);
+        input.addEventListener("focus", entry.show);
+        input.addEventListener("blur", entry.hide);
+      }
+      const entry = inputLengthTitles.get(input);
+      entry.label = getMessage("etestInputLengthTitle", `${count} znakov`, [String(count)]);
+      input.removeAttribute("title");
+      if (inputLengthTooltipOwner === input && inputLengthTooltip.textContent !== entry.label) {
+        inputLengthTooltip.textContent = entry.label;
+      }
+    });
+  }
+
   function ensureButtons() {
+    ensureInputLength();
     refreshTestScope();
     if (!isEtestPage() || (!etestCopyEnabled && !aiHelperEnabled && !archiveEnabled)) {
       if (isEtestPage()) { clearTimeout(archiveTimer); archiveTimer = null; }
@@ -1484,7 +1574,7 @@
   }
 
   function initObserver() {
-    if (!etestCopyEnabled && !aiHelperEnabled && !archiveEnabled) {
+    if (!etestCopyEnabled && !aiHelperEnabled && !archiveEnabled && !etestInputLengthEnabled) {
       observer?.disconnect();
       observer = null;
       clearTimeout(observerTimer);
@@ -1501,7 +1591,7 @@
     observer = new MutationObserver(scheduleEnsure);
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ["class"],
+      attributeFilter: ["class", "style"],
       childList: true,
       subtree: true,
     });
@@ -1527,6 +1617,7 @@
 
   function resolvePreferences(values = {}) {
     return {
+      inputLengthEnabled: values[ETEST_INPUT_LENGTH_KEY] === true,
       copyEnabled: values[ETEST_COPY_KEY] === true,
       archiveEnabled: values[ARCHIVE_ENABLED_KEY] === true,
       questionButtons: values[ETEST_QUESTION_BUTTONS_KEY] !== false,
@@ -1544,6 +1635,7 @@
 
   function initStorage() {
     const keys = [
+      ETEST_INPUT_LENGTH_KEY,
       ETEST_COPY_KEY,
       ARCHIVE_ENABLED_KEY,
       ETEST_QUESTION_BUTTONS_KEY,
@@ -1557,6 +1649,7 @@
     ];
     chrome.storage.local.get(keys, (result) => {
       const preferences = resolvePreferences({ ...result, ...preferenceOverrides });
+      etestInputLengthEnabled = preferences.inputLengthEnabled;
       etestCopyEnabled = preferences.copyEnabled;
       archiveEnabled = preferences.archiveEnabled;
       questionButtonsEnabled = preferences.questionButtons;
@@ -1574,6 +1667,7 @@
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== "local") return;
       for (const key of keys) if (changes[key]) preferenceOverrides[key] = changes[key].newValue;
+      if (changes[ETEST_INPUT_LENGTH_KEY]) etestInputLengthEnabled = changes[ETEST_INPUT_LENGTH_KEY].newValue === true;
       if (changes[ETEST_COPY_KEY]) etestCopyEnabled = changes[ETEST_COPY_KEY].newValue === true;
       if (changes[ARCHIVE_ENABLED_KEY]) {
         archiveEnabled = changes[ARCHIVE_ENABLED_KEY].newValue === true;

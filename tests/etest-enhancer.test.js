@@ -213,6 +213,7 @@ test("test copying is opt-in while its child preferences default on", () => {
   assert.deepEqual(
     { ...resolvePreferences({}) },
     {
+      inputLengthEnabled: false,
       copyEnabled: false,
       archiveEnabled: false,
       questionButtons: true,
@@ -233,6 +234,7 @@ test("test copying is opt-in while its child preferences default on", () => {
     {
       copyEnabled: false,
       archiveEnabled: false,
+      inputLengthEnabled: false,
       questionButtons: false,
       wholeTestButton: true,
       selectedAnswers: true,
@@ -244,6 +246,7 @@ test("test copying is opt-in while its child preferences default on", () => {
     },
   );
   assert.equal(resolvePreferences({ eeEtestCopyEnabled: true }).copyEnabled, true);
+  assert.equal(resolvePreferences({ eeEtestInputLengthEnabled: true }).inputLengthEnabled, true);
   assert.equal(resolvePreferences({ eeAiQuestionHelperEnabled: true }).aiHelper, true);
   assert.equal(resolvePreferences({ eeAiHelperMessagesEnabled: true }).aiHelperMessages, true);
   assert.equal(resolvePreferences({ eeAiAnswerMode: "hotkeys" }).aiAnswerMode, "hotkeys");
