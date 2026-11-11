@@ -4,6 +4,11 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## 1.0.12 — 2026-11-11
+
+- Added weights viewer to grades enhancer, shows weights of categories under a subject.
+- Added experimental input length function to display length of answer.
+
 ## 1.0.11 — 2026-11-05
 
 - Switched the project license to AGPL-3.0-only, retaining the original MIT
