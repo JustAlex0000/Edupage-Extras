@@ -204,7 +204,9 @@ reattachment idempotent. A fresh attachment removes orphaned copy/AI controls
 and pending markers from an invalidated extension context before rebuilding;
 a repeat attachment to the live helper preserves its current request.
 Enabling or installing/updating the extension can attach
-the fixed helper file to existing EduPage tabs using `scripting`; this never
+the shared common and i18n libraries followed by the fixed helper file to existing
+EduPage tabs using `scripting`. The libraries preserve their live state on repeat
+attachment; this never
 reloads a test or invokes an AI provider automatically.
 
 Grades sorting/filtering works on the real subject table and moves a subject

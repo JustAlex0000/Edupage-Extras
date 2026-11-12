@@ -1341,7 +1341,7 @@ async function ensureOpenEtestHelpers() {
     for (const tab of tabs || []) {
       if (!tab?.id || !/^https:\/\/[^/]+\.edupage\.org\//i.test(tab.url || "") || !chrome.scripting?.executeScript) continue;
       chrome.scripting.executeScript({
-        target: { tabId: tab.id }, files: ["scripts/etest-enhancer.js"],
+        target: { tabId: tab.id }, files: ["scripts/lib/ee-common.js", "scripts/lib/ee-i18n.js", "scripts/etest-enhancer.js"],
       }, () => void chrome.runtime.lastError);
     }
   });

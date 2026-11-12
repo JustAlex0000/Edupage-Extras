@@ -543,58 +543,6 @@ test("plain clipboard fallback uses execCommand when a shortcut has no clipboard
   assert.equal(appended[0].value, "Shortcut copy");
 });
 
-test("panic disables every shield through the master switch and survives rendering and route changes", () => {
-  const nodes = new Map();
-  const listeners = [];
-  const writes = [];
-  let prefs = {};
-  let player = { appendChild(button) { button.parentNode = this; nodes.set(button.id, button); } };
-  const location = { pathname: "/elearning/", search: "" };
-  const document = {
-    body: {}, documentElement: {},
-    getElementById: id => nodes.get(id) || null,
-    querySelector: selector => selector === ".etest-player" ? player : null,
-    querySelectorAll: () => [],
-    addEventListener() {},
-    createElement() {
-      return { style: {}, addEventListener(type, fn) { this[type] = fn; }, remove() { nodes.delete(this.id); } };
-    },
-  };
-  const chrome = {
-    runtime: {}, i18n: { getMessage: () => "" },
-    storage: {
-      local: {
-        get(keys, callback) { callback(prefs); },
-        set(values, callback) { writes.push(values); callback(); },
-      },
-      onChanged: { addListener(fn) { listeners.push(fn); } },
-    },
-  };
-  const { exports: api } = loadInternals({ document, chrome, window: { location, addEventListener() {} },
-    clearTimeout() {}, MutationObserver: class { observe() {} disconnect() {} } });
-  api.initStorage();
-  assert.equal(nodes.size, 0, "default-off shields inject nothing");
-  prefs.eeActivityShieldEnabled = true;
-  listeners[0]({ eeActivityShieldEnabled: { newValue: true } }, "local");
-  const button = nodes.get("ee-etest-panic-button");
-  assert.ok(button, "works with Copy and AI disabled");
-  api.ensurePanicButton();
-  assert.equal(nodes.size, 1);
-  chrome.runtime.lastError = { message: "unavailable" };
-  button.click({ preventDefault() {}, stopPropagation() {} });
-  assert.equal(button.disabled, false, "failed storage writes remain retryable");
-  delete chrome.runtime.lastError;
-  button.click({ preventDefault() {}, stopPropagation() {} });
-  assert.equal(writes.at(-1).eeActivityShieldEnabled, false);
-  assert.deepEqual(Object.keys(writes.at(-1)), ["eeActivityShieldEnabled"], "individual preferences stay intact");
-  assert.equal(nodes.get(button.id), button);
-  assert.equal(button.disabled, true);
-  api.ensurePanicButton();
-  assert.equal(nodes.get(button.id), button);
-  player = { appendChild(node) { node.parentNode = this; nodes.set(node.id, node); } };
-  api.ensurePanicButton();
-  assert.equal(button.parentNode, player, "survives native player replacement");
-  location.pathname = "/home/";
-  api.ensurePanicButton();
-  assert.equal(nodes.size, 0, "leaving the test removes the button");
+test("eTest helper does not create a separate shield panic control", () => {
+  assert.doesNotMatch(fs.readFileSync(path.join(__dirname, "../scripts/etest-enhancer.js"), "utf8"), /ensurePanicButton|ee-etest-panic-button|eeActivityShieldEnabled/);
 });

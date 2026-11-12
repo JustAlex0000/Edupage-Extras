@@ -8,11 +8,6 @@
 
   const isEtestPage = () => /^\/elearning(?:\/|$)/i.test(window.location.pathname);
 
-  const SHIELD_ENABLED_KEY = "eeActivityShieldEnabled";
-  const PANIC_BUTTON_ID = "ee-etest-panic-button";
-  let shieldsEnabled = false;
-  let panicButtonVisible = false;
-
   const ETEST_INPUT_LENGTH_KEY = "eeEtestInputLengthEnabled";
   const ETEST_COPY_KEY = "eeEtestCopyEnabled";
   const ARCHIVE_ENABLED_KEY = "eeTestArchiveEnabled";
@@ -1468,53 +1463,7 @@
     });
   }
 
-  function ensurePanicButton() {
-    const existing = document.getElementById(PANIC_BUTTON_ID);
-    const player = isEtestPage() && document.querySelector(".etest-player");
-    if (!player || !document.body || (!shieldsEnabled && !panicButtonVisible)) {
-      existing?.remove();
-      return;
-    }
-    panicButtonVisible = true;
-    let button = existing;
-    if (!button) {
-      button = document.createElement("button");
-      button.id = PANIC_BUTTON_ID;
-      button.type = "button";
-      button.style.cssText = "position:fixed;right:18px;bottom:18px;z-index:2147483646;padding:8px 12px;border:1px solid var(--ee-text,#333);border-radius:var(--ee-radius,6px);background:var(--ee-bg,#fff);color:var(--ee-text,#222);font:600 13px/1.4 sans-serif;cursor:pointer;";
-      button.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        if (!shieldsEnabled) return;
-        button.disabled = true;
-        const done = () => {
-          if (chrome.runtime.lastError) {
-            button.disabled = false;
-            button.textContent = getMessage("etestPanicFailed", "Could not turn off shields. Try again.");
-            return;
-          }
-          shieldsEnabled = false;
-          ensurePanicButton();
-        };
-        try {
-          chrome.storage.local.set({ [SHIELD_ENABLED_KEY]: false }, done);
-        } catch (_) {
-          button.disabled = false;
-          button.textContent = getMessage("etestPanicFailed", "Could not turn off shields. Try again.");
-        }
-      });
-    }
-    // Keep the control inside the player so native fullscreen includes it too.
-    if (button.parentNode !== player) player.appendChild(button);
-    const label = getMessage(shieldsEnabled ? "etestPanicButton" : "etestPanicOff",
-      shieldsEnabled ? "Panic: turn off shields" : "Shields off");
-    if (button.textContent !== label) button.textContent = label;
-    if (button.title !== label) button.title = label;
-    if (button.disabled !== !shieldsEnabled) button.disabled = !shieldsEnabled;
-  }
-
   function ensureButtons() {
-    ensurePanicButton();
     ensureInputLength();
     refreshTestScope();
     if (!isEtestPage() || (!etestCopyEnabled && !aiHelperEnabled && !archiveEnabled)) {
@@ -1625,7 +1574,7 @@
   }
 
   function initObserver() {
-    if (!etestCopyEnabled && !aiHelperEnabled && !archiveEnabled && !etestInputLengthEnabled && !shieldsEnabled && !panicButtonVisible) {
+    if (!etestCopyEnabled && !aiHelperEnabled && !archiveEnabled && !etestInputLengthEnabled) {
       observer?.disconnect();
       observer = null;
       clearTimeout(observerTimer);
@@ -1686,7 +1635,6 @@
 
   function initStorage() {
     const keys = [
-      SHIELD_ENABLED_KEY,
       ETEST_INPUT_LENGTH_KEY,
       ETEST_COPY_KEY,
       ARCHIVE_ENABLED_KEY,
@@ -1701,7 +1649,6 @@
     ];
     chrome.storage.local.get(keys, (result) => {
       const preferences = resolvePreferences({ ...result, ...preferenceOverrides });
-      shieldsEnabled = ({ ...result, ...preferenceOverrides })[SHIELD_ENABLED_KEY] === true;
       etestInputLengthEnabled = preferences.inputLengthEnabled;
       etestCopyEnabled = preferences.copyEnabled;
       archiveEnabled = preferences.archiveEnabled;
@@ -1720,7 +1667,6 @@
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== "local") return;
       for (const key of keys) if (changes[key]) preferenceOverrides[key] = changes[key].newValue;
-      if (changes[SHIELD_ENABLED_KEY]) shieldsEnabled = changes[SHIELD_ENABLED_KEY].newValue === true;
       if (changes[ETEST_INPUT_LENGTH_KEY]) etestInputLengthEnabled = changes[ETEST_INPUT_LENGTH_KEY].newValue === true;
       if (changes[ETEST_COPY_KEY]) etestCopyEnabled = changes[ETEST_COPY_KEY].newValue === true;
       if (changes[ARCHIVE_ENABLED_KEY]) {
@@ -1753,7 +1699,6 @@
 
   if (IS_TEST) {
     globalThis.__eeTestExports = {
-      ensurePanicButton,
       initStorage,
       normalizeStructuredText,
       formatAnswerOptionText,
@@ -1816,7 +1761,6 @@
     // Reloading an extension invalidates old handlers, but their DOM can remain.
     // This runs once per attachment; repeated injection exits at the guard above.
     removeButtons();
-    document.getElementById(PANIC_BUTTON_ID)?.remove();
     document.querySelectorAll(".etest-question-content").forEach((content) => {
       delete content.dataset.eeAiRequestPending;
     });

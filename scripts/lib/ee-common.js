@@ -13,6 +13,9 @@
 (function () {
   "use strict";
 
+  // Existing-tab attachment may load this library again; preserve live state.
+  if (globalThis.EE?.withLanguageReady) return;
+
   const EE = {};
   EE.getMessage = (key, substitutions) => EE.i18n
     ? EE.i18n.msg(key, substitutions) : chrome.i18n.getMessage(key, substitutions);
