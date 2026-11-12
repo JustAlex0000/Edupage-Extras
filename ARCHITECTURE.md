@@ -82,6 +82,13 @@ one-time page-world handshake. Main-world hooks keep preference state in closure
 no DOM control port, native-hidden dataset, or native-state event is published.
 The handshake and MAIN-world hooks are observable and are not an anti-tampering
 boundary. The indicator is created only when requested and only in the top frame.
+The indicator button writes only `eeActivityShieldEnabled` when clicked, leaving
+individual shield preferences unchanged. Storage updates synchronize the hooks,
+color (blue enabled, red paused), localized action label, and `aria-pressed`
+state across tabs. It remains visible while paused if
+`eeActivityShieldVisualIndicator` is enabled; disabling that preference removes
+it. Failed writes leave the displayed state unchanged and allow retrying.
+There is no separate eTest panic control.
 
 Native visibility transitions update reload blocking and pending animation requests
 before downstream events are suppressed. Disabling removes the reload blocker and
@@ -206,8 +213,7 @@ a repeat attachment to the live helper preserves its current request.
 Enabling or installing/updating the extension can attach
 the shared common and i18n libraries followed by the fixed helper file to existing
 EduPage tabs using `scripting`. The libraries preserve their live state on repeat
-attachment; this never
-reloads a test or invokes an AI provider automatically.
+attachment; this never reloads a test or invokes an AI provider automatically.
 
 Grades sorting/filtering works on the real subject table and moves a subject
 with its following category rows. Never modify `#znamkyTableHeaderBg` or

@@ -174,7 +174,9 @@ only the selected schedule and switches to another saved schedule if available.
 ### Experimental
 
 **Show answer length (WIP, off by default)** in eTest tools shows an estimated
-character count on hover over answer inputs, calculated from their width in `ch`.
+character count on hover or keyboard focus over answer inputs, calculated from
+their width in `ch`. This is a width-based estimate, not the correct answer
+length.
 
 Experimental settings include a **Test Stay Active Mode** button below the Stay Active
 master switch. It opens https://test.nop.wtf in a new tab. The reload action reloads both
