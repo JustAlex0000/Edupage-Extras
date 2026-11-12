@@ -180,6 +180,11 @@ Experimental settings include a **Test Stay Active Mode** button below the Stay 
 master switch. It opens https://test.nop.wtf in a new tab. The reload action reloads both
 EduPage and test.nop.wtf tabs.
 
+While Stay Active is enabled, eTests show a **Panic: turn off shields** button
+in the bottom-right corner. It turns off the master switch across open tabs,
+keeps individual shield preferences, and stays visible as **Shields off**.
+Already removed jQuery handlers cannot be restored without reloading.
+
 Stay Active changes selected page-visible activity signals. Its jQuery Sweep directly
 removes `.etestplayeral` and `.etestaplayer` handlers from `window` and `document`,
 including later registrations during enabled sweeps. Disabling stops further

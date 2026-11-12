@@ -1332,8 +1332,8 @@ function notifyOpenEdupageTabs(message) {
 }
 
 async function ensureOpenEtestHelpers() {
-  const settings = await storageGet([AI_HELPER_ENABLED_KEY, "eeEtestInputLengthEnabled", "eeEtestCopyEnabled", "eeTestArchiveEnabled"]);
-  if (settings[AI_HELPER_ENABLED_KEY] !== true && settings.eeEtestInputLengthEnabled !== true && settings.eeEtestCopyEnabled !== true && settings.eeTestArchiveEnabled !== true) return;
+  const settings = await storageGet([AI_HELPER_ENABLED_KEY, "eeEtestInputLengthEnabled", "eeEtestCopyEnabled", "eeTestArchiveEnabled", "eeActivityShieldEnabled"]);
+  if (settings[AI_HELPER_ENABLED_KEY] !== true && settings.eeEtestInputLengthEnabled !== true && settings.eeEtestCopyEnabled !== true && settings.eeTestArchiveEnabled !== true && settings.eeActivityShieldEnabled !== true) return;
   // Attach controls to existing documents after enabling/updating the extension;
   // never navigate or reload an in-progress test. The content script is idempotent.
   chrome.tabs.query({ url: "https://*.edupage.org/*" }, (tabs) => {
@@ -2370,7 +2370,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
     void sendAnalytics("stay_active_disabled");
   }
 
-  if (changes[AI_HELPER_ENABLED_KEY]?.newValue === true || changes.eeEtestInputLengthEnabled?.newValue === true || changes.eeEtestCopyEnabled?.newValue === true || changes.eeTestArchiveEnabled?.newValue === true) {
+  if (changes.eeActivityShieldEnabled?.newValue === true || changes[AI_HELPER_ENABLED_KEY]?.newValue === true || changes.eeEtestInputLengthEnabled?.newValue === true || changes.eeEtestCopyEnabled?.newValue === true || changes.eeTestArchiveEnabled?.newValue === true) {
     ensureOpenEtestHelpers().catch(() => {});
   }
 
