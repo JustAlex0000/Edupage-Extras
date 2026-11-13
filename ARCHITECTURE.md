@@ -82,6 +82,13 @@ one-time page-world handshake. Main-world hooks keep preference state in closure
 no DOM control port, native-hidden dataset, or native-state event is published.
 The handshake and MAIN-world hooks are observable and are not an anti-tampering
 boundary. The indicator is created only when requested and only in the top frame.
+The indicator button writes only `eeActivityShieldEnabled` when clicked, leaving
+individual shield preferences unchanged. Storage updates synchronize the hooks,
+color (blue enabled, red paused), localized action label, and `aria-pressed`
+state across tabs. It remains visible while paused if
+`eeActivityShieldVisualIndicator` is enabled; disabling that preference removes
+it. Failed writes leave the displayed state unchanged and allow retrying.
+There is no separate eTest panic control.
 
 Native visibility transitions update reload blocking and pending animation requests
 before downstream events are suppressed. Disabling removes the reload blocker and
@@ -159,6 +166,12 @@ the legacy export cache version was incremented to invalidate ambiguous entries.
 
 ## Grades and eTest
 
+`eeEtestInputLengthEnabled` is default-off and WIP. `ensureInputLength()` reads
+inline widths in `ch` from `.etest-answer-input-field`, estimates character counts
+as `round((width - 3) / 0.9)`, and shows a localized tooltip on hover/focus.
+Native titles are suppressed to avoid duplicate EduPage/browser tooltips and
+restored on disable/route exit; class and style changes trigger reapplication.
+
 Saved tests are a separate, default-off `eeTestArchiveEnabled` preference.
 `etest-enhancer.js` observes and snapshots the native player while this setting
 is on, even if Copy and AI are off. It sends only changed questions on a bounded
@@ -198,12 +211,25 @@ reattachment idempotent. A fresh attachment removes orphaned copy/AI controls
 and pending markers from an invalidated extension context before rebuilding;
 a repeat attachment to the live helper preserves its current request.
 Enabling or installing/updating the extension can attach
-the fixed helper file to existing EduPage tabs using `scripting`; this never
-reloads a test or invokes an AI provider automatically.
+the shared common and i18n libraries followed by the fixed helper file to existing
+EduPage tabs using `scripting`. The libraries preserve their live state on repeat
+attachment; this never reloads a test or invokes an AI provider automatically.
 
 Grades sorting/filtering works on the real subject table and moves a subject
 with its following category rows. Never modify `#znamkyTableHeaderBg` or
 EduPage's floating header clone: EduPage keeps them in sync itself.
+
+`grades-weights.js` adds an opt-in `eeGradesWeightsEnabled` panel to the existing
+Grades toolbar, with a subject selector and aligned name/weight pairs. Its
+Escape/outside-click listeners are removed when disabled or rebound; table
+replacement preserves the selected subject and open state. Grade rows stay
+unchanged. It finds `.znamkyStudentViewer(` initializers by
+method name and resolves their dynamic target to the current table. Only
+`kategorie` and `vsetkyUdalosti.edupage` definitions are projected by `PredmetID`,
+without joining to grades, so empty definitions remain visible. `p_vaha` is
+divided by 20. Definitions stay in memory and DOM; disabling removes the UI.
+The shared body observer handles table replacements; if definitions are still
+missing, a head-only observer waits for an initializer for at most ten seconds.
 
 Attendance cache version 16 includes student identity in its cache key. Every load
 verifies the current sole owner from a fresh attendance response before considering

@@ -72,6 +72,15 @@ EduPage, open a GitHub issue or report it on [Discord](https://discord.gg/eNZXHe
 
 ### Grades
 
+- **Category and event weights** — enable in Settings → Grades to show an
+  compact **Weights** panel in the existing Grades toolbar. Choose a subject
+  to see its definitions, including entries with no grades yet. Subject options
+  show the subject name without the teacher label. The panel
+  closes with Escape or a click outside and leaves grade rows unchanged.
+  Weights come from the currently loaded viewer and use EduPage's
+  display units (server weight divided by 20). Off by default; nothing is saved
+  or requested from another server.
+
 - **Color-coded average bars** for subject averages.
 - **Subject sorting and filtering** Search by subject, name, grade count, or average, and hide subjects without grades.
 - **Virtual Grade Calculator** — add grades to any subject and
@@ -164,9 +173,20 @@ only the selected schedule and switches to another saved schedule if available.
 
 ### Experimental
 
+**Show answer length (WIP, off by default)** in eTest tools shows an estimated
+character count on hover or keyboard focus over answer inputs, calculated from
+their width in `ch`. This is a width-based estimate, not the correct answer
+length.
+
 Experimental settings include a **Test Stay Active Mode** button below the Stay Active
 master switch. It opens https://test.nop.wtf in a new tab. The reload action reloads both
 EduPage and test.nop.wtf tabs.
+
+The optional bottom-right status dot toggles the Stay Active master switch
+across open tabs when clicked, preserving individual shield preferences. Blue
+means enabled; red means paused. The dot stays visible in both states while its
+visual indicator setting is on. There is no separate panic button.
+Already removed jQuery handlers cannot be restored without reloading.
 
 Stay Active changes selected page-visible activity signals. Its jQuery Sweep directly
 removes `.etestplayeral` and `.etestaplayer` handlers from `window` and `document`,

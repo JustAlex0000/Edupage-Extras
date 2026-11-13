@@ -1,6 +1,9 @@
 // Extension-wide language preference. Catalogs are read only from this package.
 (() => {
   "use strict";
+
+  // Existing-tab attachment may load this library again; preserve live state.
+  if (globalThis.EE?.i18n) return;
   const KEY = "eeLanguage", LANGUAGES = ["en", "sk", "cs"];
   const background = globalThis.__eeBackgroundContext === true || typeof document === "undefined";
   const catalogs = new Map(), subscribers = new Set();

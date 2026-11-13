@@ -153,6 +153,13 @@ function createPage({ prefs = {}, bridgeFirst = false, navigation = true, deferS
     i18n: { getMessage: (key) => key },
     storage: {
       local: {
+        set(values, callback) {
+          if (!chrome.runtime.lastError) {
+            Object.assign(stored, values);
+            for (const listener of storageListeners) listener(Object.fromEntries(Object.entries(values).map(([key, value]) => [key, { newValue: value }])), "local");
+          }
+          callback();
+        },
         get(defaults, callback) {
           const result = { ...defaults, ...stored };
           if (deferStorage) storageReads.push(() => callback(result));
@@ -172,7 +179,7 @@ function createPage({ prefs = {}, bridgeFirst = false, navigation = true, deferS
   advance();
 
   return {
-    window, document, Event, Element, nativeFrames, canceledFrames, timers, storageReads, errors, channels, advance,
+    window, document, chrome, Event, Element, nativeFrames, canceledFrames, timers, storageReads, errors, channels, advance,
     setPrefs(changes) {
       Object.assign(stored, changes);
       for (const listener of storageListeners) listener(Object.fromEntries(Object.entries(changes).map(([key, value]) => [key, { newValue: value }])), "local");
@@ -469,4 +476,31 @@ test("status indicator is opt-in, waits for a body, and appears only in the top 
   assert.equal(page.document.getElementById("ee-activity-shield-indicator"), null);
   const child = createPage({ child: true, prefs: { eeActivityShieldVisualIndicator: true } });
   assert.equal(child.document.getElementById("ee-activity-shield-indicator"), null);
+});
+
+
+test("status dot toggles the master, follows external changes, and retries failed writes", () => {
+  const page = createPage({ prefs: { eeActivityShieldEnabled: true, eeActivityShieldVisualIndicator: true, eeActivityShieldJquerySweep: false } });
+  const dot = page.document.getElementById("ee-activity-shield-indicator");
+  const click = () => { dot.dispatchEvent(new page.Event("click", { cancelable: true })); page.advance(); };
+  assert.equal(dot.style.background, "#89b4fa");
+  click();
+  assert.equal(dot.style.background, "#f38ba8");
+  assert.equal(dot["aria-pressed"], "false");
+  assert.equal(page.document.getElementById(dot.id), dot);
+  page.setHidden(true);
+  assert.equal(page.document.hidden, true, "master off restores native visibility");
+  click();
+  assert.equal(dot.style.background, "#89b4fa");
+  assert.equal(dot["aria-pressed"], "true");
+  assert.equal(page.document.hidden, false, "master on reapplies selected shields");
+  page.setPrefs({ eeActivityShieldEnabled: false });
+  assert.equal(dot.style.background, "#f38ba8");
+  page.chrome.runtime.lastError = { message: "unavailable" };
+  click();
+  assert.equal(dot.disabled, false);
+  assert.equal(dot.style.background, "#f38ba8", "failed writes do not claim success");
+  delete page.chrome.runtime.lastError;
+  click();
+  assert.equal(dot.style.background, "#89b4fa");
 });

@@ -30,11 +30,13 @@
   const HALFYEAR_END_KEY = "eeSecondHalfEndDate";
   const GRADES_SORT_FILTER_KEY = "eeGradesSortFilterEnabled";
   const GRADES_EXPORT_KEY = "eeGradesExportEnabled";
+  const GRADES_WEIGHTS_KEY = "eeGradesWeightsEnabled";
   const VIRTUAL_GRADES_KEY = "eeVirtualGrades";
   const EXISTING_MASS_OVERRIDES_KEY = "eeVirtualGradeExistingMassOverrides";
   let gradeBadgesEnabled = false;
   let gradesSortFilterEnabled = true;
   let gradesExportEnabled = false;
+  let gradesWeightsEnabled = false;
   let observerTimer = null;
   let ignoreMutationsUntil = 0;
   let attendanceLoadToken = 0;
@@ -318,6 +320,28 @@
       const style = document.createElement("style");
       style.id = STYLE_ID;
       style.textContent = `
+        .ee-grade-weights { flex: 0 0 auto; font-weight: normal; }
+        .ee-grade-weights > summary { list-style: none; box-sizing: border-box; }
+        .ee-grade-weights > summary::-webkit-details-marker { display: none; }
+        .ee-grade-weights > summary::after { content: "⌄"; margin-left: 8px; }
+        .ee-grade-weights[open] > summary::after { content: "⌃"; }
+        .ee-grade-weights > summary:focus-visible { outline: 2px solid var(--ee-link, Highlight); outline-offset: 2px; }
+        .ee-grade-weights-panel {
+          position: absolute; inset-inline-end: 0; top: calc(100% + 8px); z-index: 10000;
+          width: min(360px, calc(100vw - 40px)); max-height: min(460px, 65vh); overflow: auto;
+          padding: 16px; box-sizing: border-box; border-radius: 10px;
+          border: 1px solid var(--ee-border, ButtonBorder);
+          background: var(--ee-card-bg, Canvas); color: var(--ee-text, CanvasText);
+          box-shadow: 0 8px 24px color-mix(in srgb, CanvasText 15%, transparent);
+          text-align: start; white-space: normal; font-size: 13px;
+        }
+        .ee-grade-weights-panel .ee-grades-select { width: 100%; max-width: none; }
+        .ee-grade-weights-panel h4 { margin: 16px 0 4px; color: var(--ee-text-muted, inherit); font-size: 11px; }
+        .ee-grade-weights-panel dl { margin: 10px 0 0; }
+        .ee-grade-weights-panel dl > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; padding: 9px 0; }
+        .ee-grade-weights-panel dl > div + div { border-top: 1px solid var(--ee-border, ButtonBorder); }
+        .ee-grade-weights-panel dt { overflow-wrap: anywhere; }
+        .ee-grade-weights-panel dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ee-link, LinkText); }
         .ee-avg-badge {
           display: inline-flex;
           flex-direction: column;
@@ -453,6 +477,7 @@
         }
 
         .ee-grades-toolbar {
+          position: relative;
           display: flex;
           align-items: flex-end;
           flex-wrap: wrap;
@@ -1048,7 +1073,10 @@
     function enhanceGradesTable() {
       const tables = getGradesTables();
       const table = getPrimaryGradesTable();
-      if (!table || tables.length === 0) return;
+      if (!table || tables.length === 0) {
+        GE.weights.clear();
+        return;
+      }
 
       const nextGradesView = readGradesViewContext();
       if (nextGradesView.signature !== GE.state.gradesView.signature || table !== attendanceContextTable) {
@@ -1060,6 +1088,7 @@
 
       markInternalMutation();
       injectStyles();
+      GE.weights.render(table, gradesWeightsEnabled);
       tables.forEach((gradesTable) => GE.badges.applyStoredGradeTitles(gradesTable));
       document.querySelectorAll(".ee-grades-toolbar").forEach((toolbar) => {
         if (!toolbar.nextElementSibling?.matches("table.znamkyTable")) toolbar.remove();
@@ -1281,12 +1310,14 @@
         HALFYEAR_END_KEY,
         GRADES_SORT_FILTER_KEY,
         GRADES_EXPORT_KEY,
+        GRADES_WEIGHTS_KEY,
         VIRTUAL_GRADES_KEY,
         EXISTING_MASS_OVERRIDES_KEY,
       ], (result) => {
         gradeBadgesEnabled = result[GRADE_BADGES_KEY] === true;
         gradesSortFilterEnabled = result[GRADES_SORT_FILTER_KEY] !== false;
         gradesExportEnabled = result[GRADES_EXPORT_KEY] === true;
+        gradesWeightsEnabled = result[GRADES_WEIGHTS_KEY] === true;
         GE.state.gradesAttendanceEnabled = result[GRADES_ATTENDANCE_KEY] !== false;
         GE.state.gradesAttendanceDebugEnabled = result[GRADES_ATTENDANCE_DEBUG_KEY] === true;
         GE.state.halfyearStartOverride = normalizeDateInput(result[HALFYEAR_START_KEY]);
@@ -1348,6 +1379,11 @@
         if (area !== "local") return;
 
         let shouldEnhance = false;
+
+        if (changes[GRADES_WEIGHTS_KEY]) {
+          gradesWeightsEnabled = changes[GRADES_WEIGHTS_KEY].newValue === true;
+          shouldEnhance = true;
+        }
 
         if (changes[GRADE_BADGES_KEY]) {
           gradeBadgesEnabled = changes[GRADE_BADGES_KEY].newValue === true;
@@ -1429,13 +1465,16 @@
         // our first pass. Do not let the short internal-mutation guard hide
         // that replacement, otherwise its toolbar only appears after reload.
         const hasUnenhancedTable = hasUnenhancedGradesTable();
-        if (Date.now() < ignoreMutationsUntil && !hasUnenhancedTable) {
+        const hasNewWeightsTable = gradesWeightsEnabled && GE.weights.needsTableBind(getPrimaryGradesTable());
+        const hasViewerData = gradesWeightsEnabled && GE.weights.hasViewerScriptMutation(mutations);
+        if (Date.now() < ignoreMutationsUntil && !hasUnenhancedTable && !hasViewerData && !hasNewWeightsTable) {
           return;
         }
 
         if (
           hasUnenhancedTable
-          || (mutations.some(isGradesMutation) && document.querySelector("table.znamkyTable"))
+          || hasNewWeightsTable
+          || ((hasViewerData || mutations.some(isGradesMutation)) && document.querySelector("table.znamkyTable"))
         ) {
           scheduleEnhance();
         }

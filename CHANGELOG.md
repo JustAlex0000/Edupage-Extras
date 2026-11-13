@@ -4,6 +4,20 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## 1.0.12 — 2026-11-11
+
+- Added an opt-in **Weights** panel to the Grades toolbar. Select a subject to
+  view its category and event weights, including entries without grades.
+- Added **Show answer length** under Experimental eTest tools (WIP, off by
+  default). Hover or focus an answer input to see an estimated character count
+  based on its displayed width; this does not reveal the correct answer.
+- Made the optional bottom-right Stay Active status dot toggle the master
+  switch across open tabs. Blue means enabled and red means paused; individual
+  shield preferences are preserved.
+- Fixed eTest helper attachment to already-open tabs failing with `EE is not
+  defined` by loading its shared libraries before the helper and preserving
+  their state on repeated attachment.
+
 ## 1.0.11 — 2026-11-05
 
 - Switched the project license to AGPL-3.0-only, retaining the original MIT

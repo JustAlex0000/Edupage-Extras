@@ -440,6 +440,17 @@
         <div class="setting-card">
           <div class="setting-row">
             <div>
+              <h3 data-i18n="eeGradeWeightsTitle">Category and Event Weights</h3>
+              <p data-i18n="eeGradeWeightsDesc">Add a Weights button to the Grades toolbar. Choose a subject to see its category and event weights, including entries without grades.</p>
+            </div>
+            <label class="switch switch-compact" for="ee-grades-weights-checkbox">
+              <input type="checkbox" id="ee-grades-weights-checkbox">
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="sr-only" data-i18n="eeGradeWeightsToggle">Toggle category and event weights</span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div>
               <h3 data-i18n="gradeBadges">Grade Averages and Summary</h3>
               <p data-i18n="gradeBadgesDesc">Show subject-average badges, visual bars, and an overall average at the bottom of Grades.</p>
             </div>
@@ -926,6 +937,19 @@
           </div>
 
           <div class="setting-card">
+            <div class="setting-row">
+              <div>
+                <h3><span data-i18n="etestInputLength">Show answer length</span> <span class="setting-tag setting-tag-wip" data-i18n="wipBadge">WIP</span></h3>
+                <p data-i18n="etestInputLengthDesc">Shows the estimated answer length on hover, calculated from the input width.</p>
+              </div>
+              <div class="setting-row-actions">
+                <label class="switch switch-compact" for="EtestInputLengthCheckbox">
+                  <input type="checkbox" id="EtestInputLengthCheckbox">
+                  <span class="switch-track" aria-hidden="true"></span>
+                  <span class="sr-only" data-i18n="toggleEtestInputLength">Toggle test answer length</span>
+                </label>
+              </div>
+            </div>
             <div class="setting-row">
               <div>
                 <h3><span data-i18n="etestCopy">Copy Test Questions</span> <span class="setting-tag setting-tag-wip" data-i18n="wipBadge">WIP</span></h3>

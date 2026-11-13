@@ -186,3 +186,17 @@ test("a late native test title updates the same saved capture without changing a
   state.title("");
   assert.equal(state.recorded.length, 2);
 });
+
+
+test("reloading common helpers preserves the live namespace and language service", () => {
+  const common = fs.readFileSync(require.resolve("../scripts/lib/ee-common.js"), "utf8");
+  const context = vm.createContext({ chrome: {} });
+  vm.runInContext(common, context);
+  const original = context.EE;
+  const language = { ready: Promise.resolve(), msg: () => "localized" };
+  original.i18n = language;
+  vm.runInContext(common, context);
+  assert.equal(context.EE, original);
+  assert.equal(context.EE.i18n, language);
+  assert.equal(context.EE.getMessage("label"), "localized");
+});

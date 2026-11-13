@@ -15,6 +15,7 @@ const GRADES_SCRIPT_FILES = [
   "grades-attendance.js",
   "grades-sort-filter.js",
   "grades-export.js",
+  "grades-weights.js",
   "grades-bootstrap.js",
 ];
 

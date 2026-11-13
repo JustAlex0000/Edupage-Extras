@@ -130,8 +130,21 @@
       "background:#89b4fa",
     ].join(";");
 
-    indicator.addEventListener("click", () => {
-      window.open(chrome.runtime.getURL("menu/settings.html"), "_blank", "noopener");
+    indicator.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (indicator.disabled) return;
+      indicator.disabled = true;
+      try {
+        chrome.storage.local.set({ eeActivityShieldEnabled: latestPrefs.eeActivityShieldEnabled !== true }, () => {
+          const failed = chrome.runtime.lastError;
+          indicator.disabled = false;
+          // Read the persisted state, including changes made in another tab.
+          if (!failed) refresh();
+        });
+      } catch (_) {
+        indicator.disabled = false;
+      }
     });
     document.body.append(indicator);
     return indicator;
@@ -147,6 +160,7 @@
     const indicator = ensureIndicator();
     indicator.style.background = enabled ? "#89b4fa" : "#f38ba8";
     const label = t(enabled ? "activityShieldIndicatorActive" : "activityShieldIndicatorPaused");
+    indicator.setAttribute("aria-pressed", String(enabled));
     indicator.title = label;
     indicator.setAttribute("aria-label", label);
   }
