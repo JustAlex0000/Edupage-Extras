@@ -112,6 +112,7 @@
 
     indicator = document.createElement("button");
     indicator.id = INDICATOR_ID;
+    indicator.classList.add("smartPreservedDiv");
     indicator.type = "button";
     indicator.title = t("activityShieldIndicatorName");
     indicator.setAttribute("aria-label", t("activityShieldIndicatorName"));
