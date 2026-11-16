@@ -37,10 +37,11 @@ test("manifest version and referenced package files stay valid", () => {
   }
 });
 
-test("optional hosts are narrowly scoped to explicit AI and test-site actions", () => {
+test("optional hosts include on-demand site access and explicit AI providers", () => {
   const manifest = readJson("manifest.json");
   const optionalHosts = manifest.optional_host_permissions || [];
   assert.deepEqual(optionalHosts.sort(), [
+    "*://*/*",
     "http://127.0.0.1/*",
     "http://localhost/*",
     "https://api.openai.com/*",

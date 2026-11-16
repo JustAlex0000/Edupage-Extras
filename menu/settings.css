@@ -491,6 +491,14 @@ code {
     gap: 12px;
 }
 
+.ee-activity-sites-form { display: flex; flex-wrap: wrap; gap: 10px; }
+.ee-activity-sites-form input { flex: 1 1 220px; min-width: 0; }
+.ee-activity-sites-form input::placeholder { color: var(--text-muted); opacity: 1; }
+.ee-activity-sites-list { display: grid; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.ee-activity-sites-list:empty { display: none; }
+.ee-activity-sites-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; overflow-wrap: anywhere; }
+#ee-activity-sites-status:empty { display: none; }
+
 .setting-row-dependent {
     background: color-mix(in srgb, var(--control-bg) 45%, transparent);
     padding-left: 34px;

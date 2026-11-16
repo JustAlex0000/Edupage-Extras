@@ -190,6 +190,13 @@ Experimental settings include a **Test Stay Active Mode** button below the Stay 
 master switch. It opens https://test.nop.wtf in a new tab. The reload action reloads both
 EduPage and test.nop.wtf tabs.
 
+Use **Additional sites** under Settings → Experimental → Stay Active to add a
+domain or HTTP(S) URL. A bare domain defaults to HTTPS. The browser asks for
+access to that exact hostname (on all ports). Stay Active's master switch and
+shield preferences apply there too; other EduPage features do not. Reload or
+navigate an open site after adding or removing it for the change to take effect.
+Removing a site also removes its optional access unless another feature uses it.
+
 The optional bottom-right status dot toggles the Stay Active master switch
 across open tabs when clicked, preserving individual shield preferences. Blue
 means enabled; red means paused. The dot stays visible in both states while its
@@ -314,8 +321,10 @@ Edupage Extras requests:
 - Optional access to `localhost`, `127.0.0.1`, `integrate.api.nvidia.com`, or
   `openrouter.ai` is requested
   only when the user tests the matching AI provider connection.
+- Optional access to individual HTTP(S) sites is requested when you add them to
+  Stay Active. It is used to run the activity shields on those sites.
 
-The extension does not request access to all websites.
+The extension does not request access to all websites at once.
 
 ## Privacy
 

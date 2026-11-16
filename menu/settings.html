@@ -1190,6 +1190,19 @@
               </div>
               <a class="secondary-button" id="ee-test-shields" href="https://test.nop.wtf" target="_blank" rel="noopener noreferrer" data-i18n="samTestShields">Test Stay Active Mode</a>
             </div>
+            <div class="setting-row setting-row-stack">
+              <div>
+                <h3 data-i18n="samSitesHeading">Additional sites</h3>
+                <p data-i18n="samSitesDesc">Choose sites where Stay Active Mode can run. Each site needs browser permission. Reload its open tabs after adding or removing it. Access covers all ports on the chosen host.</p>
+              </div>
+              <form id="ee-activity-sites-form" class="ee-activity-sites-form">
+                <label class="sr-only" for="ee-activity-sites-input" data-i18n="samSitesInput">Site address</label>
+                <input id="ee-activity-sites-input" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://example.com">
+                <button class="secondary-button" type="submit" data-i18n="samSitesAdd">Add site</button>
+              </form>
+              <ul id="ee-activity-sites-list" class="ee-activity-sites-list"></ul>
+              <p id="ee-activity-sites-status" role="status" aria-live="polite"></p>
+            </div>
           </div>
 
           <div class="section-heading">
@@ -1465,6 +1478,7 @@
     <script src="language-settings.js"></script>
     <script src="anonymizer-settings.js"></script>
     <script src="settings.js"></script>
+    <script src="activity-sites-settings.js"></script>
     <script src="../scripts/lib/ee-timetable-comparison.js"></script>
     <script src="../scripts/timetable-comparison-ui.js"></script>
     <script src="timetable-comparison-settings.js"></script>
