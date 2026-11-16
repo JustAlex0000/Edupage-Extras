@@ -183,6 +183,13 @@ test("saved test title uses EduPage's dedicated name, not the page title or head
   assert.equal(getArchiveTestTitle({ querySelector: () => ({ textContent: "x".repeat(180) }) }).length, 160);
 });
 
+test("archive name prefers the visible nested name over accessibility instructions", () => {
+  const { getArchiveTestTitle } = loadInternals().exports;
+  const heading = { textContent: "Question counter instructionsGeometry practice",
+    querySelector: selector => selector === ".interactiveElem" ? { textContent: "Geometry practice" } : null };
+  assert.equal(getArchiveTestTitle({ querySelector: selector => selector === ".etest-player-title-name" ? heading : null }), "Geometry practice");
+});
+
 test("stable card ids keep paginated questions distinct", () => {
   const { getQuestionIdentity } = loadInternals().exports;
   const first = element("div", { attributes: { "data-cardid": "card-1" } });
@@ -224,6 +231,10 @@ test("test copying is opt-in while its child preferences default on", () => {
       aiHelperMessages: false,
       aiAnswerMode: "buttons",
       aiVisualFallback: false,
+      aiFillDelay: 0,
+      aiSequential: false,
+      aiStepSeconds: 0.5,
+      aiAutoFill: false,
     },
   );
   assert.deepEqual(
@@ -243,6 +254,10 @@ test("test copying is opt-in while its child preferences default on", () => {
       aiHelperMessages: false,
       aiAnswerMode: "buttons",
       aiVisualFallback: false,
+      aiFillDelay: 0,
+      aiSequential: false,
+      aiStepSeconds: 0.5,
+      aiAutoFill: false,
     },
   );
   assert.equal(resolvePreferences({ eeEtestCopyEnabled: true }).copyEnabled, true);
@@ -545,4 +560,39 @@ test("plain clipboard fallback uses execCommand when a shortcut has no clipboard
 
 test("eTest helper does not create a separate shield panic control", () => {
   assert.doesNotMatch(fs.readFileSync(path.join(__dirname, "../scripts/etest-enhancer.js"), "utf8"), /ensurePanicButton|ee-etest-panic-button|eeActivityShieldEnabled/);
+});
+
+test("KaTeX is captured once from MathML and keeps fractions and powers readable", () => {
+  const { serializeNode, readableMath, getQuestionNumber } = loadInternals().exports;
+  const math = element("math", { children: [element("semantics", { children: [
+    element("mrow", { children: [element("mi", { children: [text("x")] }), element("mo", { children: [text("∈")] }), element("mi", { children: [text("R")] })] }),
+    element("annotation", { children: [text("\\mathbf{x}\\in R")] }),
+  ] })] });
+  const katex = element("span", { className: "katex", children: [math, element("span", { children: [text("duplicate x∈R")] })], querySelector: () => math });
+  assert.equal(serializeNode(katex, false).plain, "x∈R");
+  assert.equal(serializeNode(katex, true).html, "x∈R");
+  const fraction = element("mfrac", { children: [element("mn", { children: [text("1")] }), element("mn", { children: [text("2")] })] });
+  assert.equal(readableMath(fraction), "(1)/(2)");
+  assert.equal(getQuestionNumber({ querySelector: () => ({ textContent: "Question" }) }), "");
+  assert.equal(getQuestionNumber({ querySelector: s => ({ textContent: s.endsWith("value") ? "7." : "Question" }) }), "7");
+});
+
+test("fill timing defaults off and bounds malformed preferences", () => {
+  const { resolvePreferences } = loadInternals().exports;
+  assert.equal(resolvePreferences({ eeAiFillDelaySeconds: 120 }).aiFillDelay, 60);
+  assert.equal(resolvePreferences({ eeAiFillDelaySeconds: -4 }).aiFillDelay, 0);
+  assert.equal(resolvePreferences({ eeAiFillDelaySeconds: "invalid" }).aiFillDelay, 0);
+  assert.equal(resolvePreferences({ eeAiFillDelaySeconds: 2.5 }).aiFillDelay, 2.5);
+  assert.equal(resolvePreferences({ eeAiSequentialFillEnabled: true }).aiSequential, true);
+});
+
+test("sequential pause is adjustable and automatic filling is independently opt-in", () => {
+  const { resolvePreferences } = loadInternals().exports;
+  assert.equal(resolvePreferences({ eeAiFillStepSeconds: 0.2 }).aiStepSeconds, 0.2);
+  assert.equal(resolvePreferences({ eeAiFillStepSeconds: 99 }).aiStepSeconds, 10);
+  assert.equal(resolvePreferences({ eeAiFillStepSeconds: -1 }).aiStepSeconds, 0.1);
+  assert.equal(resolvePreferences({ eeAiFillStepSeconds: "bad" }).aiStepSeconds, 0.5);
+  const prefs = resolvePreferences({ eeAiAutoFillEnabled: true });
+  assert.equal(prefs.aiHelper, false);
+  assert.equal(prefs.aiAutoFill, true);
 });

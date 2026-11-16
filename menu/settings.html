@@ -770,7 +770,7 @@
 
           <div class="section-heading">
             <h3 id="ai-heading" data-i18n="aiHeading">AI</h3>
-            <p data-i18n="aiHeadingDesc">Optional question suggestions for eTest practice material. Nothing is sent until you press the question button.</p>
+            <p data-i18n="aiHeadingDesc">Optional AI tools for eTest practice. Requests start only from a question action or an explicitly started test-filling shortcut.</p>
           </div>
 
           <div class="setting-card">
@@ -789,7 +789,30 @@
               </div>
             </div>
 
-            <div class="ai-settings" id="AiQuestionHelperSettings" hidden>
+          </div>
+
+          <div class="setting-card" id="ee-ai-auto-card">
+            <div class="setting-row">
+              <div>
+                <h3 data-i18n="eeAiAutoTitle">Automatic test filling</h3>
+                <p data-i18n="eeAiAutoDesc">Off by default. Use the separate Fill loaded test shortcut to start or stop. Only supports tests showing all questions together. Escape stops. No on-page progress or status messages; review errors in the AI activity log. Answers are never submitted.</p>
+              </div>
+              <label class="switch switch-compact" for="ee-ai-auto-enabled">
+                <input type="checkbox" id="ee-ai-auto-enabled">
+                <span class="switch-track" aria-hidden="true"></span>
+                <span class="sr-only" data-i18n="eeAiAutoTitle">Automatic test filling</span>
+              </label>
+            </div>
+            <div class="setting-row">
+              <p data-i18n="eeAiAutoCost">Each unanswered question uses one AI request, plus saved notes when enabled. Provider configuration and fill timing below are shared with the per-question helper.</p>
+              <button type="button" class="secondary-button" id="ee-ai-auto-shortcuts" data-i18n="openShortcutSettings">Open Shortcut Settings</button>
+            </div>
+          </div>
+
+          <div class="setting-card ai-settings" id="AiQuestionHelperSettings" hidden>
+              <div class="setting-row">
+                <div><h3 data-i18n="eeAiSharedSettings">Shared AI configuration</h3></div>
+              </div>
               <div class="setting-row">
                 <div>
                   <h3 data-i18n="aiProvider">Provider</h3>
@@ -894,6 +917,51 @@
                 </label>
               </div>
 
+              <div class="setting-row setting-row-stack" id="ee-ai-fill-options">
+                <div>
+                  <label for="ee-ai-fill-delay" data-i18n="eeAiFillDelay">Delay before filling (seconds)</label>
+                  <p data-i18n="eeAiFillDelayDesc">Wait after the answer arrives. 0–60 seconds; 0 fills immediately. Escape cancels a pending fill.</p>
+                </div>
+                <input id="ee-ai-fill-delay" type="number" min="0" max="60" step="0.5" value="0">
+              </div>
+              <div class="setting-row">
+                <div>
+                  <h3 data-i18n="eeAiSequentialFill">Fill answers one at a time</h3>
+                  <p data-i18n="eeAiSequentialFillDesc">Apply fields, choices and pairs one at a time using the adjustable pause below.</p>
+                </div>
+                <label class="switch switch-compact" for="ee-ai-sequential-fill">
+                  <input id="ee-ai-sequential-fill" type="checkbox" aria-controls="ee-ai-step-options">
+                  <span class="switch-track" aria-hidden="true"></span>
+                  <span class="sr-only" data-i18n="eeAiSequentialFill">Fill answers one at a time</span>
+                </label>
+              </div>
+              <div class="setting-row setting-row-stack" id="ee-ai-step-options" hidden>
+                <label for="ee-ai-fill-step" data-i18n="eeAiFillStep">Pause between answers (seconds, 0.1–10)</label>
+                <input id="ee-ai-fill-step" type="number" min="0.1" max="10" step="0.1" value="0.5">
+              </div>
+              <div class="setting-row">
+                <div>
+                  <h3 data-i18n="eeAiContext">Use saved reference notes</h3>
+                  <p data-i18n="eeAiContextWarning">When enabled, saved notes are sent to your selected AI provider with every question. This uses more input tokens and may cost more. Notes stay in this browser until cleared.</p>
+                </div>
+                <label class="switch switch-compact" for="ee-ai-context-enabled">
+                  <input id="ee-ai-context-enabled" type="checkbox">
+                  <span class="switch-track" aria-hidden="true"></span>
+                  <span class="sr-only" data-i18n="eeAiContext">Use saved reference notes</span>
+                </label>
+              </div>
+              <div class="setting-row setting-row-stack" id="ee-ai-context-editor">
+                <label for="ee-ai-context-text" data-i18n="eeAiContextNotes">Reference notes (up to 20,000 characters)</label>
+                <textarea id="ee-ai-context-text" rows="8" maxlength="20000" spellcheck="false"></textarea>
+                <label for="ee-ai-context-file" data-i18n="eeAiContextFile">Load a UTF-8 .txt or .md file (up to 128 KB)</label>
+                <input id="ee-ai-context-file" type="file" accept=".txt,.md,text/plain,text/markdown">
+                <div class="actions-row">
+                  <button id="ee-ai-context-save" class="secondary-button" type="button" data-i18n="eeAiContextSave">Save notes</button>
+                  <button id="ee-ai-context-clear" class="secondary-button" type="button" data-i18n="eeAiContextClear">Clear notes and disable</button>
+                </div>
+                <p id="ee-ai-fill-status" class="setting-note" role="status" aria-live="polite"></p>
+              </div>
+
               <div class="setting-row">
                 <div>
                   <h3 data-i18n="aiVisualFallback">Visual suggestion fallback</h3>
@@ -920,7 +988,7 @@
               <div class="setting-row">
                 <div>
                   <h3 data-i18n="aiHelperMessages">Helper messages</h3>
-                  <p data-i18n="aiHelperMessagesDesc">Show suggestion notes, errors, and local model responses beneath questions.</p>
+                  <p data-i18n="aiHelperMessagesDesc">Show suggestion notes and local model responses beneath questions. Request errors are always shown.</p>
                 </div>
                 <label class="switch switch-compact" for="AiHelperMessagesCheckbox">
                   <input type="checkbox" id="AiHelperMessagesCheckbox">
@@ -929,6 +997,29 @@
                 </label>
               </div>
 
+          </div>
+
+          <div class="setting-card" id="ee-ai-log-card">
+            <div class="setting-row">
+              <div>
+                <h3 data-i18n="eeAiLogTitle">AI activity log</h3>
+                <p data-i18n="eeAiLogDesc">Keep up to 80 local events from the last seven days. Includes request timing, public model presets and error codes. No questions, answers, keys or provider response text. Turning this off clears the log.</p>
+              </div>
+              <label class="switch switch-compact" for="ee-ai-log-enabled">
+                <input type="checkbox" id="ee-ai-log-enabled" disabled>
+                <span class="switch-track" aria-hidden="true"></span>
+                <span class="sr-only" data-i18n="eeAiLogTitle">AI activity log</span>
+              </label>
+            </div>
+            <div class="setting-row setting-row-stack">
+              <details>
+                <summary data-i18n="eeAiLogReview">Review recent AI activity</summary>
+                <ol id="ee-ai-log-entries" tabindex="0" aria-label="Recent AI activity" data-i18n-attr="aria-label:eeAiLogReview"></ol>
+              </details>
+              <p class="setting-note" role="status" id="ee-ai-log-status"></p>
+              <div class="actions-row">
+                <button type="button" class="secondary-button" id="ee-ai-log-clear" data-i18n="eeAiLogClear">Clear log</button>
+              </div>
             </div>
           </div>
 
@@ -1049,6 +1140,7 @@
                 <label for="ee-test-archive-select" data-i18n="eeArchiveChoose">Saved test</label>
                 <select id="ee-test-archive-select"></select>
                 <div class="actions-row">
+                  <button type="button" class="secondary-button" id="ee-test-archive-copy" data-i18n="eeArchiveCopy">Copy test</button>
                   <button type="button" class="secondary-button" id="ee-test-archive-delete" data-i18n="eeArchiveDelete">Delete test</button>
                 </div>
                 <p class="setting-note" id="ee-test-archive-meta"></p>
@@ -1230,6 +1322,17 @@
                 <span class="sr-only" data-i18n="toggleBlockEscKey">Toggle block escape key</span>
               </label>
             </div>
+            <div class="setting-row">
+              <div>
+                <h3 data-i18n="restoreTestFullscreen">Restore test fullscreen</h3>
+                <p data-i18n="restoreTestFullscreenDesc">Off by default. If this test was fullscreen, request fullscreen again on your next click or ordinary keypress inside its questions. Stops when the player closes. Browser exits remain available; Alt-Tab is untouched. Requires Block Escape Key and Stay Active Mode.</p>
+              </div>
+              <label class="switch switch-compact" for="ActivityRestoreFullscreen">
+                <input type="checkbox" id="ActivityRestoreFullscreen">
+                <span class="switch-track" aria-hidden="true"></span>
+                <span class="sr-only" data-i18n="restoreTestFullscreen">Restore test fullscreen</span>
+              </label>
+            </div>
           </div>
 
           <div class="section-heading">
@@ -1335,6 +1438,18 @@
         <span data-i18n="madeBy">Made by</span> <a href="https://github.com/JustAlex0000" target="_blank" rel="noopener noreferrer">JustAlex</a> <a class="made-by-contributors" href="https://github.com/JustAlex0000/Edupage-Extras/graphs/contributors" target="_blank" rel="noopener noreferrer" data-i18n="madeByContributors">and contributors</a>
       </footer>
 
+      <dialog id="ee-shortcut-help" class="confirm-dialog" aria-labelledby="ee-shortcut-help-title" aria-describedby="ee-shortcut-help-text">
+        <h2 id="ee-shortcut-help-title" data-i18n="shortcutFirefoxHelpTitle">Firefox extension shortcuts</h2>
+        <p id="ee-shortcut-help-text" data-i18n="shortcutSettingsFirefoxHint">Firefox blocks extensions from opening its settings. Open about:addons manually, click the gear icon, then choose Manage Extension Shortcuts.</p>
+        <label for="ee-shortcut-address" data-i18n="shortcutSettingsAddress">Address to open manually</label>
+        <input id="ee-shortcut-address" type="text" value="about:addons" readonly spellcheck="false">
+        <p id="ee-shortcut-copy-status" role="status" aria-live="polite"></p>
+        <div class="actions-row">
+          <button id="ee-shortcut-copy" type="button" class="secondary-button" data-i18n="shortcutCopyAddress">Copy address</button>
+          <a class="secondary-button" href="https://support.mozilla.org/en-US/kb/manage-extension-shortcuts-firefox" target="_blank" rel="noopener noreferrer" data-i18n="shortcutFirefoxGuide">Mozilla instructions</a>
+          <button id="ee-shortcut-close" type="button" class="secondary-button" data-i18n="shortcutHelpClose">Close</button>
+        </div>
+      </dialog>
       <dialog class="confirm-dialog" id="ExperimentalConfirmDialog" aria-labelledby="experimental-confirm-title">
         <h2 id="experimental-confirm-title" data-i18n="experimentalConfirmTitle">Enter Experimental Settings?</h2>
         <p data-i18n="experimentalConfirmBody">This section holds features still in development. They may be unstable, change without notice, or not work as expected. Proceed only if you're comfortable with that.</p>
@@ -1355,5 +1470,7 @@
     <script src="timetable-comparison-settings.js"></script>
     <script src="etest-image-export.js"></script>
     <script src="etest-archive-settings.js"></script>
+    <script src="ai-activity-settings.js"></script>
+    <script src="ai-fill-settings.js"></script>
   </body>
 </html>

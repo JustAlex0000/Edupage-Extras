@@ -4,6 +4,8 @@
 
 /* Saved eTests use the same compact controls and document layout as Settings. */
 #ee-test-archive-library { min-width: 0; width: 100%; }
+#ee-test-archive-library > .actions-row { margin: 10px 0 14px; gap: 10px; }
+#ee-test-archive-library .secondary-button { min-height: 44px; }
 #ee-test-archive-select { width: 100%; min-height: 44px; margin: 8px 0 12px; }
 #ee-test-archive-questions { list-style: none; padding: 0; margin: 0; }
 #ee-test-archive-questions > li { padding: 14px 0; border-top: 1px solid var(--border-subtle); }
@@ -1258,3 +1260,21 @@ input[type="checkbox"]:disabled {
         transition-duration: 0.01ms !important;
     }
 }
+
+#ee-ai-log-card summary { min-height: 44px; cursor: pointer; }
+#ee-ai-log-entries { max-height: 18rem; overflow: auto; overflow-wrap: anywhere; padding-inline-start: 1.5rem; }
+#ee-ai-log-entries li { margin-block: .5rem; }
+
+#ee-ai-fill-options input { width: 120px; min-height: 44px; }
+#ee-ai-context-text { width: 100%; resize: vertical; min-height: 120px; padding: 10px; background: var(--control-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: var(--radius-control); font: inherit; }
+#ee-ai-context-file { width: 100%; min-height: 44px; }
+#ee-ai-context-editor button { min-height: 44px; }
+#ee-ai-fill-status[data-error="true"] { color: var(--danger-color); }
+
+#ee-ai-context-file::file-selector-button { min-height: 44px; padding: 8px 12px; margin-inline-end: 10px; background: var(--control-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: var(--radius-control); font: inherit; cursor: pointer; }
+
+#ee-ai-fill-step { width: 120px; min-height: 44px; }
+#ee-ai-auto-shortcuts { min-height: 44px; }
+
+#ee-shortcut-address { width: 100%; min-height: 44px; margin: 8px 0; }
+#ee-shortcut-help .actions-row > * { min-height: 44px; }

@@ -121,9 +121,11 @@ that invent borders or boxes around EduPage's otherwise continuous layouts.
 `scripts/lib/ee-timetable-comparison.js` owns calendar validation, sample-week
 templates, civil-date A/B repetition, group filtering, and shared-gap calculation.
 `scripts/timetable-comparison-ui.js` provides the inline editor exclusively in
-Settings → Timetable; `scripts/timetable-comparison.js` adds a compact finish-time
-strip above the native weekly grid and a single expandable row below the home
-widget. Native timetables stay visible. Their rendered lessons supply the first
+Settings → Timetable; `scripts/timetable-comparison.js` adds an actual-time
+comparison grid on the weekly page and a single expandable row below the home
+widget. Weekly comparison temporarily hides the native grid, retaining native
+class/week navigation and a switch to restore it. The native grid is restored
+on disable, cleanup, or unavailable dates. Its rendered lessons supply the first
 schedule without opening a background tab. Weekly route detection accepts both
 `mode=timetable` and base64 `eqa` links. Scoped observers handle native timetable
 replacement; the home row is mounted after `.userRozvrh` so its periodic native
@@ -269,3 +271,118 @@ Run `npm test` after code changes, then use the Firefox lint/build and package
 verification commands from [CONTRIBUTING.md](CONTRIBUTING.md). Package builders
 use an explicit allowlist, so local notes and captures cannot enter a release.
 Versioning and tagged release flow are also documented there.
+
+## AI activity diagnostics
+
+`background.js` serializes all writes/clear/disable operations for
+`eeAiActivityLog` (80 entries, seven-day pruning on write/read). The local
+`eeAiActivityLogEnabled` preference defaults on; switching off also erases data.
+Only Settings may read/clear/change this preference through runtime messages.
+Top-frame HTTPS EduPage helpers may report fixed application/shortcut event
+codes; they cannot supply metadata or arbitrary log text. Provider errors become
+fixed codes and HTTP status numbers. Model metadata uses an explicit public
+OpenAI preset allowlist; every other model is `custom`. No provider messages,
+credentials, prompts, answers, school URLs or test identifiers are stored.
+Diagnostics exclude the key even with redaction disabled. Log storage failures
+must never interrupt an AI action. `menu/ai-activity-settings.js` renders text
+entries using existing settings controls and observes storage/language changes.
+The provider adapter detects output-limit termination before parsing or applying
+a potentially partial response; no automatic retry or token-budget increase.
+
+### Review and comparison improvements
+
+Saved-test serialization reads KaTeX MathML once, omits TeX annotations and
+visual duplicates, and serializes common fractions, powers, roots and vectors
+as readable text. The title reader prefers the native nested `.interactiveElem`
+name and excludes SR-only instructions and counters. Later snapshots preserve the
+last nonempty native title. There is no manual naming flow. Copy exports plain
+text through a user action; image omission
+is explicit. Existing flattened captures are not automatically rewritten.
+
+Home comparison retains its summary disclosure and uses horizontal lesson
+columns beneath it. No Home shared-gap paragraph is rendered. Disclosures remain
+open across re-rendering. The weekly planner uses actual minutes and packs
+overlapping intervals into separate tracks, marking unknown days unavailable.
+Its mount follows the complete native canvas, falling back to the parsed root
+when `#fitheight` is absent. The comparison is visible by default. Scoped classes
+hide only the native grid, collapse canvas minimum height, and restore the original
+view on switch, disable or cleanup. No native timetable node is replaced.
+
+New provider presets keep saved model IDs. GPT-6 requests omit temperature;
+reasoning Off maps to none only on models that support it and otherwise low.
+Gemini 4 and 3.8 use LOW rather than unsupported MINIMAL for Off.
+
+Weekly comparison presentation reads native subject-cell colours at render time
+by matching the existing text/background layers. They remain presentation-only
+and are never written to saved schedules or caches. Imported-only subjects use
+a deterministic native-style pastel palette, tinted against theme tokens in
+dark mode. Ownership remains labelled; overlap tracks and actual times are unchanged.
+
+## AI fill timing and reference notes
+
+`eeAiFillDelaySeconds` is bounded to 0–60 (default 0), and
+`eeAiSequentialFillEnabled` defaults false. The content helper keeps requests
+pending through filling, using one cancelable timeout and an expected question
+snapshot after each own mutation. Before every action it rechecks player,
+route, model/answers, generation and connectivity. Escape, trusted edits,
+configuration changes and page/player replacement invalidate pending work.
+Programmatic input/change events from an active own step do not cancel it.
+Cloned AI controls are recreated instead of retaining detached event handlers.
+The AI shortcut checks the currently hovered question before its existing
+clicked/focused/single-question fallback. Copy targeting is unchanged.
+
+Sequential mode applies fields, choices, dropdowns and ordering moves locally
+with `eeAiFillStepSeconds` (0.1–10, default 0.5) between steps. Matching keeps the full validated permutation and
+stable original pair IDs in the existing MAIN bridge, accepting monotonic local
+step indexes. The API request/response schema and provider-call count are
+unchanged. No test navigation or automatic submission is added.
+
+`menu/ai-fill-settings.js` owns the timing and notes controls. Context uses
+`eeAiContextEnabled` (default false) and `eeAiContextText` (up to 20,000 UTF-16
+code units). UTF-8 `.txt`/`.md` imports are capped at 128 KiB, reject invalid
+encoding/NULs and load only a draft until Save. No original file/filename is
+stored. Clear writes empty text and disables context atomically. Background
+reads notes only for opted-in explicit AI actions, appends them as untrusted
+reference data to the existing prompt, and rejects oversized stored notes
+rather than truncating. Disabled context leaves the provider body unchanged.
+Content scripts do not read notes, and notes are excluded from all diagnostics
+and activity logs. They remain local until cleared/extension removal, while
+copies sent to the selected provider follow that provider's retention rules.
+
+`eeAiAutoFillEnabled` is an independent, default-off feature with its own
+`fill-loaded-test` browser command. Both AI features share configuration and
+notes; either opt-in reveals shared Settings. Background authorization checks
+`mode: loaded-test` against the automatic-fill switch, while ordinary question
+requests still require the individual helper. Existing-tab bootstrap also
+recognizes the independent feature.
+
+The content helper snapshots rendered questions only in `.cardsPerScreen-all`,
+queues unvisited unanswered entries serially, and uses the existing guarded
+request/fill path. It awaits completion before advancing, skips manually edited
+future entries, and holds a result if its question becomes hovered/focused.
+Focus/pointer/scroll/DOM events resume a hold; there is no polling. Repeated
+queue shortcut, Escape, configuration/route/player changes, current-question
+edits and provider errors stop remaining work. Already-applied answers stay.
+Queue requests suppress all question UI and visual fallbacks, including error
+notes. Only safe fixed lifecycle events reach the Settings activity log. The
+queue never starts on enable/load and never navigates or submits tests.
+
+## Optional test fullscreen restoration
+
+`scripts/test-fullscreen.js` runs in the top isolated frame, independently of AI
+and page-world shield hooks. `eeActivityShieldRestoreFullscreen` defaults false,
+requires Stay Active and Block Escape, and is registered in the manifest and
+existing-tab bootstrap. It only arms after observing actual fullscreen containing
+the rendered `.etest-screen-questions` view in an `.etest-player`.
+Window capture observes fullscreen changes before document-level handlers.
+
+One subsequent trusted click/ordinary key inside the questions may request the
+original connected fullscreen element; native focus/visibility checks prevent
+background requests. Escape, F11, Tab and modifier shortcuts are ignored. There
+is no keyboard lock, focus stealing, exit suppression or automatic fullscreen
+request from a fullscreen-exit/focus event. Denial is swallowed and not retried
+until another genuine fullscreen entry/exit. Route/player replacement or loss
+of question view resets state, as do disabling preferences and pagehide.
+Discovery is event-driven and bounded to 30 seconds when no player is open;
+its observer lasts through the current question view. No page data is stored,
+logged or sent. There are no new permissions or AI dependencies.

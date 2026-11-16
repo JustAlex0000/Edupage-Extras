@@ -28,20 +28,28 @@
       && new Set(matches.map((match) => match.right)).size === count;
   }
 
-  function applyMatches(requestId, matches) {
+  const sequences = new WeakMap();
+
+  function applyMatches(requestId, matches, step) {
     const content = findQuestion(requestId);
     const initialRows = getRows(content);
-    if (!content || initialRows.some((row) => row.classList.contains("isConnected"))
-      || !isValidMatching(matches, initialRows.length)) return 0;
-
-    const pairIds = initialRows.map((row) => ({
-      left: row.dataset.id,
-      right: row.querySelector(".etest-answer-inner.pair-r")?.dataset.id,
-    }));
-    if (pairIds.some((pair) => !pair.left || !pair.right)) return 0;
+    if (!content || !isValidMatching(matches, initialRows.length)) return 0;
+    if (step !== undefined && (!Number.isInteger(step) || step < 0 || step >= matches.length)) return 0;
+    let sequence = sequences.get(content);
+    if (step === undefined || step === 0) {
+      if (initialRows.some((row) => row.classList.contains("isConnected"))) return 0;
+      const pairIds = initialRows.map(row => ({ left: row.dataset.id,
+        right: row.querySelector(".etest-answer-inner.pair-r")?.dataset.id }));
+      if (pairIds.some(pair => !pair.left || !pair.right)) return 0;
+      sequence = { pairIds, signature: JSON.stringify(matches), next: 0 };
+      if (step !== undefined) sequences.set(content, sequence);
+    }
+    if (!sequence || (step !== undefined && (sequence.next !== step || sequence.signature !== JSON.stringify(matches)))) return 0;
+    const pairIds = sequence.pairIds;
+    const selected = step === undefined ? matches : [matches[step]];
 
     let applied = 0;
-    for (const match of matches) {
+    for (const match of selected) {
       const targetId = pairIds[match.left].left;
       const sourceId = pairIds[match.right].right;
       const target = getRows(content).find((row) => row.dataset.id === targetId);
@@ -53,6 +61,10 @@
 
       drop.call(target, jq.Event("drop", { target }), { helper: jq(source) });
       applied += 1;
+    }
+    if (step !== undefined) {
+      sequence.next++;
+      if (!applied || sequence.next === matches.length) sequences.delete(content);
     }
     return applied;
   }
@@ -66,7 +78,7 @@
     } catch (_) {
       return;
     }
-    const applied = applyMatches(String(request?.id || ""), request?.matches);
+    const applied = applyMatches(String(request?.id || ""), request?.matches, request?.step);
     port.dataset.response = JSON.stringify({ id: request?.id, applied });
   });
 })();

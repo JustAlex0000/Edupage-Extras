@@ -331,6 +331,188 @@ for (const browserName of ["chromium", "firefox"]) {
           catalog("cs").eeArchiveYourAnswer.message);
         assert.equal(await settings.locator("#ee-test-archive-questions p").first().textContent(), "Synthetic saved question");
       });
+      if (settings) await t.test("saved tests copy the selected capture and keep actions separated", async () => {
+        await settings.locator("#ExperimentalSettingsButton").click();
+        await settings.evaluate(() => { navigator.clipboard.writeText = async value => { window.syntheticCopiedTest = value; }; });
+        await settings.locator("#ee-test-archive-copy").click();
+        await settings.waitForFunction(() => window.syntheticCopiedTest?.startsWith("Synthetic saved test"));
+        assert.equal(await settings.evaluate(() => syntheticCopiedTest.includes("Recorded answer")), true);
+        for (const width of [1280, 390]) {
+          await settings.setViewportSize({ width, height: 900 });
+          const boxes = await settings.locator("#ee-test-archive-copy, #ee-test-archive-delete").evaluateAll(nodes => nodes.map(n => {
+            const r = n.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, height: r.height };
+          }));
+          assert.ok(boxes.every(r => r.height >= 44));
+          assert.ok(boxes[0].right + 8 <= boxes[1].left || boxes[0].bottom + 8 <= boxes[1].top);
+        }
+        await settings.setViewportSize({ width: 1280, height: 900 });
+        if (process.env.EE_STORE_SCREENSHOT_DIR) {
+          fs.mkdirSync(process.env.EE_STORE_SCREENSHOT_DIR, { recursive: true });
+          await settings.locator("#nav-appearance").click();
+          await settings.locator("#ee-language-select").selectOption("en");
+          await settings.waitForFunction(() => document.documentElement.lang === "en");
+          await settings.locator("#ExperimentalSettingsButton").click();
+          await settings.evaluate(async () => {
+            const { eeTestArchive: library } = await chrome.storage.local.get("eeTestArchive");
+            library.tests[0].openedAt = library.tests[0].updatedAt = new Date("2026-11-12T09:00:00").getTime();
+            library.tests[0].questions = [{ id: "q0", number: "1", body: "Find the slope of the line through A[1;2] and B[3;6].\na) 1\nb) 2\nc) 3", answers: ["b) 2"], images: [], visualsOmitted: false }];
+            await chrome.storage.local.set({ eeTestArchive: library });
+          });
+          await settings.waitForFunction(() => document.getElementById("ee-test-archive-questions").textContent.includes("A[1;2]"));
+          await settings.setViewportSize({ width: 1280, height: 900 });
+          await settings.locator("#ee-test-archive-review").evaluate(el => { el.open = true; });
+          await settings.locator("#ee-test-archive-card").scrollIntoViewIfNeeded();
+          await settings.locator("#ee-test-archive-card").screenshot({ path: path.join(process.env.EE_STORE_SCREENSHOT_DIR, "saved-tests.png") });
+        }
+      });
+      if (settings) await t.test("AI activity review, clear and disable in installed Settings", async () => {
+        await settings.locator("#ExperimentalSettingsButton").click();
+        await settings.waitForSelector("#ee-ai-log-card", { state: "visible" });
+        await saveStorage({ eeAiActivityLog: [{ at: Date.now(), event: "failed", provider: "openai", model: "gpt-5.6-terra", error: "http", http: 429, ms: 250 }] });
+        const disclosure = settings.locator("#ee-ai-log-card summary");
+        await disclosure.focus(); await settings.keyboard.press("Enter");
+        await settings.waitForFunction(() => document.querySelector("#ee-ai-log-entries")?.textContent.includes("HTTP 429"));
+        assert.equal(await settings.locator("#ee-ai-log-enabled").isChecked(), true);
+        await settings.setViewportSize({ width: 390, height: 844 });
+        assert.equal(await settings.locator("#ee-ai-log-card").evaluate(el => el.scrollWidth <= el.clientWidth), true);
+        await settings.locator("#ee-ai-log-clear").click();
+        await settings.waitForFunction(async () => (await chrome.storage.local.get("eeAiActivityLog")).eeAiActivityLog.length === 0);
+        await settings.locator('label[for="ee-ai-log-enabled"]').click();
+        await settings.waitForFunction(async () => (await chrome.storage.local.get("eeAiActivityLogEnabled")).eeAiActivityLogEnabled === false);
+      });
+      if (settings) await t.test("AI timing and reference notes save locally, validate imports and clear cleanly", async () => {
+        await settings.locator("#ExperimentalSettingsButton").click();
+        if (!await settings.locator("#AiQuestionHelperCheckbox").isChecked()) await settings.locator('label[for="AiQuestionHelperCheckbox"]').click();
+        await settings.locator("#ee-ai-fill-delay").fill("2.5");
+        await settings.locator("#ee-ai-fill-delay").blur();
+        await settings.waitForFunction(async () => (await chrome.storage.local.get("eeAiFillDelaySeconds")).eeAiFillDelaySeconds === 2.5);
+        await settings.locator('label[for="ee-ai-sequential-fill"]').click();
+        await settings.locator("#ee-ai-fill-step").fill("0.2");
+        await settings.locator("#ee-ai-fill-step").blur();
+        await settings.waitForFunction(async () => (await chrome.storage.local.get("eeAiFillStepSeconds")).eeAiFillStepSeconds === 0.2);
+        await settings.locator("#ee-ai-context-text").fill("SYNTHETIC_SAVED_NOTES");
+        await settings.locator("#ee-ai-context-save").click();
+        await settings.waitForFunction(async () => (await chrome.storage.local.get("eeAiContextText")).eeAiContextText === "SYNTHETIC_SAVED_NOTES");
+        assert.equal(await settings.locator("#ee-ai-context-enabled").isChecked(), false);
+        await settings.locator("#ee-ai-context-file").setInputFiles({ name: "practice.md", mimeType: "text/markdown", buffer: Buffer.from("SYNTHETIC_FILE_NOTES") });
+        await settings.waitForFunction(() => document.getElementById("ee-ai-context-text").value === "SYNTHETIC_FILE_NOTES");
+        assert.equal((await readStorage("eeAiContextText")).eeAiContextText, "SYNTHETIC_SAVED_NOTES");
+        await settings.locator("#ee-ai-context-save").click();
+        await settings.waitForFunction(async () => (await chrome.storage.local.get("eeAiContextText")).eeAiContextText === "SYNTHETIC_FILE_NOTES");
+        await settings.locator('label[for="ee-ai-context-enabled"]').click();
+        await settings.waitForFunction(async () => (await chrome.storage.local.get("eeAiContextEnabled")).eeAiContextEnabled === true);
+        for (const [name, buffer] of [["bad.pdf", Buffer.from("pdf")], ["bad.txt", Buffer.from([255, 254, 255])], ["too-long.md", Buffer.alloc(20001, 65)], ["too-big.txt", Buffer.alloc(131073, 65)]]) {
+          await settings.locator("#ee-ai-context-file").setInputFiles({ name, mimeType: "text/plain", buffer });
+          await settings.waitForFunction(() => document.getElementById("ee-ai-fill-status").dataset.error === "true" && document.getElementById("ee-ai-context-file").value === "");
+          assert.equal(await settings.locator("#ee-ai-context-text").inputValue(), "SYNTHETIC_FILE_NOTES");
+          assert.equal((await readStorage("eeAiContextText")).eeAiContextText, "SYNTHETIC_FILE_NOTES");
+        }
+        const report = await generateReport(false);
+        assert.equal(JSON.stringify(report).includes("SYNTHETIC_FILE_NOTES"), false);
+        assert.equal(JSON.stringify(await readStorage(null)).includes("practice.md"), false);
+        await settings.locator("#ExperimentalSettingsButton").click();
+        await settings.setViewportSize({ width: 390, height: 844 });
+        assert.equal(await settings.locator("#ee-ai-context-editor").evaluate(el => el.scrollWidth <= el.clientWidth), true);
+        if (process.env.EE_AI_SETTINGS_REVIEW) await settings.locator("#ee-ai-context-editor").screenshot({ path: process.env.EE_AI_SETTINGS_REVIEW });
+        await settings.locator("#ee-ai-context-clear").click();
+        await settings.waitForFunction(async () => { const s = await chrome.storage.local.get(["eeAiContextText", "eeAiContextEnabled"]); return s.eeAiContextText === "" && s.eeAiContextEnabled === false; });
+        assert.equal(await settings.locator("#ee-ai-context-text").inputValue(), "");
+        await settings.setViewportSize({ width: 1280, height: 900 });
+      });
+      if (settings) await t.test("automatic test filling has a separate toggle and shared configuration", async () => {
+        await settings.locator("#ExperimentalSettingsButton").click();
+        if (await settings.locator("#AiQuestionHelperCheckbox").isChecked()) await settings.locator('label[for="AiQuestionHelperCheckbox"]').click();
+        assert.equal(await settings.locator("#AiQuestionHelperSettings").isVisible(), false);
+        await settings.locator('label[for="ee-ai-auto-enabled"]').click();
+        await settings.waitForFunction(async () => (await chrome.storage.local.get("eeAiAutoFillEnabled")).eeAiAutoFillEnabled === true);
+        assert.equal(await settings.locator("#AiQuestionHelperCheckbox").isChecked(), false);
+        assert.equal(await settings.locator("#AiQuestionHelperSettings").isVisible(), true);
+        assert.equal(await settings.locator("#AiModelSelect").isEnabled(), true);
+        assert.equal(await settings.locator("#ee-ai-auto-shortcuts").isVisible(), true);
+        if (process.env.EE_AI_SETTINGS_REVIEW) await settings.locator("#ee-ai-auto-card").screenshot({ path: process.env.EE_AI_SETTINGS_REVIEW.replace(/\.png$/, "-auto.png") });
+        await settings.locator('label[for="ee-ai-auto-enabled"]').click();
+        await settings.waitForFunction(async () => (await chrome.storage.local.get("eeAiAutoFillEnabled")).eeAiAutoFillEnabled === false);
+        assert.equal(await settings.locator("#AiQuestionHelperSettings").isVisible(), false);
+      });
+      if (settings) await t.test("test fullscreen restoration is independently opt-in under Block Escape", async () => {
+        await saveStorage({ eeActivityShieldEnabled: false, eeActivityShieldBlockEsc: true, eeActivityShieldRestoreFullscreen: false });
+        await settings.locator("#ExperimentalSettingsButton").click();
+        await settings.waitForFunction(() => !document.getElementById("ActivityShieldEnabled").checked);
+        assert.equal(await settings.locator("#ActivityRestoreFullscreen").isChecked(), false);
+        assert.equal(await settings.locator("#ActivityRestoreFullscreen").isDisabled(), true);
+        await settings.locator('label[for="ActivityShieldEnabled"]').click();
+        await settings.waitForFunction(() => !document.getElementById("ActivityRestoreFullscreen").disabled);
+        await settings.locator('label[for="ActivityRestoreFullscreen"]').click();
+        await settings.waitForFunction(async () => (await chrome.storage.local.get("eeActivityShieldRestoreFullscreen")).eeActivityShieldRestoreFullscreen === true);
+        await settings.locator('label[for="ActivityBlockEsc"]').click();
+        await settings.waitForFunction(() => document.getElementById("ActivityRestoreFullscreen").disabled);
+        assert.equal(await settings.locator("#ActivityRestoreFullscreen").isChecked(), true);
+        await settings.locator('label[for="ActivityBlockEsc"]').click();
+        await settings.waitForFunction(() => !document.getElementById("ActivityRestoreFullscreen").disabled);
+        await settings.locator('label[for="ActivityRestoreFullscreen"]').click();
+        await settings.waitForFunction(async () => (await chrome.storage.local.get("eeActivityShieldRestoreFullscreen")).eeActivityShieldRestoreFullscreen === false);
+        await settings.locator('label[for="ActivityShieldEnabled"]').click();
+      });
+      if (settings) await t.test("installed fullscreen restorer works across isolated and MAIN worlds", async () => {
+        await saveStorage({ eeActivityShieldEnabled: true, eeActivityShieldBlockEsc: true, eeActivityShieldRestoreFullscreen: true });
+        await page.bringToFront();
+        await page.evaluate(() => {
+          window.eeFullscreenEvents = [];
+          window.addEventListener("fullscreenchange", () => eeFullscreenEvents.push(!!document.fullscreenElement), true);
+          const player = document.createElement("div"); player.className = "etest-player"; player.id = "ee-fullscreen-fixture";
+          const screen = document.createElement("div"); screen.className = "etest-screen-questions";
+          const question = document.createElement("div"); question.className = "etest-question-content";
+          const input = document.createElement("input"); input.id = "ee-fullscreen-answer";
+          const enter = document.createElement("button"); enter.id = "ee-fullscreen-enter"; enter.textContent = "Fullscreen practice";
+          enter.addEventListener("click", () => document.documentElement.requestFullscreen());
+          question.append(input, enter); screen.append(question); player.append(screen); document.body.prepend(player);
+        });
+        await page.locator("#ee-fullscreen-enter").click();
+        await page.waitForFunction(() => !!document.fullscreenElement && eeFullscreenEvents.at(-1) === true);
+        await page.evaluate(() => document.exitFullscreen());
+        await page.waitForFunction(() => !document.fullscreenElement && eeFullscreenEvents.at(-1) === false);
+        await page.locator("#ee-fullscreen-answer").click();
+        await page.waitForFunction(() => !!document.fullscreenElement && eeFullscreenEvents.at(-1) === true);
+        await page.evaluate(() => document.exitFullscreen());
+        await page.evaluate(() => document.getElementById("ee-fullscreen-fixture").remove());
+        await saveStorage({ eeActivityShieldEnabled: false, eeActivityShieldRestoreFullscreen: false });
+        await settings.bringToFront();
+      });
+      if (settings) await t.test("Firefox shortcut buttons show usable instructions without privileged navigation", async () => {
+        await settings.locator("#ExperimentalSettingsButton").click();
+        await settings.evaluate(() => {
+          window.eeSavedTabsCreate = chrome.tabs.create;
+          window.eeShortcutNavigations = [];
+          window.eeI18n.isFirefox = true;
+          chrome.tabs.create = (options, callback) => {
+            if (options.url.startsWith("about:")) throw new Error("Privileged navigation must not be attempted");
+            eeShortcutNavigations.push(options.url); callback?.({});
+          };
+          navigator.clipboard.writeText = async text => { window.eeCopiedShortcutAddress = text; };
+        });
+        const buttons = ["ExperimentalShortcutSettingsButton", "OpenShortcutSettingsButton", "OpenEtestCopyShortcutSettingsButton", "OpenAiShortcutSettingsButton", "ee-ai-auto-shortcuts"];
+        for (const id of buttons) {
+          // Some entry points are hidden until their feature is enabled; exercise each bound handler.
+          await settings.locator(`#${id}`).evaluate(button => button.click());
+          assert.equal(await settings.locator("#ee-shortcut-help").evaluate(dialog => dialog.open), true);
+          assert.equal(await settings.locator("#ee-shortcut-address").inputValue(), "about:addons");
+          assert.equal(await settings.locator("#ee-shortcut-help-text").textContent().then(text => text.includes("about:addons")), true);
+          await settings.locator("#ee-shortcut-close").click();
+        }
+        await settings.locator("#ExperimentalShortcutSettingsButton").click();
+        await settings.locator("#ee-shortcut-copy").click();
+        assert.equal(await settings.evaluate(() => eeCopiedShortcutAddress), "about:addons");
+        await settings.setViewportSize({ width: 390, height: 844 });
+        assert.equal(await settings.locator("#ee-shortcut-help").evaluate(dialog => dialog.scrollWidth <= dialog.clientWidth), true);
+        await settings.keyboard.press("Escape");
+        assert.equal(await settings.locator("#ee-shortcut-help").evaluate(dialog => dialog.open), false);
+        assert.equal(await settings.evaluate(() => eeShortcutNavigations.length), 0);
+        await settings.evaluate(() => eeI18n.isFirefox = false);
+        await settings.locator("#ExperimentalShortcutSettingsButton").click();
+        assert.deepEqual(await settings.evaluate(() => eeShortcutNavigations), ["chrome://extensions/shortcuts"]);
+        await settings.evaluate(() => { chrome.tabs.create = eeSavedTabsCreate; });
+        await settings.setViewportSize({ width: 1280, height: 900 });
+      });
       assert.equal(fs.existsSync(path.join(ROOT, FIREFOX_CONTROL_FILE)), false);
       assert.deepEqual(errors, []);
       t.diagnostic(`${browserName}: ${await context.browser().version()}, real extension and isolated/MAIN/background paths exercised; exact eTest registrations are deleted on both targets and stay absent when disabled, while fresh disabled-mode registrations work until reactivation`);

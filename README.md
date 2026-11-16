@@ -105,7 +105,10 @@ EduPage, open a GitHub issue or report it on [Discord](https://discord.gg/eNZXHe
 - **Saved tests (Experimental, off by default)** — Settings → Experimental →
   eTest tools → Save tests for review automatically keeps opened eTest questions and the latest
   answers recorded on this device, independently of Copy and AI. Review and
-  delete them in the same settings section. Turning recording off retains saved
+  copy or delete them in the same settings section. Test names are read automatically
+  from the native name field, excluding accessibility instructions and counters. New captures
+  store each KaTeX formula once as readable text. Previously flattened formulas
+  cannot be reconstructed from old saves and need a new capture. Turning recording off retains saved
   tests; deleting all also turns recording off.
   Only loaded questions are captured: unvisited questions may be missing, and
   recorded answers do not confirm submission or correctness. Each opening or
@@ -153,9 +156,14 @@ EduPage, open a GitHub issue or report it on [Discord](https://discord.gg/eNZXHe
   prompts to EduPage while off or before a schedule is saved. Preview the next two
   weeks before saving; select included groups and the Monday that anchors week A.
   Home keeps your native timetable and adds one expandable row with their
-  current/next lesson, both finish times, and the difference. The weekly page
-  keeps EduPage’s grid and adds a compact day-by-day finish strip; expand a day
-  for their lessons and shared gaps. Both plain and encoded timetable links work.
+  current/next lesson, both finish times, and the difference. Its arrow reveals
+  horizontal lesson columns with times, rooms and groups, without a shared-gap
+  sentence. With comparison enabled, the weekly page shows both schedules
+  together on a shared clock-time grid, without opening individual days. Overlapping
+  groups remain visible. **Normal EduPage view** restores the original grid;
+  **Comparison view** returns to the comparison. Native week navigation stays
+  available. Both plain and
+  encoded timetable links work.
   Shared gaps of at least 15 minutes are calculated within the combined school
   day. They mean no scheduled lessons, not guaranteed availability.
 
@@ -197,6 +205,66 @@ Preferences are not stored in page DOM. Page scripts can still observe or interf
 with browser hooks and the initial bridge handshake; undetectability is not guaranteed.
 Browser throttling, freezing, tab discard, and machine sleep can pause all page work.
 The testing page does not verify school-side monitoring or session timeouts.
+
+The AI shortcut targets the question under the mouse pointer, before falling
+back to the last clicked/focused question or the only question on the page.
+Choose **Shortcut** or **Both** in Answer controls to enable it.
+
+AI settings also offer **Delay before filling** (0–60 seconds, default 0) and
+**Fill answers one at a time** (off by default). The latter applies one field,
+choice, dropdown, ordering move or matching pair with a configurable **0.1–10 second**
+pause (default 0.5). These are
+local actions: the provider request and answer format stay the same, with no
+extra requests or tokens. Escape, manual edits, page/player changes, or changed
+AI configuration cancel remaining fills. Earlier applied fields remain as they
+are; answers are never submitted automatically.
+
+**Automatic test filling** is a separate off-by-default AI feature. Enable it
+independently of Test Question Helper and assign **Start or stop filling the
+loaded eTest** in your browser's extension shortcut settings. In a test showing
+all questions together, press that shortcut to start or stop; Escape also stops.
+It processes only questions rendered when started, one request at a time, skips
+answered or manually edited questions, and holds answers while their question is
+hovered or focused. It never navigates or submits. There are no queue controls,
+progress, spinners, suggestion notes or error messages on the test page; use the
+AI activity log in Settings afterwards. Provider failures stop the queue.
+Provider configuration, notes and filling timing are shared with the individual
+helper. Each processed question consumes its normal request; stopping prevents
+remaining work but cannot recall a request already sent to the provider.
+
+**Use saved reference notes** is off by default. Paste notes or load a UTF-8
+`.txt`/`.md` file up to 128 KB and 20,000 characters, review it and choose
+**Save notes**. Only the text is saved locally, without the original file or its
+name. When enabled, saved notes are included in each explicitly requested
+question sent to the selected provider, consuming more input tokens and
+potentially increasing cost. Turning this off retains the local notes; **Clear
+notes and disable** deletes the text and stops sending it. Notes are excluded
+from AI activity logs and both diagnostic report modes. PDF, Word, images and
+other files are not supported by this text import.
+
+**Restore test fullscreen** is an independent, off-by-default option beneath
+**Block Escape Key** in Stay Active settings. When both parent switches are on,
+it remembers a fullscreen element containing the current test's visible question view.
+After exiting fullscreen, the next genuine click or ordinary keypress inside
+those questions requests fullscreen again. It never intercepts Alt-Tab, brings
+an unfocused app forward, locks the keyboard, or prevents the browser's own
+fullscreen exit. A denied request is not repeatedly retried. Closing/replacing or hiding
+the question view, leaving the page or disabling a parent resets it. This is
+normal page fullscreen, not a guarantee that the browser/OS cannot leave it.
+
+AI request failures are always shown beside the affected question, even when
+Helper messages is off. The preference controls optional suggestion notes and
+raw model-response details.
+
+Settings → Experimental → AI includes an **AI activity log** for checking failures
+afterwards. It records requests, timing, public OpenAI model presets/reasoning
+settings, safe error codes, application/cancellation outcomes and ignored
+shortcuts. Custom model names are replaced with `custom`. Logging is on by
+default for these actions; turn it off to stop logging and erase saved entries,
+or use **Clear log**. Up to 80 events are stored locally; entries older than
+seven days are pruned on new activity or opening the log. Questions, answers,
+keys, school URLs and raw provider responses are excluded, as is the entire log
+from diagnostic reports. A saved page cannot reconstruct past provider errors.
 
 ### Keyboard shortcuts
 
@@ -343,3 +411,12 @@ MIT notice covering previously published code and contributions. Earlier MIT
 releases retain their original permissions.
 
 Corresponding source: https://github.com/JustAlex0000/Edupage-Extras
+
+The model picker includes GPT-6.1 Terra, GPT-6.1 Sol, GPT-6 Luna and GPT-6 Astra,
+plus Gemini 4 Argon, Gemini 4 Carbon and Gemini 3.8 Flash. Existing selections and
+custom model IDs are retained. Provider access still depends on your account.
+
+Firefox does not allow extensions to open `about:addons`. Shortcut buttons there
+show instructions and a copyable address: open it manually, then use the gear
+menu → **Manage Extension Shortcuts**. Chrome buttons open its native shortcuts
+page as before.

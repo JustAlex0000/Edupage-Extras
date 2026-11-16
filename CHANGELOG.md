@@ -4,6 +4,50 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## 1.1.0 — 2026-11-16
+
+- Make selected text readable in dark themes with a blue highlight and dark text.
+
+- Fix every Firefox shortcut-settings entry point: show setup instructions and
+  a copyable about:addons address instead of attempting forbidden navigation.
+
+- Add default-off Restore test fullscreen under Block Escape, independent of AI.
+  Restore on a genuine question interaction only after observed fullscreen;
+  preserve browser exits, modifier shortcuts and background-app switching.
+
+- Make the pause between sequential answer actions adjustable from 0.1–10 seconds.
+- Add independent, off-by-default automatic filling for all-questions test layouts,
+  controlled by a separate start/stop shortcut or Escape, with no on-page indicators.
+- Skip answered/edited questions, hold hovered/focused results, and log outcomes
+  only in Settings; preserve existing per-question controls and provider requests.
+
+- Target AI shortcuts at the hovered question before click/focus fallbacks.
+- Add optional local fill delay and sequential filling without extra API calls
+  or tokens; cancel remaining actions on edits, Escape and stale questions.
+- Add opt-in reference notes with TXT/Markdown import, token/cost disclosure,
+  explicit save/clear controls and exclusion from diagnostics.
+- Recreate cloned AI controls after player replacement so they remain usable.
+
+- Match the weekly comparison to native timetable typography, subject colours,
+  corner room/group labels, grid dividers and centered subjects.
+
+- Add Copy test and read test names automatically from the native name field,
+  excluding accessibility text; preserve titles across later captures.
+- Keep saved-test actions in one spaced, wrapping row with 44px controls.
+- Capture math once from KaTeX MathML and fix generic question numbering in new saves.
+- Add collapsible Home comparison lesson columns while retaining the summary row;
+  match native lesson boxes, remove the Home shared-gap sentence and retain
+  expanded state during refresh.
+- Add an actual-time weekly comparison planner and mount it outside the native canvas,
+  with a fallback for pages without the legacy container. Show the whole comparison
+  immediately, keep native week navigation, and offer a switch to the original grid.
+- Add current OpenAI and Gemini presets with model-compatible reasoning settings.
+
+- Show AI request failures even when optional Helper messages are disabled.
+- Added a bounded local AI activity log in Experimental → AI, with safe failure
+  codes, request timing, shortcut outcomes, clear and disable controls.
+- Identify provider output-limit failures before applying partial suggestions.
+
 ## 1.0.12 — 2026-11-11
 
 - Added an opt-in **Weights** panel to the Grades toolbar. Select a subject to

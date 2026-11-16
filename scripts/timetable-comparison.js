@@ -11,6 +11,8 @@
   let enabled = false;
   let root = null;
   let nativeRoot = null;
+  let hiddenNative = null;
+  let normalView = false;
   let observer = null;
   let discovery = null;
   let discoveryTimer = null;
@@ -19,7 +21,29 @@
   let generation = 0;
   let signature = "";
 
+  function restoreNative() {
+    hiddenNative?.classList.remove("ee-comparison-hidden-native");
+    hiddenNative = null;
+    document.querySelector("#fitheight")?.classList.remove("ee-comparison-week-active");
+  }
+
+  function syncNativeView() {
+    restoreNative();
+    if (!isWeekly() || normalView || !nativeRoot) return;
+    const canvas = document.querySelector("#fitheight");
+    let grid = nativeRoot;
+    if (canvas?.contains(grid)) {
+      while (grid.parentElement !== canvas) grid = grid.parentElement;
+      // Keep EduPage's first child (class selector and week navigation) visible.
+      if (grid === canvas.firstElementChild) grid = nativeRoot;
+      canvas.classList.add("ee-comparison-week-active");
+    }
+    hiddenNative = grid;
+    grid.classList.add("ee-comparison-hidden-native");
+  }
+
   function cleanup() {
+    restoreNative();
     generation++;
     clearTimeout(timer);
     clearTimeout(boundaryTimer);
@@ -61,10 +85,13 @@
     const own = readDisplayed();
     const date = isWeekly() ? own.dates[0] : own.date;
     const nextSignature = JSON.stringify([date, own, profile]);
-    if (!force && signature === nextSignature) return;
+    if (!force && signature === nextSignature) {
+      if (isWeekly() && root.querySelector(".ee-comparison-week-view")) syncNativeView();
+      return;
+    }
     signature = nextSignature;
     const stamp = ++generation;
-    if (!date) { root.replaceChildren(U.el("span", U.t("eeCompareLiveUnavailable"))); return; }
+    if (!date) { restoreNative(); root.replaceChildren(U.el("span", U.t("eeCompareLiveUnavailable"))); return; }
     const dates = isWeekly() ? own.dates : [date];
     root.replaceChildren(U.el("span", `${profile.name} · ${U.t("eeCompareLoading")}`));
     let other = { lessons: [], dates: [] };
@@ -79,7 +106,9 @@
     const notice = U.t(failed ? "eeCompareLiveUnavailable" : profile.source === "import"
       ? profile.cycleWeeks === 2 ? "eeCompareTemplateFortnight" : "eeCompareTemplateWeekly" : "eeCompareLiveNotice");
     U.renderCompact(root, { dates, own: own.lessons, other: lessons, name: profile.name,
-      ownDates: own.dates, otherDates: other.dates, daily: !isWeekly(), allowGaps: !failed, notice, onRefresh: profile.source === "class" ? () => refresh(true) : undefined });
+      ownDates: own.dates, otherDates: other.dates, daily: !isWeekly(), allowGaps: !failed, notice, normalView,
+      onViewChange: value => { normalView = value; syncNativeView(); signature = ""; refresh(); }, onRefresh: profile.source === "class" ? () => refresh(true) : undefined });
+    syncNativeView();
     root.title = notice;
     scheduleBoundary(lessons.filter(lesson => lesson.date === date), date);
   }
@@ -89,7 +118,7 @@
   }
 
   function placeRoot() {
-    const anchor = isWeekly() ? document.querySelector("#fitheight")?.firstElementChild
+    const anchor = isWeekly() ? document.querySelector("#fitheight") || nativeRoot
       : nativeRoot.closest(".userRozvrh") || nativeRoot;
     if (anchor && root.previousElementSibling !== anchor) anchor.after(root);
   }
@@ -104,7 +133,7 @@
     // our row outside that region and retain it when the same lessons return.
     placeRoot();
     const widget = target.closest(".userRozvrh") || target;
-    const host = isWeekly() ? document.querySelector("#fitheight").parentElement
+    const host = isWeekly() ? (document.querySelector("#fitheight") || target).parentElement
       : widget.parentElement.parentElement || widget.parentElement;
     observer = new MutationObserver(records => {
       if (records.every(record => root?.contains(record.target))) return;
@@ -132,7 +161,7 @@
   function discover() {
     if (!supportedRoute() || !enabled || !profile) { cleanup(); return false; }
     const target = findTarget();
-    if (!target || (isWeekly() && !document.querySelector("#fitheight")?.firstElementChild)) return false;
+    if (!target) return false;
     if (!root) build(target);
     else { nativeRoot = target; root.hidden = false; placeRoot(); refresh(); }
     return true;
@@ -156,6 +185,7 @@
       enabled = settings[C.ENABLED_KEY] === true;
     } catch (_) { profile = null; enabled = false; }
     startDiscovery();
+    EE.i18n?.subscribe(() => { signature = ""; refresh(); });
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== "local" || (!changes[C.KEY] && !changes[C.ENABLED_KEY])) return;
       if (changes[C.KEY]) {

@@ -1,7 +1,7 @@
 .ee-comparison {
   --cmp-bg: var(--ee-card-bg, var(--surface-bg, #fff));
   --cmp-text: var(--ee-text, var(--text-main, #202124));
-  --cmp-muted: var(--ee-muted-text, var(--text-muted, #575d65));
+  --cmp-muted: var(--ee-text-muted, var(--text-muted, #575d65));
   --cmp-border: var(--ee-border, var(--border-color, #c7cbd1));
   --cmp-accent: var(--ee-link, var(--accent-color, #245e91));
   box-sizing: border-box;
@@ -52,7 +52,7 @@
 .ee-comparison-group { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px 0 0; }
 .ee-comparison-group input { width: 20px; height: 20px; accent-color: var(--cmp-accent); }
 .ee-comparison fieldset { border: 1px solid var(--cmp-border); margin: 12px 0; }
-/* Native pages keep their timetable; the addition is one expandable text row. */
+/* Native pages keep their timetable; the summary expands into lesson columns. */
 .ee-comparison-native {
   min-height: 44px;
   flex: 0 0 auto;
@@ -118,3 +118,50 @@
   color: var(--text-main);
 }
 .ee-comparison-settings-content fieldset { border-radius: var(--radius-control); }
+
+/* Weekly comparison follows the native grid's type, colours and corner labels. */
+.ee-comparison-week-view { font: 12px/normal sans-serif; color: var(--ee-text, #000); }
+.ee-comparison-week-view > h3 { margin: 8px 0; font-size: 14px; font-weight: 400; }
+.ee-comparison-week-scroll { overflow: auto; border: 1px solid var(--cmp-border); background: var(--cmp-bg); }
+.ee-comparison-week-chart { min-width: 780px; padding: 0 20px 0 0; }
+.ee-comparison-axis-row, .ee-comparison-chart-row { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 0; }
+.ee-comparison-axis-row { position: sticky; top: 0; background: var(--cmp-bg); z-index: 3; min-height: 36px; border-bottom: 1px solid var(--cmp-border); }
+.ee-comparison-clock-axis { position: relative; font-size: 16px; font-variant-numeric: tabular-nums; }
+.ee-comparison-clock-axis > span { position: absolute; top: 8px; transform: translateX(-50%); }
+.ee-comparison-clock-axis > span:first-child { transform: none; }
+.ee-comparison-chart-day { border-bottom: 1px solid var(--cmp-border); padding: 0; }
+.ee-comparison-chart-day:last-child { border-bottom: 0; }
+.ee-comparison-chart-day h4 { margin: 0; padding: 6px 10px; font-size: 16px; font-weight: 400; background: color-mix(in srgb, var(--cmp-text) 5%, var(--cmp-bg)); border-bottom: 1px solid var(--cmp-border); }
+.ee-comparison-chart-day p { margin: 0 0 0 120px; padding: 4px; color: var(--cmp-muted); }
+.ee-comparison-chart-row > strong { display: flex; align-items: center; justify-content: center; padding: 4px 8px; text-align: center; overflow-wrap: anywhere; font-weight: 400; border-inline-end: 1px solid var(--cmp-border); }
+.ee-comparison-chart-row + .ee-comparison-chart-row { border-top: 1px solid var(--cmp-border); }
+.ee-comparison-chart-lane { position: relative; min-height: 60px; background-image: linear-gradient(to right, var(--cmp-border) 1px, transparent 1px); background-size: var(--ee-comparison-hour-width) 100%; }
+.ee-comparison-lesson { position: absolute; height: 56px; box-sizing: border-box; margin-top: 2px; padding: 12px 3px; border: 0; border-radius: 3px; background: var(--ee-comparison-subject-color); color: #000; z-index: 1; overflow: hidden; text-align: center; }
+.ee-comparison-lesson-subject { display: flex; align-items: center; justify-content: center; height: 100%; font-size: 18px; font-weight: 400; white-space: nowrap; }
+.ee-comparison-lesson-room, .ee-comparison-lesson-group { position: absolute; top: 2px; max-width: 48%; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ee-comparison-lesson-room { right: 4px; }
+.ee-comparison-lesson-group { left: 4px; }
+.ee-comparison-lesson-time { position: absolute; bottom: 2px; inset-inline: 0; font-size: 10px; white-space: nowrap; }
+.ee-comparison-lesson:focus { overflow: visible; min-width: max-content; z-index: 4; outline: 2px solid var(--cmp-accent); outline-offset: 1px; }
+.ee-comparison-gap-band { position: absolute; inset-block: 0; background: color-mix(in srgb, var(--cmp-accent) 8%, transparent); border-inline: 1px dashed var(--cmp-border); }
+.ee-comparison-lane-state { position: relative; display: block; padding: 8px; color: var(--cmp-muted); }
+html.ee-dark .ee-comparison-lesson { background: color-mix(in srgb, var(--ee-comparison-subject-color) 22%, var(--ee-brand-dark)); color: var(--ee-text); }
+
+/* Match the native Home strip: period, subject, room, then time at the bottom. */
+.ee-comparison-home .ee-comparison-compact-detail { padding: 0 0 10px; max-height: none; overflow: visible; }
+.ee-comparison-day-columns { display: flex; flex-wrap: wrap; list-style: none; padding: 0; margin: 0 0 10px; }
+.ee-comparison-day-columns > li { flex: 1 1 80px; min-width: 80px; height: 80px; position: relative; padding: 0; margin: 0 1px 1px 0; border: 0; background: rgba(255,255,255,.1); color: inherit; font-size: 12px; font-weight: 400; line-height: normal; }
+.ee-comparison-item-align > span, .ee-comparison-time { display: block; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ee-comparison-period { font-size: 12px; color: #aaa; }
+.ee-comparison-subject { font-size: 18px; font-weight: 400; color: var(--ee-link, inherit); }
+.ee-comparison-room { font-size: 12px; }
+.ee-comparison-time { position: absolute; bottom: 3px; width: 100%; font-size: 10px; color: var(--ee-text-muted, #aaa); }
+.ee-comparison-hidden-native { display: none !important; }
+#fitheight.ee-comparison-week-active { height: auto !important; min-height: 0 !important; }
+
+html.ee-dark .ee-comparison-day-columns > li,
+html.ee-dark .ee-comparison-item-align { background: var(--ee-brand-dark); color: var(--ee-text); }
+
+html.ee-dark .ee-comparison-home .ee-comparison-subject { color: var(--ee-link) !important; }
+html.ee-dark .ee-comparison-home .ee-comparison-room { color: var(--ee-text) !important; }
+html.ee-dark .ee-comparison-home .ee-comparison-time { color: var(--ee-text-muted) !important; }

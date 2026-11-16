@@ -209,6 +209,10 @@ function getProviderEndpointStorageKey(provider) {
 
 const AI_MODEL_PRESETS = {
 	openai: [
+		{ id: "gpt-6.1-terra", label: "GPT-6.1 Terra" },
+		{ id: "gpt-6.1-sol", label: "GPT-6.1 Sol" },
+		{ id: "gpt-6-luna", label: "GPT-6 Luna" },
+		{ id: "gpt-6-astra", label: "GPT-6 Astra" },
 		{ id: "gpt-5.6-terra", label: "GPT-5.6 Terra" },
 		{ id: "gpt-5.6-luna", label: "GPT-5.6 Luna" },
 		{ id: "gpt-5.6-sol", label: "GPT-5.6 Sol" },
@@ -218,6 +222,9 @@ const AI_MODEL_PRESETS = {
 		{ id: "o3-mini", label: "o3-mini" },
 	],
 	gemini: [
+		{ id: "gemini-4-argon", label: "Gemini 4 Argon" },
+		{ id: "gemini-4-carbon", label: "Gemini 4 Carbon" },
+		{ id: "gemini-3.8-flash", label: "Gemini 3.8 Flash" },
 		{ id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
 		{ id: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash-Lite" },
 		{ id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
@@ -247,6 +254,7 @@ const activityShieldSettings = [
 	["ActivityClipboard", "eeActivityShieldClipboard"],
 	["ActivityAnimationFrame", "eeActivityShieldAnimationFrame"],
 	["ActivityBlockEsc", "eeActivityShieldBlockEsc"],
+	["ActivityRestoreFullscreen", "eeActivityShieldRestoreFullscreen"],
 	["ActivityJquerySweep", "eeActivityShieldJquerySweep"],
 	["ActivityFullscreenSpoof", "eeActivityShieldFullscreenSpoof"],
 	["ActivityVisualIndicator", "eeActivityShieldVisualIndicator"],
@@ -266,6 +274,7 @@ const activityShieldDefaults = {
 	eeActivityShieldClipboard: true,
 	eeActivityShieldAnimationFrame: true,
 	eeActivityShieldBlockEsc: true,
+	eeActivityShieldRestoreFullscreen: false,
 	eeActivityShieldJquerySweep: true,
 	eeActivityShieldFullscreenSpoof: true,
 	eeActivityShieldVisualIndicator: false,
@@ -415,12 +424,12 @@ function updateDependentControls() {
 	if (etestImageExportInput) etestImageExportInput.disabled = !etestCopyEnabled;
 	if (etestImageExportButton) etestImageExportButton.disabled = !etestCopyEnabled;
 
-	const aiEnabled = aiQuestionHelperToggle?.checked === true;
+	const aiEnabled = aiQuestionHelperToggle?.checked === true || document.getElementById("ee-ai-auto-enabled")?.checked === true;
 	if (aiQuestionHelperSettings) aiQuestionHelperSettings.hidden = !aiEnabled;
 	const aiAnswerMode = aiAnswerModeSelect?.value || "buttons";
-	if (aiAnswerModeSelect) aiAnswerModeSelect.disabled = !aiEnabled;
-	if (aiVisualFallbackToggle) aiVisualFallbackToggle.disabled = !aiEnabled;
-	if (openAiShortcutSettingsButton) openAiShortcutSettingsButton.hidden = !aiEnabled || aiAnswerMode === "buttons";
+	if (aiAnswerModeSelect) aiAnswerModeSelect.disabled = aiQuestionHelperToggle?.checked !== true;
+	if (aiVisualFallbackToggle) aiVisualFallbackToggle.disabled = aiQuestionHelperToggle?.checked !== true;
+	if (openAiShortcutSettingsButton) openAiShortcutSettingsButton.hidden = aiQuestionHelperToggle?.checked !== true || aiAnswerMode === "buttons";
 	const aiProvider = aiProviderSelect?.value || "ollama";
 	if (aiEndpointRow) aiEndpointRow.hidden = !aiEnabled || AI_CLOUD_PROVIDERS.has(aiProvider);
 	if (aiAccessTokenRow) aiAccessTokenRow.hidden = !aiEnabled || aiProvider === "ollama";
@@ -1166,16 +1175,7 @@ openIssueButton.addEventListener("click", () => {
 	});
 });
 
-openShortcutSettingsButton.addEventListener("click", () => {
-	// chrome://extensions/shortcuts doesn't exist in Firefox — there's no direct
-	// deep link to its shortcuts UI there, so point to about:addons instead.
-	if (window.eeI18n?.isFirefox) {
-		chrome.tabs.create({ url: "about:addons" });
-		if (themeShortcutStatus) themeShortcutStatus.textContent = t("shortcutSettingsFirefoxHint");
-		return;
-	}
-	chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
-});
+openShortcutSettingsButton.addEventListener("click", openBrowserShortcutSettings);
 
 // Experimental stays outside the searchable, scrollable settings document.
 // Its acknowledgement is tied to the installed extension version, so an
@@ -1320,6 +1320,8 @@ function updateActivityShieldDependentControls() {
 		const element = document.getElementById(elementId);
 		if (element) element.disabled = !enabled;
 	});
+	const restore = document.getElementById("ActivityRestoreFullscreen");
+	if (restore) restore.disabled = !enabled || document.getElementById("ActivityBlockEsc")?.checked !== true;
 }
 
 function renderActivityShieldSettings(result) {
@@ -1335,6 +1337,7 @@ activityShieldSettings.forEach(([elementId, key]) => {
 	if (!element) return;
 	element.addEventListener("change", () => {
 		chrome.storage.local.set({ [key]: element.checked }, () => {
+			if (elementId === "ActivityBlockEsc") updateActivityShieldDependentControls();
 			if (elementId === "ActivityShieldEnabled") {
 				updateActivityShieldDependentControls();
 				notifyEdupageTabs();
@@ -1374,22 +1377,7 @@ if (reloadEdupageTabsButton) {
 	});
 }
 
-if (experimentalShortcutSettingsButton) {
-	experimentalShortcutSettingsButton.addEventListener("click", () => {
-		if (window.eeI18n?.isFirefox) {
-			chrome.tabs.create({ url: "about:addons" });
-			setExperimentalStatus(t("shortcutSettingsFirefoxHint"));
-			return;
-		}
-		chrome.tabs.create({ url: "chrome://extensions/shortcuts" }, () => {
-			if (chrome.runtime.lastError) {
-				setExperimentalStatus(t("shortcutSettingsFailed"), true);
-				return;
-			}
-			setExperimentalStatus(t("shortcutSettingsOpened"));
-		});
-	});
-}
+experimentalShortcutSettingsButton?.addEventListener("click", openBrowserShortcutSettings);
 
 chrome.storage.local.get(activityShieldDefaults, renderActivityShieldSettings);
 renderActivityShieldShortcutStatus();
@@ -1717,18 +1705,34 @@ aiTestConnectionButton?.addEventListener("click", async () => {
 
 function openBrowserShortcutSettings() {
 	if (window.eeI18n?.isFirefox) {
-		chrome.tabs.create({ url: "about:addons" });
+		const dialog = document.getElementById("ee-shortcut-help");
+		document.getElementById("ee-shortcut-copy-status").textContent = "";
+		if (!dialog.open) dialog.showModal();
 		return;
 	}
-	chrome.tabs.create({ url: "chrome://extensions/shortcuts" });
+	chrome.tabs.create({ url: "chrome://extensions/shortcuts" }, () => {
+		if (chrome.runtime.lastError) setExperimentalStatus(t("shortcutSettingsFailed"), true);
+	});
 }
 
-openAiShortcutSettingsButton?.addEventListener("click", () => {
-	openBrowserShortcutSettings();
-	if (window.eeI18n?.isFirefox && aiShortcutStatus) {
-		aiShortcutStatus.textContent = t("shortcutSettingsFirefoxHint");
-	}
+openAiShortcutSettingsButton?.addEventListener("click", openBrowserShortcutSettings);
+document.getElementById("ee-shortcut-close")?.addEventListener("click", () => document.getElementById("ee-shortcut-help").close());
+document.getElementById("ee-shortcut-copy")?.addEventListener("click", async () => {
+	const status = document.getElementById("ee-shortcut-copy-status");
+	const input = document.getElementById("ee-shortcut-address");
+	try {
+		try { await navigator.clipboard.writeText(input.value); }
+		catch (_) { input.select(); if (!document.execCommand("copy")) throw new Error(); }
+		status.textContent = t("shortcutAddressCopied");
+	} catch (_) { status.textContent = t("shortcutAddressCopyFailed"); }
 });
+
+if (window.eeI18n?.isFirefox) {
+	for (const button of document.querySelectorAll('[data-i18n="openShortcutSettings"]')) {
+		button.dataset.i18n = "shortcutFirefoxHelpButton";
+		button.textContent = t("shortcutFirefoxHelpButton");
+	}
+}
 
 if (previewUpdateToastButton) {
 	previewUpdateToastButton.addEventListener("click", () => {
@@ -1995,3 +1999,6 @@ EE.i18n?.subscribe(() => {
 	chrome.storage.local.get([UPDATE_STATUS_KEY], values => renderUpdateStatus(values[UPDATE_STATUS_KEY]));
 	applySettingsSearch();
 });
+
+window.addEventListener("ee-ai-feature-change", updateDependentControls);
+document.getElementById("ee-ai-auto-shortcuts")?.addEventListener("click", openBrowserShortcutSettings);

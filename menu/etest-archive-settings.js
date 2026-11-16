@@ -37,7 +37,8 @@
     if (!entry) return;
     for (const [index, question] of entry.questions.entries()) {
       const item = node("li");
-      item.append(node("h4", t("eeArchiveQuestion", [question.number || String(index + 1)])));
+      item.value = index + 1;
+      item.append(node("h4", t("eeArchiveQuestion", [/^\d+(?:[._-]\d+)*$/.test(question.number) ? question.number : String(index + 1)])));
       item.append(node("p", question.body));
       for (const image of question.images || []) {
         // Never reload a saved page's authenticated or third-party URLs.
@@ -83,6 +84,28 @@
   chrome.storage.local.get(["eeTestArchiveEnabled"], (values) => {
     if (chrome.runtime.lastError) message("eeArchiveStorageError", true);
     else toggle.checked = values.eeTestArchiveEnabled === true;
+  });
+  $("copy").addEventListener("click", async () => {
+    const entry = tests.find(item => item.id === selectedId);
+    if (!entry) return;
+    const sections = [entry.title || t("eeArchiveUntitled")];
+    entry.questions.forEach((question, index) => {
+      const number = /^\d+(?:[._-]\d+)*$/.test(question.number) ? question.number : String(index + 1);
+      sections.push(`${t("eeArchiveQuestion", [number])}\n${question.body}\n\n${t("eeArchiveYourAnswer")}\n${question.answers.length ? question.answers.join("\n") : t("eeArchiveNoAnswer")}`);
+      if (question.images?.length) sections.push(t("eeArchiveCopyImages"));
+      if (question.visualsOmitted) sections.push(t("eeArchiveVisualsOmitted"));
+    });
+    const value = sections.join("\n\n");
+    try {
+      try { await navigator.clipboard.writeText(value); }
+      catch (_) {
+        const field = node("textarea"); field.value = value; field.style.position = "fixed"; field.style.opacity = "0";
+        document.body.appendChild(field);
+        try { field.select(); if (!document.execCommand("copy")) throw new Error(); }
+        finally { field.remove(); $("copy").focus(); }
+      }
+      message("eeArchiveCopied");
+    } catch (_) { message("eeArchiveCopyFailed", true); }
   });
   select.addEventListener("change", () => { selectedId = select.value; review(); });
   function confirm(id) {

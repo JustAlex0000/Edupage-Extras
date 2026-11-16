@@ -134,3 +134,12 @@ test("archive settings use read-only text rendering and both browser background 
   assert.match(background, /importScripts\([^;]+etest-archive-background\.js/);
   assert.match(packaging, /manifest\.background\.scripts = \[[^;]+etest-archive-background\.js/);
 });
+
+test("native names update automatically and survive a missing late heading", async () => {
+  const a = load();
+  await a.request(save(snapshot({ title: "" })), sender);
+  await a.request(save(snapshot({ sequence: 2, title: "Geometry practice" })), sender);
+  assert.equal(a.values.eeTestArchive.tests[0].title, "Geometry practice");
+  await a.request(save(snapshot({ sequence: 3, title: "" })), sender);
+  assert.equal(a.values.eeTestArchive.tests[0].title, "Geometry practice");
+});

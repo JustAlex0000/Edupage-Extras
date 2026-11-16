@@ -55,7 +55,7 @@
     }
     if (questions.size > MAX_QUESTIONS) fail("eeArchiveFull");
     const entry = {
-      id: raw.id, origin, title: text(raw.title, 160),
+      id: raw.id, origin, title: text(raw.title, 160) || previous?.title || "",
       openedAt: previous?.openedAt || now, updatedAt: now, sequence: raw.sequence,
       questions: [...questions.values()],
     };

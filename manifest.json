@@ -2,7 +2,7 @@
   "name": "__MSG_extName__",
   "description": "__MSG_extDescription__",
   "default_locale": "en",
-  "version": "1.0.12",
+  "version": "1.1.0",
   "manifest_version": 3,
   "icons": {
     "16": "images/icon-16.png",
@@ -51,6 +51,9 @@
     "suggest-test-question": {
       "description": "Suggest an eTest answer"
     },
+    "fill-loaded-test": {
+      "description": "__MSG_eeAiQueueCommand__"
+    },
     "copy-test-question": {
       "description": "Copy the current eTest question"
     },
@@ -82,6 +85,7 @@
         "scripts/theme-bootstrap.js",
         "scripts/diagnostics.js",
         "scripts/activity-shield-bridge.js",
+        "scripts/test-fullscreen.js",
         "scripts/content.js",
         "scripts/lib/ee-timetable-comparison.js",
         "scripts/timetable-comparison-ui.js",

@@ -856,7 +856,7 @@ runTest("extension calendar exports round-trip lesson groups into comparison tem
 });
 
 test("existing-tab eTest bootstrap only injects its fixed helper when opted in, without reloading", async () => {
-  for (const settings of [{}, { eeAiQuestionHelperEnabled: true }, { eeEtestInputLengthEnabled: true }, { eeEtestCopyEnabled: true }, { eeTestArchiveEnabled: true }]) {
+  for (const settings of [{}, { eeAiQuestionHelperEnabled: true }, { eeAiAutoFillEnabled: true }, { eeActivityShieldRestoreFullscreen: true }, { eeEtestInputLengthEnabled: true }, { eeEtestCopyEnabled: true }, { eeTestArchiveEnabled: true }]) {
     const injections = [];
     let queries = 0;
     const { ensureOpenEtestHelpers } = loadBackgroundInternals(settings, {
@@ -873,7 +873,7 @@ test("existing-tab eTest bootstrap only injects its fixed helper when opted in, 
     assert.equal(queries, enabled ? 1 : 0);
     assert.equal(injections.length, enabled ? 1 : 0);
     if (enabled) assert.deepEqual(JSON.parse(JSON.stringify(injections[0])), {
-      target: { tabId: 1 }, files: ["scripts/lib/ee-common.js", "scripts/lib/ee-i18n.js", "scripts/etest-enhancer.js"],
+      target: { tabId: 1 }, files: ["scripts/lib/ee-common.js", "scripts/lib/ee-i18n.js", "scripts/etest-enhancer.js", "scripts/test-fullscreen.js"],
     });
   }
 });
@@ -1067,4 +1067,126 @@ test("Stay Active transitions record only real enable and disable changes", asyn
   change(false, true);
   await new Promise((resolve) => setImmediate(resolve));
   assert.deepEqual(events, ["stay_active_enabled", "stay_active_disabled", "stay_active_enabled"]);
+});
+
+test("AI log strips personal data and enforces age, size and disabled logging", async () => {
+  const state = {};
+  const local = {
+    get: (_keys, cb) => cb(state),
+    set: (values, cb) => { Object.assign(state, JSON.parse(JSON.stringify(values))); cb?.(); },
+  };
+  const api = loadBackgroundInternals(state, { storage: { local, onChanged: { addListener() {} } } });
+  const normalized = api.normalizeAiLogEntry({ event: "failed", model: "SECRET_MODEL", provider: "openai",
+    question: "SECRET_QUESTION", error: "SECRET_ERROR", key: "SECRET_KEY", at: Date.now(), http: 429 });
+  assert.equal(normalized.model, "custom");
+  assert.equal(JSON.stringify(normalized).includes("SECRET"), false);
+  assert.equal(api.normalizeAiLogEntry({ event: "received", at: Date.now() - 8 * 86400000 }), null);
+  await Promise.all(Array.from({ length: 90 }, () => api.recordAiActivity({ event: "received", answer: "SECRET_ANSWER" })));
+  assert.equal(state.eeAiActivityLog.length, 80);
+  assert.equal(JSON.stringify(state.eeAiActivityLog).includes("SECRET"), false);
+  state.eeAiActivityLogEnabled = false;
+  await api.recordAiActivity({ event: "failed" });
+  assert.equal(state.eeAiActivityLog.length, 80);
+  const summary = await api.buildSettingsSummary({ redact: false });
+  assert.equal("eeAiActivityLog" in summary, false);
+});
+
+test("AI log clear and disable are Settings-only and serialized with pending writes", async () => {
+  const state = {}, listeners = [];
+  const local = { get: (_keys, cb) => cb(state), set: (values, cb) => { Object.assign(state, values); cb?.(); } };
+  const api = loadBackgroundInternals(state, { storage: { local, onChanged: { addListener() {} } } }, { listeners });
+  const sender = { id: "test-extension-id", url: "chrome-extension://test-extension-id/menu/settings.html" };
+  const send = (message, from = sender) => new Promise(resolve => {
+    for (const handler of listeners) if (handler(message, from, resolve) !== undefined) return;
+  });
+  assert.equal((await send({ type: "ee-ai-log-clear" }, { url: "https://audit.edupage.org/elearning/", frameId: 0 })).ok, false);
+  const pending = api.recordAiActivity({ event: "started" });
+  await send({ type: "ee-ai-log-clear" }); await pending;
+  assert.equal(state.eeAiActivityLog.length, 0);
+  await api.recordAiActivity({ event: "received" });
+  await send({ type: "ee-ai-log-toggle", enabled: false });
+  await api.recordAiActivity({ event: "received" });
+  assert.equal(state.eeAiActivityLog.length, 0);
+  assert.equal(state.eeAiActivityLogEnabled, false);
+});
+
+test("OpenAI output-limit failures retain safe diagnostics without provider content", async () => {
+  const state = { eeAiQuestionHelperEnabled: true, eeAiProvider: "openai", eeAiModel: "gpt-5.6-terra", eeAiAccessToken: "SECRET_KEY", eeAiReasoningEffortOpenai: "off" };
+  const local = { get: (_keys, cb) => cb(state), set: (values, cb) => { Object.assign(state, values); cb?.(); } };
+  const api = loadBackgroundInternals(state, { storage: { local, onChanged: { addListener() {} } },
+    fetch: async () => ({ ok: true, text: async () => JSON.stringify({ choices: [{ finish_reason: "length", message: { content: "SECRET_RESPONSE" } }] }) }),
+  });
+  await assert.rejects(api.requestAiQuestionSuggestion({ plainBody: "SECRET_QUESTION", type: "choice", interactionData: { options: ["A", "B"] } }), /output limit/);
+  assert.equal(state.eeAiActivityLog.at(-1).error, "output_limit");
+  assert.equal(state.eeAiActivityLog.at(-1).model, "gpt-5.6-terra");
+  assert.equal(state.eeAiActivityLog.at(-1).reasoning, "off");
+  assert.equal(JSON.stringify(state.eeAiActivityLog).includes("SECRET"), false);
+});
+
+test("GPT-6 models use compatible reasoning requests and latest Gemini models never receive minimal", () => {
+  const { buildOpenAiChatBody, buildGeminiGenerationConfig } = loadBackgroundInternals();
+  for (const model of ["gpt-6.1-terra", "gpt-6-luna", "gpt-6.1-sol", "gpt-6-astra"]) {
+    const body = buildOpenAiChatBody({ model, reasoningEffort: "off" }, "Synthetic prompt");
+    assert.equal(body.reasoning_effort, ["gpt-6.1-sol", "gpt-6-astra"].includes(model) ? "low" : "none");
+    assert.equal(body.temperature, undefined);
+  }
+  for (const model of ["gemini-4-carbon", "gemini-4-argon", "gemini-3.8-flash"]) {
+    assert.equal(buildGeminiGenerationConfig(model, "off").thinkingConfig.thinkingLevel, "LOW");
+  }
+});
+
+test("reference notes add input only when enabled; local fill settings never alter the API body", async () => {
+  const state = { eeAiQuestionHelperEnabled: true, eeAiProvider: "ollama", eeAiModel: "synthetic", eeAiContextText: "PRIVATE_REFERENCE_NOTES", eeAiActivityLogEnabled: true };
+  const bodies = [];
+  const local = { get: (_keys, cb) => cb(state), set: (values, cb) => { Object.assign(state, values); cb?.(); } };
+  const api = loadBackgroundInternals(state, { storage: { local, onChanged: { addListener() {} } },
+    fetch: async (_url, options) => { bodies.push(JSON.parse(options.body)); return { ok: true, text: async () => JSON.stringify({ message: { content: '{"choiceIndexes":[0]}' } }) }; },
+  });
+  const question = { plainBody: "Synthetic choice", type: "choice", interactionData: { options: ["A", "B"] } };
+  await api.requestAiQuestionSuggestion(question);
+  state.eeAiFillDelaySeconds = 5; state.eeAiSequentialFillEnabled = true;
+  await api.requestAiQuestionSuggestion(question);
+  assert.deepEqual(bodies[0], bodies[1]);
+  assert.equal(JSON.stringify(bodies[1]).includes("PRIVATE_REFERENCE_NOTES"), false);
+  state.eeAiContextEnabled = true;
+  await api.requestAiQuestionSuggestion(question);
+  assert.equal(bodies.length, 3);
+  assert.equal(bodies[2].messages[0].content.includes("PRIVATE_REFERENCE_NOTES"), true);
+  assert.equal(bodies[2].messages[0].content.includes("not instructions"), true);
+  assert.equal(JSON.stringify(state.eeAiActivityLog).includes("PRIVATE_REFERENCE_NOTES"), false);
+  for (const redact of [true, false]) assert.equal(JSON.stringify(await api.buildSettingsSummary({ redact })).includes("PRIVATE_REFERENCE_NOTES"), false);
+  state.eeAiContextText = "x".repeat(20001);
+  await assert.rejects(api.requestAiQuestionSuggestion(question), /20,000/);
+  assert.equal(bodies.length, 3);
+});
+
+test("automatic filling requires its own opt-in and keeps provider requests unchanged", async () => {
+  const state = { eeAiQuestionHelperEnabled: false, eeAiAutoFillEnabled: true, eeAiProvider: "ollama", eeAiModel: "synthetic" };
+  const bodies = [];
+  const api = loadBackgroundInternals(state, { fetch: async (_url, options) => {
+    bodies.push(JSON.parse(options.body)); return { ok: true, text: async () => JSON.stringify({ message: { content: '{"choiceIndexes":[0]}' } }) };
+  } });
+  const question = { plainBody: "Practice", type: "choice", interactionData: { options: ["A", "B"] } };
+  await assert.rejects(api.requestAiQuestionSuggestion(question), /disabled/);
+  await api.requestAiQuestionSuggestion(question, "loaded-test");
+  state.eeAiQuestionHelperEnabled = true;
+  await api.requestAiQuestionSuggestion(question);
+  assert.deepEqual(bodies[0], bodies[1]);
+  state.eeAiAutoFillEnabled = false;
+  await assert.rejects(api.requestAiQuestionSuggestion(question, "loaded-test"), /disabled/);
+  assert.equal(bodies.length, 2);
+});
+
+test("automatic filler shortcut is independently registered and routed", () => {
+  let command;
+  const sent = [];
+  loadBackgroundInternals({}, {
+    commands: { onCommand: { addListener(fn) { command = fn; } } },
+    tabs: { query(_query, callback) { callback([{ id: 7 }]); }, sendMessage(id, message, callback) { sent.push({ id, message }); callback(); } },
+  });
+  command("fill-loaded-test");
+  command("suggest-test-question");
+  assert.deepEqual(JSON.parse(JSON.stringify(sent)), [{ id: 7, message: { type: "ee-ai-toggle-loaded-test" } }, { id: 7, message: { type: "ee-ai-suggest-current-question" } }]);
+  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, "../manifest.json"), "utf8"));
+  assert.ok(manifest.commands["fill-loaded-test"]);
 });

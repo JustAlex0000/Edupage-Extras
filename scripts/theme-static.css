@@ -174,9 +174,11 @@ html.ee-dark body {
   color: var(--ee-text) !important;
 }
 
+html.ee-dark::selection,
 html.ee-dark ::selection {
-  background-color: var(--ee-brand-dark) !important;
-  color: var(--ee-text) !important;
+  background-color: #8ab4f8 !important;
+  color: #0c1220 !important;
+  text-shadow: none !important;
 }
 
 html.ee-dark input,

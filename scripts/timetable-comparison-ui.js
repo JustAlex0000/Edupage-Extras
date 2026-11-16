@@ -1,7 +1,14 @@
 (function () {
   "use strict";
   const C = globalThis.EEComparison;
-  const t = (key) => EE.getMessage(key) || key;
+  const importNotices = {
+    eeCompareTemplateWeekly: "Regular timetable — repeats weekly. Changes and holidays are not included.",
+    eeCompareTemplateFortnight: "Regular timetable — repeats every two weeks. Changes and holidays are not included.",
+  };
+  const t = (key) => {
+    const translated = EE.getMessage(key);
+    return translated && translated !== key ? translated : importNotices[key] || key;
+  };
   const el = (tag, text, className) => {
     const node = document.createElement(tag);
     if (text !== undefined) node.textContent = text;
@@ -75,10 +82,18 @@
     return `${duration} ${t(minutes > 0 ? "eeCompareLater" : "eeCompareEarlier")}`;
   }
 
-  function appendLessons(target, lessons) {
-    const list = el("ul", undefined, "ee-comparison-compact-lessons");
-    for (const lesson of lessons.slice().sort((a, b) => C.minutes(a.startTime) - C.minutes(b.startTime))) {
-      list.append(el("li", `${lesson.startTime}–${lesson.endTime} · ${lesson.title}${lesson.room ? ` · ${lesson.room}` : ""}${lesson.group ? ` · ${lesson.group}` : ""}`));
+  function appendLessons(target, lessons, columns = false) {
+    const list = el("ul", undefined, columns ? "ee-comparison-day-columns" : "ee-comparison-compact-lessons");
+    for (const [index, lesson] of lessons.slice().sort((a, b) => C.minutes(a.startTime) - C.minutes(b.startTime)).entries()) {
+      const item = el("li");
+      if (columns) {
+        const align = el("div", undefined, "ee-comparison-item-align");
+        align.append(el("span", String(index + 1), "ee-comparison-period"),
+          el("span", lesson.title, "ee-comparison-subject"),
+          el("span", [lesson.room, lesson.group].filter(Boolean).join(" · "), "ee-comparison-room"));
+        item.append(align, el("span", `${lesson.startTime}–${lesson.endTime}`, "ee-comparison-time"));
+      } else item.textContent = `${lesson.startTime}–${lesson.endTime} · ${lesson.title}${lesson.room ? ` · ${lesson.room}` : ""}${lesson.group ? ` · ${lesson.group}` : ""}`;
+      list.append(item);
     }
     target.append(list);
   }
@@ -105,26 +120,125 @@
     finishes.setAttribute("aria-label", finishes.title);
     summary.append(finishes);
     if (data.difference !== null) summary.append(el("span", durationLabel(data.difference), "ee-comparison-compact-difference"));
+    details.dataset.date = date;
     details.append(summary);
     const expanded = el("div", undefined, "ee-comparison-compact-detail");
     if (!ownKnown || !otherKnown) expanded.append(el("p", t("eeCompareMissingDay")));
     if (otherKnown) {
-      appendLessons(expanded, other);
+      appendLessons(expanded, other, daily);
       if (!other.length) expanded.append(el("p", t("eeCompareNoLessons")));
     }
-    if (allowGaps && ownKnown && otherKnown) expanded.append(el("p", `${t("eeCompareGaps")}: ${data.gaps.length ? data.gaps.map(g => `${g.startTime}–${g.endTime}`).join(" · ") : t("eeCompareNoGaps")}`));
+    if (!daily && allowGaps && ownKnown && otherKnown) expanded.append(el("p", `${t("eeCompareGaps")}: ${data.gaps.length ? data.gaps.map(g => `${g.startTime}–${g.endTime}`).join(" · ") : t("eeCompareNoGaps")}`));
     expanded.append(el("small", notice));
     if (onRefresh) expanded.append(button("eeCompareRefresh", onRefresh));
     details.append(expanded);
     return details;
   }
 
-  function renderCompact(target, { dates, own, other, name, ownDates = [], otherDates = [], daily = false, allowGaps = true, notice = "", onRefresh }) {
+  // Match native subject colours when that subject exists in the shown grid.
+  // Imported-only subjects use the same restrained palette; nothing is stored.
+  function nativeLessonColors() {
+    const colors = new Map();
+    for (const label of document.querySelectorAll(".tt-cell")) {
+      if (label.style.pointerEvents !== "none") continue;
+      const block = Array.from(label.parentElement?.children || []).find(node => node !== label
+        && node.classList.contains("tt-cell") && node.style.pointerEvents !== "none"
+        && ["left", "top", "width", "height"].every(key => node.style[key] === label.style[key]));
+      if (!block) continue;
+      const background = getComputedStyle(block).backgroundColor;
+      const title = label.textContent.replace(/\s+/g, " ").trim();
+      if (background && background !== "rgba(0, 0, 0, 0)" && !colors.has(title)) colors.set(title, background);
+    }
+    return colors;
+  }
+
+  function renderWeekTimeline({ dates, own, other, name, ownDates, otherDates, allowGaps, notice }) {
+    const details = el("section", undefined, "ee-comparison-week-view");
+    details.append(el("h3", t("eeCompareWeekView")));
+    const scroll = el("div", undefined, "ee-comparison-week-scroll");
+    scroll.tabIndex = 0;
+    scroll.setAttribute("aria-label", t("eeCompareWeekView"));
+    const chart = el("div", undefined, "ee-comparison-week-chart");
+    const all = [...own, ...other];
+    const nativeColors = nativeLessonColors();
+    const palette = ["#9999ff", "#99b380", "#b3e6ff", "#ffcc99", "#e6b3cc", "#cccc99"];
+    const colorFor = title => nativeColors.get(title) || palette[Array.from(title).reduce((hash, char) => (hash * 31 + char.codePointAt(0)) >>> 0, 0) % palette.length];
+    const first = all.length ? Math.floor(Math.min(...all.map(l => C.minutes(l.startTime))) / 60) * 60 : 480;
+    const last = all.length ? Math.ceil(Math.max(...all.map(l => C.minutes(l.endTime))) / 60) * 60 : 960;
+    const span = Math.max(60, last - first);
+    chart.style.setProperty("--ee-comparison-hour-width", `${60 / span * 100}%`);
+    const place = (node, begin, end) => {
+      node.style.left = `${(C.minutes(begin) - first) / span * 100}%`;
+      node.style.width = `${(C.minutes(end) - C.minutes(begin)) / span * 100}%`;
+    };
+    const axisRow = el("div", undefined, "ee-comparison-axis-row");
+    axisRow.append(el("span", ""));
+    const axis = el("div", undefined, "ee-comparison-clock-axis");
+    for (let minute = first; minute <= first + span; minute += 60) {
+      const tick = el("span", C.clock(minute)); tick.style.left = `${(minute - first) / span * 100}%`; axis.append(tick);
+    }
+    axisRow.append(axis); chart.append(axisRow);
+    for (const date of dates) {
+      const dayOwn = own.filter(l => l.date === date), dayOther = other.filter(l => l.date === date);
+      const ownKnown = ownDates.includes(date), otherKnown = otherDates.includes(date);
+      const gaps = C.sharedGaps(dayOwn, dayOther, allowGaps && ownKnown && otherKnown);
+      const day = el("section", undefined, "ee-comparison-chart-day");
+      day.append(el("h4", dateLabel(date)));
+      for (const [owner, lessons, known, peer] of [[t("eeCompareShownShort"), dayOwn, ownKnown, false], [name, dayOther, otherKnown, true]]) {
+        const row = el("div", undefined, "ee-comparison-chart-row"); row.append(el("strong", owner));
+        const lane = el("div", undefined, "ee-comparison-chart-lane");
+        if (!known || !lessons.length) lane.append(el("span", t(known ? "eeCompareNoLessons" : "eeCompareUnavailableShort"), "ee-comparison-lane-state"));
+        for (const gap of gaps) {
+          const band = el("span", undefined, "ee-comparison-gap-band"); place(band, gap.startTime, gap.endTime); lane.append(band);
+        }
+        const ends = [];
+        for (const lesson of lessons.slice().sort((a, b) => C.minutes(a.startTime) - C.minutes(b.startTime))) {
+          const begin = C.minutes(lesson.startTime), end = C.minutes(lesson.endTime);
+          let track = ends.findIndex(value => value <= begin);
+          if (track < 0) track = ends.length;
+          ends[track] = end;
+          const label = `${lesson.title} · ${lesson.startTime}–${lesson.endTime}${lesson.room ? ` · ${lesson.room}` : ""}${lesson.group ? ` · ${lesson.group}` : ""}`;
+          const card = el("div", undefined, `ee-comparison-lesson${peer ? " ee-comparison-lesson-peer" : ""}`);
+          card.tabIndex = 0; card.title = label; card.setAttribute("aria-label", label);
+          card.style.setProperty("--ee-comparison-subject-color", colorFor(lesson.title));
+          if (lesson.group) card.append(el("span", lesson.group, "ee-comparison-lesson-group"));
+          if (lesson.room) card.append(el("span", lesson.room, "ee-comparison-lesson-room"));
+          card.append(el("span", lesson.title, "ee-comparison-lesson-subject"),
+            el("small", `${lesson.startTime}–${lesson.endTime}`, "ee-comparison-lesson-time"));
+          place(card, lesson.startTime, lesson.endTime); card.style.top = `${track * 60}px`; lane.append(card);
+        }
+        lane.style.height = `${Math.max(1, ends.length) * 60}px`;
+        row.append(lane); day.append(row);
+      }
+      if (allowGaps && ownKnown && otherKnown && gaps.length) day.append(el("p", `${t("eeCompareGaps")}: ${gaps.length ? gaps.map(g => `${g.startTime}–${g.endTime}`).join(" · ") : t("eeCompareNoGaps")}`));
+      else if (!ownKnown || !otherKnown) day.append(el("p", t("eeCompareMissingDay")));
+      chart.append(day);
+    }
+    scroll.append(chart); details.append(scroll, el("small", notice));
+    return details;
+  }
+
+  function renderCompact(target, { dates, own, other, name, ownDates = [], otherDates = [], daily = false, allowGaps = true, notice = "", onRefresh, normalView = false, onViewChange }) {
+    const openDays = new Set(Array.from(target.querySelectorAll?.(".ee-comparison-compact-day[open]") || []).map(node => node.dataset.date));
     target.replaceChildren();
-    target.classList.toggle("ee-comparison-week-strip", !daily);
-    if (!daily) target.append(el("span", `${t("eeCompareShownShort")} / ${name}`, "ee-comparison-week-owner"));
-    for (const date of dates) target.append(compactDay({ date, own: own.filter(l => l.date === date), other: other.filter(l => l.date === date),
-      name, ownKnown: ownDates.includes(date), otherKnown: otherDates.includes(date), daily, allowGaps, notice, onRefresh }));
+    target.classList.remove("ee-comparison-week-strip");
+    target.classList.toggle("ee-comparison-home", daily);
+    if (!daily) {
+      const toggle = button(normalView ? "eeCompareComparisonView" : "eeCompareNormalView", () => onViewChange?.(!normalView));
+      toggle.setAttribute("aria-pressed", String(normalView));
+      target.append(toggle);
+      const timeline = renderWeekTimeline({ dates, own, other, name, ownDates, otherDates, allowGaps, notice });
+      timeline.hidden = normalView;
+      target.append(timeline);
+      if (onRefresh) target.append(button("eeCompareRefresh", onRefresh));
+      return;
+    }
+    for (const date of dates) {
+      const day = compactDay({ date, own: own.filter(l => l.date === date), other: other.filter(l => l.date === date),
+        name, ownKnown: ownDates.includes(date), otherKnown: otherDates.includes(date), daily, allowGaps, notice, onRefresh });
+      day.open = openDays.has(date);
+      target.append(day);
+    }
   }
 
   function renderPreview(target, lessons, dates, name) {
@@ -397,5 +511,5 @@
     if (source.value === "class") loadClasses();
   }
 
-  globalThis.EEComparisonUI = { t, el, button, load, loadLibrary, save, selectSchedule, removeSchedule, storage, message, dateLabel, renderCompact, openEditor, closeEditor: () => closeCurrentEditor() };
+  globalThis.EEComparisonUI = { t, el, button, load, loadLibrary, save, selectSchedule, removeSchedule, storage, message, dateLabel, renderWeekTimeline, renderCompact, openEditor, closeEditor: () => closeCurrentEditor() };
 })();
