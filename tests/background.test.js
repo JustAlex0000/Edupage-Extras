@@ -118,6 +118,40 @@ function runTest(name, fn) {
   }
 }
 
+test("custom activity sites accept only exact canonical hosts outside static matches", () => {
+  const { normalizeActivitySite } = loadBackgroundInternals();
+  assert.equal(normalizeActivitySite("https://example.com/*"), "https://example.com/*");
+  assert.equal(normalizeActivitySite("http://localhost/*"), "http://localhost/*");
+  for (const value of ["https://*.example.com/*", "https://example.com:8443/*", "https://EXAMPLE.com/*", "https://user@example.com/*", "https://school.edupage.org/*", "https://test.nop.wtf/*", "file:///tmp/*"]) {
+    assert.equal(normalizeActivitySite(value), null, value);
+  }
+});
+
+test("custom activity registration tracks granted sites, updates, and removal", async () => {
+  const settings = { eeActivityShieldSites: ["https://example.com/*", "https://denied.test/*", "https://*.evil.test/*", "https://example.com/*"] };
+  let registered = [];
+  const scripting = {
+    async getRegisteredContentScripts() { return registered; },
+    async registerContentScripts(scripts) { registered.push(...scripts); },
+    async updateContentScripts(scripts) { for (const script of scripts) registered[registered.findIndex((item) => item.id === script.id)] = script; },
+    async unregisterContentScripts() { registered = []; },
+  };
+  const permissions = { async contains({ origins }) { return origins[0] !== "https://denied.test/*"; } };
+  const { syncActivitySites } = loadBackgroundInternals(settings, { scripting, permissions });
+  await syncActivitySites();
+  assert.equal(registered.length, 2);
+  assert.deepEqual(Array.from(registered[0].matches), ["https://example.com/*"]);
+  assert.equal(registered[0].world, "MAIN");
+  assert.equal(registered[1].world, "ISOLATED");
+  assert.equal(registered[0].runAt, "document_start");
+  settings.eeActivityShieldSites = ["http://example.org/*"];
+  await syncActivitySites();
+  assert.deepEqual(Array.from(registered[1].matches), ["http://example.org/*"]);
+  settings.eeActivityShieldSites = [];
+  await syncActivitySites();
+  assert.equal(registered.length, 0);
+});
+
 runTest("timetable date helpers reject calendar overflow dates", () => {
   const { parseDateOnly, toRfc3339 } = loadBackgroundInternals();
 

@@ -77,6 +77,14 @@ the script they support.
 
 ## Activity shield
 
+In addition to its built-in EduPage and test-site matches, Stay Active can be
+enabled for user-selected HTTP(S) sites from Experimental settings. Each exact
+hostname requires optional host permission, and the global master switch and
+shield preferences apply there. Adding or removing a site takes effect on the
+next navigation or reload; removal also revokes its optional permission unless
+another feature uses it. Only the activity shield is made available on these
+sites, not the other EduPage content scripts.
+
 The isolated bridge sends boolean preferences over a MessageChannel after a
 one-time page-world handshake. Main-world hooks keep preference state in closures;
 no DOM control port, native-hidden dataset, or native-state event is published.

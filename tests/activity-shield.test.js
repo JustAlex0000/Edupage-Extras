@@ -101,7 +101,11 @@ function createPage({ prefs = {}, bridgeFirst = false, navigation = true, deferS
     listenerCount(type) { return (this.listeners.get(type) || []).length; }
   }
   class Element extends Target {
-    constructor(tagName) { super(); this.tagName = tagName.toUpperCase(); this.dataset = {}; this.style = {}; this.children = []; }
+    constructor(tagName) {
+      super(); this.tagName = tagName.toUpperCase(); this.dataset = {}; this.style = {}; this.children = [];
+      const classes = new Set();
+      this.classList = { add: (...names) => names.forEach((name) => classes.add(name)), contains: (name) => classes.has(name) };
+    }
     append(node) { node.parent = this; this.children.push(node); if (node.id) nodes.set(node.id, node); }
     remove() { nodes.delete(this.id); if (this.parent) this.parent.children = this.parent.children.filter((node) => node !== this); }
     setAttribute(name, value) { this[name] = String(value); }
@@ -471,7 +475,9 @@ test("status indicator is opt-in, waits for a body, and appears only in the top 
   page.document.body = page.document.createElement("body");
   page.document.documentElement.append(page.document.body);
   page.document.dispatchEvent(new page.Event("DOMContentLoaded"));
-  assert.ok(page.document.getElementById("ee-activity-shield-indicator"));
+  const indicator = page.document.getElementById("ee-activity-shield-indicator");
+  assert.ok(indicator);
+  assert.ok(indicator.classList.contains("smartPreservedDiv"));
   page.setPrefs({ eeActivityShieldVisualIndicator: false });
   assert.equal(page.document.getElementById("ee-activity-shield-indicator"), null);
   const child = createPage({ child: true, prefs: { eeActivityShieldVisualIndicator: true } });

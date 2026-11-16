@@ -23,6 +23,8 @@ const UPDATE_STATUS_KEY = "eeUpdateStatus";
 const UPDATE_REMINDER_ENABLED_KEY = "eeUpdateReminderEnabled";
 const UPDATE_LAST_NOTIFIED_KEY = "eeUpdateLastNotifiedVersion";
 const ACTIVITY_SHIELD_ENABLED_KEY = "eeActivityShieldEnabled";
+const ACTIVITY_SHIELD_SITES_KEY = "eeActivityShieldSites";
+const ACTIVITY_SITE_IDS = ["ee-activity-site-main", "ee-activity-site-bridge"];
 const THEME_STORAGE_KEYS = EE.THEME_STORAGE_KEYS;
 const TOGGLE_ACTIVITY_SHIELD_COMMAND = "toggle-stay-active-mode";
 const TOGGLE_THEME_COMMAND = "toggle-theme-mode";
@@ -96,6 +98,48 @@ function storageSet(values) {
   return new Promise((resolve) => {
     chrome.storage.local.set(values, resolve);
   });
+}
+
+// Match patterns cover every port on a host. Only accept canonical, exact
+// HTTP(S) hosts here; never turn malformed stored data into broader access.
+function normalizeActivitySite(pattern) {
+  if (typeof pattern !== "string" || !/^https?:\/\/[^/*:?#]+\/\*$/.test(pattern)) return null;
+  try {
+    const url = new URL(pattern.slice(0, -1));
+    if (`${url.origin}/*` !== pattern || url.username || url.password || url.port) return null;
+    if (url.protocol === "https:" && (url.hostname === "edupage.org" || url.hostname.endsWith(".edupage.org") || url.hostname === "test.nop.wtf")) return null;
+    return pattern;
+  } catch (_) { return null; }
+}
+
+let activitySiteSyncQueue = Promise.resolve();
+function syncActivitySites() {
+  const operation = activitySiteSyncQueue.then(async () => {
+    if (!chrome.scripting?.getRegisteredContentScripts || !chrome.permissions?.contains) throw new Error("Dynamic site registration is unavailable");
+    const stored = (await storageGet([ACTIVITY_SHIELD_SITES_KEY]))[ACTIVITY_SHIELD_SITES_KEY];
+    const sites = [...new Set((Array.isArray(stored) ? stored : []).map(normalizeActivitySite).filter(Boolean))];
+    const granted = [];
+    for (const site of sites) {
+      if (await chrome.permissions.contains({ origins: [site] })) granted.push(site);
+    }
+    const registered = await chrome.scripting.getRegisteredContentScripts({ ids: ACTIVITY_SITE_IDS });
+    const existing = new Set(registered.map((item) => item.id));
+    if (!granted.length) {
+      if (existing.size) await chrome.scripting.unregisterContentScripts({ ids: [...existing] });
+      return;
+    }
+    const common = { matches: granted, runAt: "document_start", allFrames: true, matchOriginAsFallback: true, persistAcrossSessions: true };
+    const scripts = [
+      { ...common, id: ACTIVITY_SITE_IDS[0], world: "MAIN", js: ["scripts/activity-shield-main.js"] },
+      { ...common, id: ACTIVITY_SITE_IDS[1], world: "ISOLATED", js: ["scripts/lib/ee-common.js", "scripts/lib/ee-i18n.js", "scripts/activity-shield-bridge.js"] },
+    ];
+    const updates = scripts.filter((item) => existing.has(item.id));
+    const additions = scripts.filter((item) => !existing.has(item.id));
+    if (updates.length) await chrome.scripting.updateContentScripts(updates);
+    if (additions.length) await chrome.scripting.registerContentScripts(additions);
+  });
+  activitySiteSyncQueue = operation.catch(() => {});
+  return operation;
 }
 
 function analyticsEndpoint(origin, websiteId) {
@@ -2318,6 +2362,8 @@ async function collectLiveEdupageWeek(config) {
 // silently no-opping after a refactor. Never set in the real extension.
 if (globalThis.__EE_TEST__) {
   globalThis.__eeTestExports = {
+    normalizeActivitySite,
+    syncActivitySites,
     requestAiQuestionSuggestion,
     normalizeAiLogEntry,
     recordAiActivity,
@@ -2362,6 +2408,7 @@ if (globalThis.__EE_TEST__) {
 }
 
 chrome.runtime.onInstalled.addListener(() => {
+  syncActivitySites().catch(() => {});
   ensureOpenEtestHelpers().catch(() => {});
   syncUpdateAlarm().then((enabled) => {
     if (enabled) {
@@ -2371,12 +2418,17 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.runtime.onStartup.addListener(() => {
+  syncActivitySites().catch(() => {});
   ensureOpenEtestHelpers().catch(() => {});
   syncUpdateAlarm().then((enabled) => {
     if (enabled) {
       checkForUpdates({ notify: true });
     }
   });
+});
+
+chrome.permissions?.onRemoved?.addListener(() => {
+  syncActivitySites().catch(() => {});
 });
 
 chrome.commands.onCommand.addListener((command) => {
@@ -2444,6 +2496,8 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
 
+  if (changes[ACTIVITY_SHIELD_SITES_KEY]) syncActivitySites().catch(() => {});
+
   const activityShieldChange = changes[ACTIVITY_SHIELD_ENABLED_KEY];
   if (activityShieldChange?.newValue === true
       && (activityShieldChange.oldValue === false || activityShieldChange.oldValue === undefined)) {
@@ -2466,6 +2520,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === "ee-activity-sites-sync") {
+    if (!isAnalyticsSender(sender)) { sendResponse({ ok: false }); return false; }
+    syncActivitySites().then(() => sendResponse({ ok: true }), () => sendResponse({ ok: false }));
+    return true;
+  }
   if (message?.type === "ee-ai-log-read") {
     if (!isAnalyticsSender(sender)) { sendResponse({ ok: false }); return false; }
     queueAiLog(async () => {
