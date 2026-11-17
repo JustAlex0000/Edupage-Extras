@@ -118,8 +118,8 @@
     indicator.setAttribute("aria-label", t("activityShieldIndicatorName"));
     indicator.style.cssText = [
       "position:fixed",
-      "right:18px",
-      "bottom:18px",
+      "right:-3px",
+      "bottom:-3px",
       "width:12px",
       "height:12px",
       "border:0",
