@@ -263,15 +263,24 @@ AI request failures are always shown beside the affected question, even when
 Helper messages is off. The preference controls optional suggestion notes and
 raw model-response details.
 
-Settings → Experimental → AI includes an **AI activity log** for checking failures
-afterwards. It records requests, timing, public OpenAI model presets/reasoning
-settings, safe error codes, application/cancellation outcomes and ignored
-shortcuts. Custom model names are replaced with `custom`. Logging is on by
-default for these actions; turn it off to stop logging and erase saved entries,
-or use **Clear log**. Up to 80 events are stored locally; entries older than
-seven days are pruned on new activity or opening the log. Questions, answers,
-keys, school URLs and raw provider responses are excluded, as is the entire log
-from diagnostic reports. A saved page cannot reconstruct past provider errors.
+The shared AI configuration in Settings → Experimental contains an **AI activity
+log** for both Test Question Helper and Automatic test filling. Logging defaults
+on when either feature is enabled; an explicit logging opt-out is preserved.
+Entries identify the feature, request stage, provider, public OpenAI model preset,
+safe error code, HTTP status and elapsed time when available. Custom model names
+are replaced with `custom`. Shortcut delivery distinguishes a missing receiver
+from a closed message connection. HTTP guidance helps identify key, permission,
+endpoint/model and rate/quota errors. These details do not confirm provider
+account state or answer correctness.
+
+**Copy log** copies the displayed safe event details with version information
+and UTC timestamps. If clipboard access is denied, a selected read-only text box
+allows manual copying. Clear removes the log and any local copy fallback;
+turning logging off erases entries and stops recording. Up to 80 events are kept
+locally for seven days, pruned on new activity or opening the log. Questions,
+answers, reference text, keys, school URLs and raw provider responses are excluded,
+as is the entire log from diagnostic reports. No log is uploaded automatically.
+A saved page cannot reconstruct past provider errors.
 
 ### Keyboard shortcuts
 

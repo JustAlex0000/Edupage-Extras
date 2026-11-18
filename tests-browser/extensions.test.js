@@ -367,18 +367,45 @@ for (const browserName of ["chromium", "firefox"]) {
       });
       if (settings) await t.test("AI activity review, clear and disable in installed Settings", async () => {
         await settings.locator("#ExperimentalSettingsButton").click();
+        if (!await settings.locator("#AiQuestionHelperCheckbox").isChecked()) await settings.locator('label[for="AiQuestionHelperCheckbox"]').click();
         await settings.waitForSelector("#ee-ai-log-card", { state: "visible" });
-        await saveStorage({ eeAiActivityLog: [{ at: Date.now(), event: "failed", provider: "openai", model: "gpt-5.6-terra", error: "http", http: 429, ms: 250 }] });
+        assert.equal(await settings.locator("#AiQuestionHelperSettings #ee-ai-log-card").count(), 1);
+        await saveStorage({ eeAiActivityLog: [{ at: Date.now(), event: "failed", feature: "helper", stage: "provider", provider: "openai", model: "gpt-5.6-terra", error: "http", http: 429, ms: 250 }] });
         const disclosure = settings.locator("#ee-ai-log-card summary");
         await disclosure.focus(); await settings.keyboard.press("Enter");
         await settings.waitForFunction(() => document.querySelector("#ee-ai-log-entries")?.textContent.includes("HTTP 429"));
         assert.equal(await settings.locator("#ee-ai-log-enabled").isChecked(), true);
+        await settings.evaluate(() => Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async text => { window.auditCopiedLog = text; } } }));
+        await settings.locator("#ee-ai-log-copy").click();
+        const copied = await settings.evaluate(() => window.auditCopiedLog);
+        assert.ok(copied.includes("[failed]") && copied.includes("HTTP 429") && copied.includes("openai"));
+        const labels = await settings.evaluate(() => [eeI18n.msg("aiQuestionHelper"), eeI18n.msg("eeAiLogStageProvider")]);
+        assert.ok(labels.every(label => copied.includes(label)));
+        await settings.evaluate(() => Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async () => { throw new Error("denied"); } } }));
+        await settings.locator("#ee-ai-log-copy").click();
+        assert.equal(await settings.locator("#ee-ai-log-copy-output").isVisible(), true);
+        assert.equal(await settings.locator("#ee-ai-log-copy-output").inputValue(), copied);
+
         await settings.setViewportSize({ width: 390, height: 844 });
         assert.equal(await settings.locator("#ee-ai-log-card").evaluate(el => el.scrollWidth <= el.clientWidth), true);
         await settings.locator("#ee-ai-log-clear").click();
         await settings.waitForFunction(async () => (await chrome.storage.local.get("eeAiActivityLog")).eeAiActivityLog.length === 0);
+        assert.equal(await settings.locator("#ee-ai-log-copy-output").inputValue(), "");
+        assert.equal(await settings.locator("#ee-ai-log-copy").isDisabled(), true);
         await settings.locator('label[for="ee-ai-log-enabled"]').click();
         await settings.waitForFunction(async () => (await chrome.storage.local.get("eeAiActivityLogEnabled")).eeAiActivityLogEnabled === false);
+      });
+      if (settings) await t.test("AI shortcut delivery is acknowledged without a provider request", async () => {
+        await saveStorage({ eeAiQuestionHelperEnabled: true, eeAiAnswerMode: "both" });
+        const result = await settings.evaluate(async (origin) => {
+          const [tab] = await chrome.tabs.query({ url: `${origin}/*` });
+          return new Promise(resolve => chrome.tabs.sendMessage(tab.id,
+            { type: "ee-ai-suggest-current-question" }, response => resolve({
+              error: chrome.runtime.lastError?.message || null, response,
+            })));
+        }, ORIGIN);
+        assert.deepEqual(result, { error: null, response: { received: true } });
+        assert.equal(await settings.locator('#ee-ai-auto-card .setting-tag-wip').textContent(), "WIP");
       });
       if (settings) await t.test("AI timing and reference text save locally, toggle the editor, validate imports and clear cleanly", async () => {
         await settings.locator("#ExperimentalSettingsButton").click();

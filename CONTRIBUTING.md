@@ -99,12 +99,24 @@ school-specific defaults off.
    commit).
 4. `git tag vX.Y.Z` — must exactly match `package.json`; the workflow's
    guard step fails the run otherwise.
-5. `git push origin main --tags` — the tag triggers
-   `.github/workflows/firefox-release.yml`: tests, lint, builds, publishes
-   to the Chrome Web Store and AMO, and creates the GitHub Release with
-   notes from `CHANGELOG.md`.
-6. Verify the run succeeded (`gh run watch`) — a green tag push doesn't
-   guarantee the publish steps passed.
+5. `git push origin main vX.Y.Z` — push only the intended version tag. It triggers
+   `.github/workflows/release.yml`: validate the tag/version/changelog, run unit
+   and Chrome/Firefox browser tests, lint, and build/verify both packages.
+   After validation, separate jobs create the GitHub Release and submit the
+   verified Chrome package to the Chrome Web Store. Neither publishing job
+   depends on the other. GitHub Releases contain the Chrome ZIP and automatic
+   source downloads; they do not require a signed Firefox XPI.
+6. Check both publishing jobs (`gh run watch`). A GitHub Release does not mean
+   the Chrome submission succeeded or that Google's review is complete.
+
+Firefox publication is paused following Mozilla's moderation decision. Tags do
+not submit to AMO. Once Mozilla permits resubmission, explicitly set the repository
+Actions variable `AMO_PUBLISH_ENABLED` to `true` and manually run
+`.github/workflows/firefox-release.yml` against a version tag containing the new
+workflow. It independently checks, builds, verifies and signs the Firefox package.
+Leave the variable unset or false while the decision is unresolved. This manual
+workflow does not submit to Chrome or change GitHub Releases. Store descriptions,
+translations and privacy declarations are separate from package publication.
 
 ## Toolchain advisory boundary
 

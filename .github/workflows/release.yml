@@ -1,0 +1,125 @@
+name: Release to GitHub and Chrome Web Store
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: Verify release tag and versions
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [ "$REF_TYPE" != tag ] || ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Run this workflow against a version tag, not a branch." >&2
+            exit 1
+          fi
+          VERSION="$(node -p "require('./package.json').version")"
+          MANIFEST_VERSION="$(node -p "require('./manifest.json').version")"
+          if [ "$TAG" != "v$VERSION" ] || [ "$MANIFEST_VERSION" != "$VERSION" ]; then
+            echo "Tag, package.json and manifest.json versions must match." >&2
+            exit 1
+          fi
+          awk -v version="$VERSION" '$1 == "##" { active = ($2 == version); next } active { print }' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "Missing changelog notes for $VERSION." >&2
+            exit 1
+          fi
+      - run: npm ci
+      - name: Install browser test runtimes
+        run: npx playwright install --with-deps chromium firefox
+      - name: Run browser regressions
+        run: npm run test:browser
+      - name: Run unit tests
+        run: npm test
+      - name: Lint for Firefox
+        run: npm run lint:firefox
+      - name: Build and verify both browser packages
+        run: |
+          npm run build:firefox
+          npm run verify:firefox-package
+          npm run build:chrome
+          npm run verify:chrome-package
+      - name: Archive verified Chrome package
+        uses: actions/upload-artifact@v4
+        with:
+          name: chrome-zip
+          path: web-ext-artifacts/*-chrome.zip
+          if-no-files-found: error
+      - name: Archive release notes
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes.md
+          if-no-files-found: error
+
+  github-release:
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: chrome-zip
+          path: web-ext-artifacts
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-notes
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "$TAG" --notes-file release-notes.md
+            gh release upload "$TAG" --clobber web-ext-artifacts/*-chrome.zip
+          else
+            gh release create "$TAG" --verify-tag --title "$TAG" \
+              --notes-file release-notes.md web-ext-artifacts/*-chrome.zip
+          fi
+
+  chrome-store:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: chrome-zip
+          path: web-ext-artifacts
+      - name: Publish verified package to Chrome Web Store
+        env:
+          EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+          CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+        run: |
+          if [ -z "$EXTENSION_ID" ] || [ -z "$CLIENT_ID" ] || [ -z "$CLIENT_SECRET" ] || [ -z "$REFRESH_TOKEN" ]; then
+            echo "Chrome Web Store credentials are incomplete; nothing was uploaded." >&2
+            exit 1
+          fi
+          PATH="$PWD/node_modules/.bin:$PATH" node scripts-dev/upload-chrome.js

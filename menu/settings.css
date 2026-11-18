@@ -634,7 +634,8 @@ code {
     font-size: 13px;
 }
 
-.custom-theme-import textarea {
+.custom-theme-import textarea,
+#ee-ai-log-copy-output {
     width: 100%;
     min-height: 104px;
     resize: vertical;
@@ -1286,3 +1287,5 @@ input[type="checkbox"]:disabled {
 
 #ee-shortcut-address { width: 100%; min-height: 44px; margin: 8px 0; }
 #ee-shortcut-help .actions-row > * { min-height: 44px; }
+
+#ee-ai-log-card button { min-height: 44px; }

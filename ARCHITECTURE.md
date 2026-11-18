@@ -278,22 +278,34 @@ acknowledgement view and must not appear in normal settings search.
 Run `npm test` after code changes, then use the Firefox lint/build and package
 verification commands from [CONTRIBUTING.md](CONTRIBUTING.md). Package builders
 use an explicit allowlist, so local notes and captures cannot enter a release.
-Versioning and tagged release flow are also documented there.
+Versioning and tagged release flow are also documented there. `release.yml`
+validates tagged builds once, then independent jobs create the GitHub Release
+and submit the exact verified Chrome artifact. Firefox checks still run, but AMO
+submission is manual-only in `firefox-release.yml` and fails closed unless the
+repository variable `AMO_PUBLISH_ENABLED` is explicitly true. Neither store's
+submission gates GitHub Release creation.
 
 ## AI activity diagnostics
 
 `background.js` serializes all writes/clear/disable operations for
 `eeAiActivityLog` (80 entries, seven-day pruning on write/read). The local
-`eeAiActivityLogEnabled` preference defaults on; switching off also erases data.
+`eeAiActivityLogEnabled` preference defaults on while either AI feature is enabled;
+no events are written when both are off. Explicit false survives re-enabling an
+AI feature. Switching logging off also erases data.
 Only Settings may read/clear/change this preference through runtime messages.
 Top-frame HTTPS EduPage helpers may report fixed application/shortcut event
-codes; they cannot supply metadata or arbitrary log text. Provider errors become
+codes and an allowlisted helper/automatic feature identifier; they cannot supply
+arbitrary log text. Backend events add fixed configuration/provider/response
+stages and fixed shortcut-delivery reasons. Provider errors become
 fixed codes and HTTP status numbers. Model metadata uses an explicit public
 OpenAI preset allowlist; every other model is `custom`. No provider messages,
 credentials, prompts, answers, school URLs or test identifiers are stored.
 Diagnostics exclude the key even with redaction disabled. Log storage failures
 must never interrupt an AI action. `menu/ai-activity-settings.js` renders text
-entries using existing settings controls and observes storage/language changes.
+entries inside the shared AI configuration and observes storage/language changes.
+Copy uses normalized safe entries, the extension version and UTC timestamps;
+clipboard denial reveals a selected read-only fallback. Clear/disable removes
+that fallback, too. Log exports are user-initiated and never uploaded.
 The provider adapter detects output-limit termination before parsing or applying
 a potentially partial response; no automatic retry or token-budget increase.
 

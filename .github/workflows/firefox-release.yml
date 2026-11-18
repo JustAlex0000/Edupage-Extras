@@ -1,129 +1,65 @@
-name: Publish to Firefox Add-ons (AMO) and Chrome Web Store
+name: Firefox Add-ons submission (manual, paused)
 
-# Runs when a version tag like v0.7.0 is pushed. Lints, tests, then submits the
-# build to AMO for signing and (once CWS_* secrets are set) to the Chrome Web
-# Store — once each store approves a version, existing installs update
-# automatically. One-time setup: FIREFOX_RELEASE.md / CHROME_RELEASE.md.
-
+# No tag trigger. Enable AMO_PUBLISH_ENABLED only after Mozilla permits resubmission.
 on:
-  push:
-    tags:
-      - "v*.*.*"
-  workflow_dispatch: {} # lets you trigger a re-run manually from the Actions tab
+  workflow_dispatch: {}
 
 permissions:
-  contents: write # needed to create the GitHub Release on tag push
+  contents: read
+
+concurrency:
+  group: firefox-submission-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Require Firefox publishing to be explicitly enabled
+        env:
+          AMO_PUBLISH_ENABLED: ${{ vars.AMO_PUBLISH_ENABLED }}
+          REF_TYPE: ${{ github.ref_type }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [ "$AMO_PUBLISH_ENABLED" != true ]; then
+            echo "Firefox submission is paused. Resolve Mozilla's moderation decision before enabling AMO_PUBLISH_ENABLED." >&2
+            exit 1
+          fi
+          if [ "$REF_TYPE" != tag ] || ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Select an existing version tag for Firefox submission." >&2
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
+      - name: Verify selected tag matches package and manifest versions
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          MANIFEST_VERSION="$(node -p "require('./manifest.json').version")"
+          test "$TAG" = "v$VERSION"
+          test "$MANIFEST_VERSION" = "$VERSION"
+      - run: npm ci
       - name: Install browser test runtimes
         run: npx playwright install --with-deps chromium firefox
-
-      - name: Run browser regressions
-        run: npm run test:browser
-
-      - name: Verify pushed tag matches package.json version
-        if: github.ref_type == 'tag'
-        run: |
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          PKG_VERSION="$(node -p "require('./package.json').version")"
-          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
-            echo "Tag $GITHUB_REF_NAME does not match package.json version $PKG_VERSION" >&2
-            exit 1
-          fi
-
-      - name: Run unit tests
-        run: npm test
-
-      - name: Lint for Firefox
-        run: npm run lint:firefox
-
-      - name: Build package and verify it contains no excluded files
+      - run: npm run test:browser
+      - run: npm test
+      - run: npm run lint:firefox
+      - name: Build and verify Firefox package
         run: |
           npm run build:firefox
           npm run verify:firefox-package
-
-      - name: Build Chrome package and verify it contains no excluded files
-        # Chrome needs its own zip: build-chrome.js strips the Firefox-only
-        # manifest keys (background.scripts, browser_specific_settings) that
-        # the Chrome Web Store validator rejects. See CHROME_RELEASE.md.
-        run: |
-          npm run build:chrome
-          npm run verify:chrome-package
-
-      - name: Upload Chrome .zip as a workflow artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: chrome-zip
-          path: web-ext-artifacts/*-chrome.zip
-          if-no-files-found: ignore
-
-      - name: Publish to Chrome Web Store
-        # Skips quietly until the CWS secrets exist (see CHROME_RELEASE.md for
-        # the one-time setup). The first version must be uploaded by hand on
-        # the dashboard; after that this step handles every release.
-        env:
-          EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
-          CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
-          CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
-          REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
-        run: |
-          if [ -z "$EXTENSION_ID" ]; then
-            echo "CWS_* secrets not configured — skipping Chrome Web Store upload."
-            exit 0
-          fi
-          npm run upload:chrome
-
       - name: Sign and submit to addons.mozilla.org
         env:
-          # AMO_API_KEY = the AMO "JWT issuer"; AMO_API_SECRET = the "JWT secret".
           WEB_EXT_API_KEY: ${{ secrets.AMO_API_KEY }}
           WEB_EXT_API_SECRET: ${{ secrets.AMO_API_SECRET }}
         run: npm run sign:firefox
-
-      - name: Upload signed .xpi as a workflow artifact
-        if: always()
+      - name: Archive signed Firefox package
         uses: actions/upload-artifact@v4
         with:
           name: firefox-xpi
           path: web-ext-artifacts/*.xpi
-          if-no-files-found: ignore
-
-      - name: Create or update GitHub Release
-        if: github.ref_type == 'tag'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          # Extract this version's section from CHANGELOG.md as release notes
-          awk "/^## ${VERSION//./\\.} /{flag=1;next}/^## /{flag=0}flag" CHANGELOG.md > notes.md
-          if [ ! -s notes.md ]; then
-            echo "No CHANGELOG.md section found for $VERSION" > notes.md
-          fi
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release edit "$GITHUB_REF_NAME" \
-              --title "$GITHUB_REF_NAME" \
-              --notes-file notes.md
-            gh release upload "$GITHUB_REF_NAME" --clobber \
-              web-ext-artifacts/*-chrome.zip web-ext-artifacts/*.xpi
-          else
-            gh release create "$GITHUB_REF_NAME" \
-              --title "$GITHUB_REF_NAME" \
-              --notes-file notes.md \
-              web-ext-artifacts/*-chrome.zip web-ext-artifacts/*.xpi
-          fi
+          if-no-files-found: error

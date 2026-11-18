@@ -794,7 +794,7 @@
           <div class="setting-card" id="ee-ai-auto-card">
             <div class="setting-row">
               <div>
-                <h3 data-i18n="eeAiAutoTitle">Automatic test filling</h3>
+                <h3><span data-i18n="eeAiAutoTitle">Automatic test filling</span> <span class="setting-tag setting-tag-wip" data-i18n="wipBadge">WIP</span></h3>
                 <p data-i18n="eeAiAutoDesc">Off by default. Use the separate Fill loaded test shortcut to start or stop. Only supports tests showing all questions together. Escape stops. No on-page progress or status messages; review errors in the AI activity log. Answers are never submitted.</p>
               </div>
               <label class="switch switch-compact" for="ee-ai-auto-enabled">
@@ -811,7 +811,10 @@
 
           <div class="setting-card ai-settings" id="AiQuestionHelperSettings" hidden>
               <div class="setting-row">
-                <div><h3 data-i18n="eeAiSharedSettings">Shared AI configuration</h3></div>
+                <div>
+                  <h3 data-i18n="eeAiSharedSettings">Configuration for both AI features</h3>
+                  <p data-i18n="eeAiSharedSettingsDesc">Provider, model, reference text and filling settings below apply to both Test Question Helper and Automatic test filling. Each feature has its own enable switch and shortcut.</p>
+                </div>
               </div>
               <div class="setting-row">
                 <div>
@@ -926,13 +929,13 @@
               </div>
               <div class="setting-row">
                 <div>
-                  <h3 data-i18n="eeAiSequentialFill">Fill answers one at a time</h3>
-                  <p data-i18n="eeAiSequentialFillDesc">Apply fields, choices and pairs one at a time using the adjustable pause below.</p>
+                  <h3 data-i18n="eeAiSequentialFill">Fill each question gradually</h3>
+                  <p data-i18n="eeAiSequentialFillDesc">Applies to both Test Question Helper and Automatic test filling. Within each question, fill fields, choices and matching pairs one at a time using the pause below. This does not set the pause between questions.</p>
                 </div>
                 <label class="switch switch-compact" for="ee-ai-sequential-fill">
                   <input id="ee-ai-sequential-fill" type="checkbox" aria-controls="ee-ai-step-options">
                   <span class="switch-track" aria-hidden="true"></span>
-                  <span class="sr-only" data-i18n="eeAiSequentialFill">Fill answers one at a time</span>
+                  <span class="sr-only" data-i18n="eeAiSequentialFill">Fill each question gradually</span>
                 </label>
               </div>
               <div class="setting-row setting-row-stack" id="ee-ai-step-options" hidden>
@@ -997,31 +1000,34 @@
                 </label>
               </div>
 
+              <div id="ee-ai-log-card">
+                <div class="setting-row">
+                  <div>
+                    <h3 data-i18n="eeAiLogTitle">AI activity log</h3>
+                    <p data-i18n="eeAiLogDesc">On by default while either AI feature is enabled, unless you turn logging off. Keep up to 80 local events for seven days, including the feature, request stage, provider, timing and safe error details. Questions, answers, reference text, keys and raw responses are excluded. Turning this off clears the log.</p>
+                  </div>
+                  <label class="switch switch-compact" for="ee-ai-log-enabled">
+                    <input type="checkbox" id="ee-ai-log-enabled" disabled>
+                    <span class="switch-track" aria-hidden="true"></span>
+                    <span class="sr-only" data-i18n="eeAiLogTitle">AI activity log</span>
+                  </label>
+                </div>
+                <div class="setting-row setting-row-stack">
+                  <details>
+                    <summary data-i18n="eeAiLogReview">Review recent AI activity</summary>
+                    <ol id="ee-ai-log-entries" tabindex="0" aria-label="Recent AI activity" data-i18n-attr="aria-label:eeAiLogReview"></ol>
+                  </details>
+                  <textarea id="ee-ai-log-copy-output" readonly hidden rows="6" aria-label="AI activity log to copy" data-i18n-attr="aria-label:eeAiLogCopy"></textarea>
+                  <p class="setting-note" role="status" id="ee-ai-log-status"></p>
+                  <div class="actions-row">
+                    <button type="button" class="secondary-button" id="ee-ai-log-copy" data-i18n="eeAiLogCopy" disabled>Copy log</button>
+                    <button type="button" class="secondary-button" id="ee-ai-log-clear" data-i18n="eeAiLogClear">Clear log</button>
+                  </div>
+                </div>
+              </div>
+
           </div>
 
-          <div class="setting-card" id="ee-ai-log-card">
-            <div class="setting-row">
-              <div>
-                <h3 data-i18n="eeAiLogTitle">AI activity log</h3>
-                <p data-i18n="eeAiLogDesc">Keep up to 80 local events from the last seven days. Includes request timing, public model presets and error codes. No questions, answers, keys or provider response text. Turning this off clears the log.</p>
-              </div>
-              <label class="switch switch-compact" for="ee-ai-log-enabled">
-                <input type="checkbox" id="ee-ai-log-enabled" disabled>
-                <span class="switch-track" aria-hidden="true"></span>
-                <span class="sr-only" data-i18n="eeAiLogTitle">AI activity log</span>
-              </label>
-            </div>
-            <div class="setting-row setting-row-stack">
-              <details>
-                <summary data-i18n="eeAiLogReview">Review recent AI activity</summary>
-                <ol id="ee-ai-log-entries" tabindex="0" aria-label="Recent AI activity" data-i18n-attr="aria-label:eeAiLogReview"></ol>
-              </details>
-              <p class="setting-note" role="status" id="ee-ai-log-status"></p>
-              <div class="actions-row">
-                <button type="button" class="secondary-button" id="ee-ai-log-clear" data-i18n="eeAiLogClear">Clear log</button>
-              </div>
-            </div>
-          </div>
 
           <div class="section-heading">
             <h3 id="etest-tools-heading" data-i18n="etestToolsHeading">eTest tools</h3>
