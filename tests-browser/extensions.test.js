@@ -380,7 +380,7 @@ for (const browserName of ["chromium", "firefox"]) {
         await settings.locator('label[for="ee-ai-log-enabled"]').click();
         await settings.waitForFunction(async () => (await chrome.storage.local.get("eeAiActivityLogEnabled")).eeAiActivityLogEnabled === false);
       });
-      if (settings) await t.test("AI timing and reference notes save locally, validate imports and clear cleanly", async () => {
+      if (settings) await t.test("AI timing and reference text save locally, toggle the editor, validate imports and clear cleanly", async () => {
         await settings.locator("#ExperimentalSettingsButton").click();
         if (!await settings.locator("#AiQuestionHelperCheckbox").isChecked()) await settings.locator('label[for="AiQuestionHelperCheckbox"]').click();
         await settings.locator("#ee-ai-fill-delay").fill("2.5");
@@ -390,17 +390,24 @@ for (const browserName of ["chromium", "firefox"]) {
         await settings.locator("#ee-ai-fill-step").fill("0.2");
         await settings.locator("#ee-ai-fill-step").blur();
         await settings.waitForFunction(async () => (await chrome.storage.local.get("eeAiFillStepSeconds")).eeAiFillStepSeconds === 0.2);
+        assert.equal(await settings.locator("#ee-ai-context-editor").isVisible(), false);
+        await settings.locator('label[for="ee-ai-context-enabled"]').click();
+        await settings.waitForFunction(() => !document.getElementById("ee-ai-context-editor").hidden);
         await settings.locator("#ee-ai-context-text").fill("SYNTHETIC_SAVED_NOTES");
         await settings.locator("#ee-ai-context-save").click();
         await settings.waitForFunction(async () => (await chrome.storage.local.get("eeAiContextText")).eeAiContextText === "SYNTHETIC_SAVED_NOTES");
-        assert.equal(await settings.locator("#ee-ai-context-enabled").isChecked(), false);
+        assert.equal(await settings.locator("#ee-ai-context-enabled").isChecked(), true);
         await settings.locator("#ee-ai-context-file").setInputFiles({ name: "practice.md", mimeType: "text/markdown", buffer: Buffer.from("SYNTHETIC_FILE_NOTES") });
         await settings.waitForFunction(() => document.getElementById("ee-ai-context-text").value === "SYNTHETIC_FILE_NOTES");
         assert.equal((await readStorage("eeAiContextText")).eeAiContextText, "SYNTHETIC_SAVED_NOTES");
         await settings.locator("#ee-ai-context-save").click();
         await settings.waitForFunction(async () => (await chrome.storage.local.get("eeAiContextText")).eeAiContextText === "SYNTHETIC_FILE_NOTES");
         await settings.locator('label[for="ee-ai-context-enabled"]').click();
-        await settings.waitForFunction(async () => (await chrome.storage.local.get("eeAiContextEnabled")).eeAiContextEnabled === true);
+        await settings.waitForFunction(() => document.getElementById("ee-ai-context-editor").hidden);
+        assert.equal((await readStorage("eeAiContextText")).eeAiContextText, "SYNTHETIC_FILE_NOTES");
+        await settings.locator('label[for="ee-ai-context-enabled"]').click();
+        await settings.waitForFunction(() => !document.getElementById("ee-ai-context-editor").hidden);
+        assert.equal(await settings.locator("#ee-ai-context-text").inputValue(), "SYNTHETIC_FILE_NOTES");
         for (const [name, buffer] of [["bad.pdf", Buffer.from("pdf")], ["bad.txt", Buffer.from([255, 254, 255])], ["too-long.md", Buffer.alloc(20001, 65)], ["too-big.txt", Buffer.alloc(131073, 65)]]) {
           await settings.locator("#ee-ai-context-file").setInputFiles({ name, mimeType: "text/plain", buffer });
           await settings.waitForFunction(() => document.getElementById("ee-ai-fill-status").dataset.error === "true" && document.getElementById("ee-ai-context-file").value === "");
@@ -417,6 +424,8 @@ for (const browserName of ["chromium", "firefox"]) {
         await settings.locator("#ee-ai-context-clear").click();
         await settings.waitForFunction(async () => { const s = await chrome.storage.local.get(["eeAiContextText", "eeAiContextEnabled"]); return s.eeAiContextText === "" && s.eeAiContextEnabled === false; });
         assert.equal(await settings.locator("#ee-ai-context-text").inputValue(), "");
+        assert.equal(await settings.locator("#ee-ai-context-editor").isVisible(), false);
+        assert.equal(await settings.locator("#ee-ai-fill-status").isVisible(), true);
         await settings.setViewportSize({ width: 1280, height: 900 });
       });
       if (settings) await t.test("automatic test filling has a separate toggle and shared configuration", async () => {

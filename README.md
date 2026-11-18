@@ -239,15 +239,15 @@ Provider configuration, notes and filling timing are shared with the individual
 helper. Each processed question consumes its normal request; stopping prevents
 remaining work but cannot recall a request already sent to the provider.
 
-**Use saved reference notes** is off by default. Paste notes or load a UTF-8
-`.txt`/`.md` file up to 128 KB and 20,000 characters, review it and choose
-**Save notes**. Only the text is saved locally, without the original file or its
-name. When enabled, saved notes are included in each explicitly requested
-question sent to the selected provider, consuming more input tokens and
-potentially increasing cost. Turning this off retains the local notes; **Clear
-notes and disable** deletes the text and stops sending it. Notes are excluded
-from AI activity logs and both diagnostic report modes. PDF, Word, images and
-other files are not supported by this text import.
+**Use reference text** is off by default. Enable it to show the editor and file
+controls. Paste text or load a UTF-8 `.txt`/`.md` file up to 128 KB and 20,000
+characters, review it and choose **Save text**. Only the text is saved locally,
+without the original file or its name. When enabled, saved text is included in
+each explicitly requested question sent to the selected provider, consuming more
+input tokens and potentially increasing cost. Turning this off hides the editor
+and retains the saved text; **Clear text and disable** deletes it and stops
+sending it. Reference text is excluded from AI activity logs and both diagnostic
+report modes. PDF, Word, images and other files are not supported by this import.
 
 **Restore test fullscreen** is an independent, off-by-default option beneath
 **Block Escape Key** in Stay Active settings. When both parent switches are on,

@@ -4,6 +4,11 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## 1.1.2 — 2026-11-18
+
+- Rename AI reference notes to Reference text and hide its editor and file
+  controls while disabled, retaining saved text when toggled off.
+
 ## 1.1.1 — 2026-11-18
 
 - Move the Stay Active status indicator closer to the bottom-right corner while

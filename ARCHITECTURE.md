@@ -326,7 +326,7 @@ and are never written to saved schedules or caches. Imported-only subjects use
 a deterministic native-style pastel palette, tinted against theme tokens in
 dark mode. Ownership remains labelled; overlap tracks and actual times are unchanged.
 
-## AI fill timing and reference notes
+## AI fill timing and reference text
 
 `eeAiFillDelaySeconds` is bounded to 0–60 (default 0), and
 `eeAiSequentialFillEnabled` defaults false. The content helper keeps requests

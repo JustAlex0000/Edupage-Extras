@@ -804,7 +804,7 @@
               </label>
             </div>
             <div class="setting-row">
-              <p data-i18n="eeAiAutoCost">Each unanswered question uses one AI request, plus saved notes when enabled. Provider configuration and fill timing below are shared with the per-question helper.</p>
+              <p data-i18n="eeAiAutoCost">Each unanswered question uses one AI request, plus saved reference text when enabled. Provider configuration and fill timing below are shared with the per-question helper.</p>
               <button type="button" class="secondary-button" id="ee-ai-auto-shortcuts" data-i18n="openShortcutSettings">Open Shortcut Settings</button>
             </div>
           </div>
@@ -941,26 +941,26 @@
               </div>
               <div class="setting-row">
                 <div>
-                  <h3 data-i18n="eeAiContext">Use saved reference notes</h3>
-                  <p data-i18n="eeAiContextWarning">When enabled, saved notes are sent to your selected AI provider with every question. This uses more input tokens and may cost more. Notes stay in this browser until cleared.</p>
+                  <h3 data-i18n="eeAiContext">Use reference text</h3>
+                  <p data-i18n="eeAiContextWarning">When enabled, saved reference text is sent to your selected AI provider with every question. This uses more input tokens and may cost more. Reference text stays in this browser until cleared.</p>
                 </div>
                 <label class="switch switch-compact" for="ee-ai-context-enabled">
                   <input id="ee-ai-context-enabled" type="checkbox">
                   <span class="switch-track" aria-hidden="true"></span>
-                  <span class="sr-only" data-i18n="eeAiContext">Use saved reference notes</span>
+                  <span class="sr-only" data-i18n="eeAiContext">Use reference text</span>
                 </label>
               </div>
-              <div class="setting-row setting-row-stack" id="ee-ai-context-editor">
-                <label for="ee-ai-context-text" data-i18n="eeAiContextNotes">Reference notes (up to 20,000 characters)</label>
+              <div class="setting-row setting-row-stack" id="ee-ai-context-editor" hidden>
+                <label for="ee-ai-context-text" data-i18n="eeAiContextNotes">Reference text (up to 20,000 characters)</label>
                 <textarea id="ee-ai-context-text" rows="8" maxlength="20000" spellcheck="false"></textarea>
                 <label for="ee-ai-context-file" data-i18n="eeAiContextFile">Load a UTF-8 .txt or .md file (up to 128 KB)</label>
                 <input id="ee-ai-context-file" type="file" accept=".txt,.md,text/plain,text/markdown">
                 <div class="actions-row">
-                  <button id="ee-ai-context-save" class="secondary-button" type="button" data-i18n="eeAiContextSave">Save notes</button>
-                  <button id="ee-ai-context-clear" class="secondary-button" type="button" data-i18n="eeAiContextClear">Clear notes and disable</button>
+                  <button id="ee-ai-context-save" class="secondary-button" type="button" data-i18n="eeAiContextSave">Save text</button>
+                  <button id="ee-ai-context-clear" class="secondary-button" type="button" data-i18n="eeAiContextClear">Clear text and disable</button>
                 </div>
-                <p id="ee-ai-fill-status" class="setting-note" role="status" aria-live="polite"></p>
               </div>
+              <p id="ee-ai-fill-status" class="setting-note" role="status" aria-live="polite"></p>
 
               <div class="setting-row">
                 <div>

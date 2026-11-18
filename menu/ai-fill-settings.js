@@ -6,7 +6,7 @@
   const delay = $("fill-delay"), sequential = $("sequential-fill"), enabled = $("context-enabled");
   const step = $("fill-step"), auto = $("auto-enabled");
   const notes = $("context-text"), file = $("context-file"), save = $("context-save"), clear = $("context-clear");
-  const status = $("fill-status");
+  const status = $("fill-status"), editor = $("context-editor");
   const controls = [delay, step, sequential, auto, enabled, notes, file, save, clear];
   let fileRevision = 0;
   function message(key, error = false) { status.textContent = t(key); status.dataset.error = String(error); }
@@ -26,6 +26,7 @@
     auto.checked = values.eeAiAutoFillEnabled === true;
     window.dispatchEvent(new Event("ee-ai-feature-change"));
     enabled.checked = values.eeAiContextEnabled === true;
+    editor.hidden = !enabled.checked;
     notes.value = typeof values.eeAiContextText === "string" ? values.eeAiContextText : "";
   });
   step.addEventListener("change", async () => {
@@ -47,6 +48,7 @@
       finally {
         control.disabled = false;
         $("step-options").hidden = !sequential.checked;
+        editor.hidden = !enabled.checked;
         window.dispatchEvent(new Event("ee-ai-feature-change"));
       }
     });
@@ -66,6 +68,7 @@
       // Remove the text entirely and disable transmission in the same operation.
       await store({ eeAiContextText: "", eeAiContextEnabled: false });
       notes.value = ""; enabled.checked = false; file.value = "";
+      editor.hidden = true;
       message("eeAiContextCleared");
     } catch (_) { message("eeAiFillSaveFailed", true); }
     finally { clear.disabled = false; }
