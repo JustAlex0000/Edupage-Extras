@@ -4,6 +4,14 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## 1.1.1 — 2026-11-18
+
+- Move the Stay Active status indicator closer to the bottom-right corner while
+  keeping the full button inside the viewport.
+- Add opt-in Stay Active support for individually selected websites, with
+  per-host permission prompts and removal controls.
+- Preserve the status indicator during EduPage page updates.
+
 ## 1.1.0 — 2026-11-16
 
 - Make selected text readable in dark themes with a blue highlight and dark text.
