@@ -337,6 +337,9 @@ The extension does not request access to all websites at once.
 
 ## Privacy
 
+See the [Privacy Policy](PRIVACY.md). The extension also includes the policy in
+English, Slovak, and Czech under Settings → Privacy and in the popup footer.
+
 - Usage analytics send a fixed extension-use pageview on EduPage page loads and
   events when Stay Active Mode is enabled or disabled or its test page is opened
   to the self-hosted Umami server. Settings → Privacy can turn it off. Firefox

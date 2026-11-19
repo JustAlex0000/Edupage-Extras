@@ -1,0 +1,31 @@
+:root {
+    color-scheme: light dark;
+    font: 1rem / 1.6 system-ui, sans-serif;
+}
+
+body {
+    max-width: 70ch;
+    margin: 2rem auto;
+    padding-inline: 1rem;
+    overflow-wrap: anywhere;
+}
+
+.ee-policy-languages {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+h1 {
+    line-height: 1.2;
+}
+
+article + article {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid GrayText;
+}
+
+li + li {
+    margin-top: 0.5rem;
+}

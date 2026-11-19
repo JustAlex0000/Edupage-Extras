@@ -4,6 +4,12 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## 1.1.4 — 2026-11-19
+
+- Publish a privacy policy covering usage analytics and other data handling.
+- Link to the policy from Settings → Privacy and the popup footer. Include
+  English, Slovak, and Czech, with the browser's preferred language first.
+
 ## 1.1.3 — 2026-11-18
 
 - This store update also includes the 1.1.1 and 1.1.2 changes: additional Stay

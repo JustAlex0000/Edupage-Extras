@@ -326,6 +326,7 @@
   "reportIssueOpened": { "message": "Otevřeno nové GitHub issue — přiložte stažený report nebo ho vložte." },
 
   "groupPrivacy": { "message": "Soukromí" },
+  "privacyPolicyLink": { "message": "Zásady ochrany soukromí" },
   "analyticsTitle": { "message": "Analytika používání" },
   "analyticsDesc": { "message": "Analytika používání odesílá na náš vlastní server Umami zobrazení při načtení stránek EduPage a události při zapnutí nebo vypnutí režimu Stay Active a otevření jeho testovací stránky. Údaje ze stránek EduPage se neodesílají. Server obdrží vaši IP adresu a informace o prohlížeči (user agent). Firefox může vyžadovat také povolení prohlížeče." },
   "analyticsPermissionDenied": { "message": "Povolení Firefoxu nebylo uděleno. Analytika používání je vypnutá." },
