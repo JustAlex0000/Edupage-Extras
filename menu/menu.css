@@ -400,6 +400,10 @@ h1 {
     margin-bottom: 14px;
 }
 
+.ee-privacy-policy-footer {
+    margin-top: 6px;
+}
+
 .made-by a {
     color: var(--accent-color);
     font-weight: 700;

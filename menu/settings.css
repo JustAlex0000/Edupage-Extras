@@ -541,6 +541,11 @@ code {
     display: none;
 }
 
+.ee-privacy-policy-link {
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
 .setting-note strong {
     color: var(--text-main);
     display: block;

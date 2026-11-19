@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Edupage Extras Privacy Policy</title>
+    <link rel="stylesheet" href="privacy.css">
+    <script src="privacy.js" defer></script>
+  </head>
+  <body>
+    <nav class="ee-policy-languages">
+      <a href="#en" lang="en" hreflang="en">English</a>
+      <a href="#sk" lang="sk" hreflang="sk">Slovenčina</a>
+      <a href="#cs" lang="cs" hreflang="cs">Čeština</a>
+    </nav>
+    <main>
+      <article id="en" lang="en">
+        <h1>Edupage Extras Privacy Policy</h1>
+        <p>Last updated November 19, 2026.</p>
+
+        <h2>Usage analytics</h2>
+        <p>Edupage Extras uses a self-hosted Umami server at <code>analytics.kryptosss.xyz</code> to measure extension usage. When analytics are enabled, the extension sends an HTTPS request with a fixed extension identifier and a generic pageview when an EduPage page loads. It also sends an event when Stay Active Mode is enabled or disabled or when its test page is opened.</p>
+        <p>The server receives the request IP address and browser user agent. Analytics requests omit cookies, credentials, referrers, actual EduPage URLs, school names, page content, and account details.</p>
+        <p>You can stop future analytics requests in <strong>Settings → Privacy → Usage analytics</strong>. On Chromium browsers, analytics are enabled by default. On Firefox, the extension also requires the optional <strong>Technical and interaction data</strong> permission before sending analytics.</p>
+
+        <h2>Data processed in your browser</h2>
+        <p>The extension reads data already available in EduPage to display grades, attendance, timetables, and other enhancements. Settings and attendance and timetable caches are stored locally. Timetable exports are generated locally. The extension does not collect EduPage login credentials.</p>
+        <p>If you enable test saving and save a test, the browser profile stores the question text, recorded answers, readable question images, school origin, and capture timestamps. You can delete saved tests from the extension. Diagnostics are generated locally and can be exported or shared by you.</p>
+
+        <h2>Optional external requests</h2>
+        <ul>
+          <li><strong>Update checks.</strong> When enabled, the extension requests public version information from GitHub. GitHub receives ordinary network request metadata.</li>
+          <li><strong>Test Question Helper.</strong> When you explicitly request help, the extension sends the current question and any choices already selected to the AI provider you configured. If you enabled reference notes for AI requests, those notes can also be included. Provider credentials are stored in the browser and used to authenticate to the selected provider. The cloud providers are OpenAI, Google Gemini, NVIDIA, and OpenRouter. Their own privacy and retention policies apply to requests they receive. Ollama and LM Studio use a local endpoint on your device.</li>
+        </ul>
+
+        <h2>Questions and data requests</h2>
+        <p>For privacy questions or requests about analytics data, contact the maintainers through the <a href="https://github.com/JustAlex0000/Edupage-Extras/issues">Edupage Extras issue tracker</a>. Please keep personal information out of public issues.</p>
+      </article>
+
+      <article id="sk" lang="sk">
+        <h1>Zásady ochrany súkromia Edupage Extras</h1>
+        <p>Posledná aktualizácia 19. novembra 2026.</p>
+
+        <h2>Analytika používania</h2>
+        <p>Edupage Extras meria používanie rozšírenia pomocou vlastného servera Umami na adrese <code>analytics.kryptosss.xyz</code>. Pri zapnutej analytike rozšírenie pri načítaní stránky EduPage odošle požiadavku cez HTTPS s pevným identifikátorom rozšírenia a všeobecným záznamom o zobrazení stránky. Udalosť odošle aj pri zapnutí alebo vypnutí režimu Stay Active alebo pri otvorení jeho testovacej stránky.</p>
+        <p>Server dostane IP adresu požiadavky a identifikáciu prehliadača (user agent). Analytické požiadavky neobsahujú súbory cookie, prihlasovacie údaje, odkazujúcu adresu, skutočné adresy stránok EduPage, názvy škôl, obsah stránok ani údaje o účte.</p>
+        <p>Ďalšie odosielanie môžete vypnúť v časti <strong>Nastavenia → Súkromie → Analytika používania</strong>. V prehliadačoch založených na Chromiu je analytika predvolene zapnutá. Vo Firefoxe rozšírenie pred odosielaním vyžaduje aj voliteľné povolenie na zber technických údajov a údajov o interakciách.</p>
+
+        <h2>Údaje spracúvané v prehliadači</h2>
+        <p>Rozšírenie číta údaje dostupné v EduPage na zobrazenie známok, dochádzky, rozvrhu a ďalších vylepšení. Nastavenia a vyrovnávacie pamäte dochádzky a rozvrhu sa ukladajú lokálne. Exporty rozvrhu sa vytvárajú lokálne. Rozšírenie nezbiera prihlasovacie údaje do EduPage.</p>
+        <p>Ak zapnete ukladanie testov a uložíte test, profil prehliadača uchová text otázok, zaznamenané odpovede, čitateľné obrázky otázok, adresu školského webu a časy uloženia. Uložené testy môžete z rozšírenia vymazať. Diagnostické údaje sa vytvárajú lokálne a môžete ich exportovať alebo zdieľať.</p>
+
+        <h2>Voliteľné externé požiadavky</h2>
+        <ul>
+          <li><strong>Kontrola aktualizácií.</strong> Ak je zapnutá, rozšírenie si z GitHubu vyžiada verejné informácie o verzii. GitHub dostane bežné metadáta sieťovej požiadavky.</li>
+          <li><strong>Pomocník s otázkami v teste.</strong> Keď výslovne požiadate o pomoc, rozšírenie odošle aktuálnu otázku a už vybrané možnosti nakonfigurovanému poskytovateľovi AI. Ak ste povolili pridávanie referenčného textu k požiadavkám AI, môže sa odoslať aj tento text. Prihlasovacie údaje poskytovateľa sa ukladajú v prehliadači a používajú sa na overenie u vybraného poskytovateľa. Cloudoví poskytovatelia sú OpenAI, Google Gemini, NVIDIA a OpenRouter. Na prijaté požiadavky sa vzťahujú ich vlastné pravidlá ochrany súkromia a uchovávania údajov. Ollama a LM Studio používajú lokálne rozhranie vo vašom zariadení.</li>
+        </ul>
+
+        <h2>Otázky a žiadosti týkajúce sa údajov</h2>
+        <p>S otázkami o súkromí alebo žiadosťami týkajúcimi sa analytických údajov sa obráťte na správcov cez <a href="https://github.com/JustAlex0000/Edupage-Extras/issues">GitHub projektu Edupage Extras</a>. Vo verejných hláseniach neuvádzajte osobné údaje.</p>
+      </article>
+
+      <article id="cs" lang="cs">
+        <h1>Zásady ochrany soukromí Edupage Extras</h1>
+        <p>Poslední aktualizace 19. listopadu 2026.</p>
+
+        <h2>Analytika používání</h2>
+        <p>Edupage Extras měří používání rozšíření pomocí vlastního serveru Umami na adrese <code>analytics.kryptosss.xyz</code>. Při zapnuté analytice rozšíření při načtení stránky EduPage odešle požadavek přes HTTPS s pevným identifikátorem rozšíření a obecným záznamem o zobrazení stránky. Událost odešle také při zapnutí nebo vypnutí režimu Stay Active nebo při otevření jeho testovací stránky.</p>
+        <p>Server obdrží IP adresu požadavku a identifikaci prohlížeče (user agent). Analytické požadavky neobsahují soubory cookie, přihlašovací údaje, odkazující adresu, skutečné adresy stránek EduPage, názvy škol, obsah stránek ani údaje o účtu.</p>
+        <p>Další odesílání můžete vypnout v části <strong>Nastavení → Soukromí → Analytika používání</strong>. V prohlížečích založených na Chromiu je analytika ve výchozím nastavení zapnutá. Ve Firefoxu rozšíření před odesíláním vyžaduje také volitelné oprávnění ke sběru technických údajů a údajů o interakcích.</p>
+
+        <h2>Údaje zpracovávané v prohlížeči</h2>
+        <p>Rozšíření čte údaje dostupné v EduPage pro zobrazení známek, docházky, rozvrhu a dalších vylepšení. Nastavení a mezipaměti docházky a rozvrhu se ukládají místně. Exporty rozvrhu se vytvářejí místně. Rozšíření neshromažďuje přihlašovací údaje do EduPage.</p>
+        <p>Pokud zapnete ukládání testů a uložíte test, profil prohlížeče uchová text otázek, zaznamenané odpovědi, čitelné obrázky otázek, adresu školního webu a časy uložení. Uložené testy můžete z rozšíření smazat. Diagnostické údaje se vytvářejí místně a můžete je exportovat nebo sdílet.</p>
+
+        <h2>Volitelné externí požadavky</h2>
+        <ul>
+          <li><strong>Kontrola aktualizací.</strong> Je-li zapnutá, rozšíření si z GitHubu vyžádá veřejné informace o verzi. GitHub obdrží běžná metadata síťového požadavku.</li>
+          <li><strong>Pomocník s otázkami v testu.</strong> Když výslovně požádáte o pomoc, rozšíření odešle aktuální otázku a již vybrané možnosti nakonfigurovanému poskytovateli AI. Pokud jste povolili přidávání referenčního textu k požadavkům AI, může se odeslat i tento text. Přihlašovací údaje poskytovatele se ukládají v prohlížeči a používají se k ověření u vybraného poskytovatele. Cloudoví poskytovatelé jsou OpenAI, Google Gemini, NVIDIA a OpenRouter. Na přijaté požadavky se vztahují jejich vlastní pravidla ochrany soukromí a uchovávání údajů. Ollama a LM Studio používají místní rozhraní ve vašem zařízení.</li>
+        </ul>
+
+        <h2>Otázky a žádosti týkající se údajů</h2>
+        <p>S otázkami o soukromí nebo žádostmi týkajícími se analytických údajů se obraťte na správce přes <a href="https://github.com/JustAlex0000/Edupage-Extras/issues">GitHub projektu Edupage Extras</a>. Ve veřejných hlášeních neuvádějte osobní údaje.</p>
+      </article>
+    </main>
+  </body>
+</html>
