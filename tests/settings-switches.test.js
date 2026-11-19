@@ -86,6 +86,7 @@ runTest("Test Question Helper stays opt-in inside Experimental", () => {
   assert.match(html, /value="ollama"/);
   assert.match(html, /value="lmstudio"/);
   assert.match(html, /value="nvidia"/);
+  assert.match(html, /value="deepseek"/);
   assert.match(html, /value="openrouter"/);
   assert.match(html, /value="gemini"/);
   assert.match(html, /value="openai"/);

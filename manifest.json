@@ -28,7 +28,8 @@
     "https://api.openai.com/*",
     "https://generativelanguage.googleapis.com/*",
     "https://integrate.api.nvidia.com/*",
-    "https://openrouter.ai/*"
+    "https://openrouter.ai/*",
+    "https://api.deepseek.com/*"
   ],
   "host_permissions": [
     "https://test.nop.wtf/*",
