@@ -11,7 +11,7 @@
   const sharedPermissions = new Set([
     "http://127.0.0.1/*", "http://localhost/*", "https://api.openai.com/*",
     "https://generativelanguage.googleapis.com/*", "https://integrate.api.nvidia.com/*",
-    "https://openrouter.ai/*",
+    "https://openrouter.ai/*", "https://api.deepseek.com/*",
   ]);
   const msg = (key) => window.eeI18n.msg(key);
   let sites = [];

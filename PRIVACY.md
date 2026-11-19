@@ -40,7 +40,7 @@ Diagnostics are generated locally and can be exported or shared by you.
   you configured. If you enabled reference notes for AI requests, those notes
   can also be included. Provider credentials are stored in the browser and
   used to authenticate to the selected provider. The cloud providers are
-  OpenAI, Google Gemini, NVIDIA, and OpenRouter. Their own privacy and retention
+  OpenAI, Google Gemini, NVIDIA, OpenRouter, and DeepSeek. Their own privacy and retention
   policies apply to requests they receive. Ollama and LM Studio use a local
   endpoint on your device.
 

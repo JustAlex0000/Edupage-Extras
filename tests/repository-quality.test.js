@@ -47,11 +47,13 @@ test("optional hosts include on-demand site access and explicit AI providers", (
     "https://api.openai.com/*",
     "https://generativelanguage.googleapis.com/*",
     "https://integrate.api.nvidia.com/*",
+    "https://api.deepseek.com/*",
     "https://openrouter.ai/*",
   ].sort());
   assert.ok(!manifest.host_permissions.includes("https://api.openai.com/*"));
   assert.ok(!manifest.host_permissions.includes("https://integrate.api.nvidia.com/*"));
   assert.ok(!manifest.host_permissions.includes("https://generativelanguage.googleapis.com/*"));
+  assert.ok(!manifest.host_permissions.includes("https://api.deepseek.com/*"));
   assert.ok(!manifest.host_permissions.includes("https://openrouter.ai/*"));
   assert.ok(manifest.host_permissions.includes("https://test.nop.wtf/*"));
 });

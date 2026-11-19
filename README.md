@@ -213,6 +213,12 @@ with browser hooks and the initial bridge handshake; undetectability is not guar
 Browser throttling, freezing, tab discard, and machine sleep can pause all page work.
 The testing page does not verify school-side monitoring or session timeouts.
 
+To use **DeepSeek**, select it in the AI provider settings, enter a
+[DeepSeek API key](https://platform.deepseek.com/api_keys), and use **Test
+connection** to grant access and verify the selected model. Choose DeepSeek
+V4.1 Flash (default) or V4 Pro. Requests use the text-based helper flow and
+are billed by DeepSeek. See [DeepSeek Models & Pricing](https://api-docs.deepseek.com/quick_start/pricing/).
+
 The AI shortcut targets the question under the mouse pointer, before falling
 back to the last clicked/focused question or the only question on the page.
 Choose **Shortcut** or **Both** in Answer controls to enable it.
@@ -327,9 +333,10 @@ Edupage Extras requests:
   self-hosted Umami server when analytics are enabled.
 - `https://raw.githubusercontent.com/JustAlex0000/Edupage-Extras/*` host access -
   reads the public project manifest for update checks.
-- Optional access to `localhost`, `127.0.0.1`, `integrate.api.nvidia.com`, or
-  `openrouter.ai` is requested
-  only when the user tests the matching AI provider connection.
+- Optional access to `localhost`, `127.0.0.1`, `integrate.api.nvidia.com`,
+  `openrouter.ai`, `api.deepseek.com`, `api.openai.com`, or
+  `generativelanguage.googleapis.com` is requested when the user tests the
+  matching AI provider connection.
 - Optional access to individual HTTP(S) sites is requested when you add them to
   Stay Active. It is used to run the activity shields on those sites.
 
@@ -348,7 +355,7 @@ English, Slovak, and Czech under Settings → Privacy and in the popup footer.
   the server receives the request IP address and browser user agent.
 - Other external requests include the optional public GitHub update check and
   user-triggered Test Question Helper requests. Ollama and LM Studio stay on
-  the local computer; OpenAI, Gemini, NVIDIA, and OpenRouter receive the current
+  the local computer; OpenAI, Gemini, NVIDIA, OpenRouter, and DeepSeek receive the current
   question text and any responses already chosen in that question.
 - No Edupage credentials are collected.
 - Settings are stored locally.

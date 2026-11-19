@@ -190,7 +190,7 @@ const AI_DEFAULT_ENDPOINTS = {
 	ollama: "http://127.0.0.1:11434",
 	lmstudio: "http://127.0.0.1:1234",
 };
-const AI_CLOUD_PROVIDERS = new Set(["nvidia", "openrouter", "gemini", "openai"]);
+const AI_CLOUD_PROVIDERS = new Set(["nvidia", "openrouter", "gemini", "openai", "deepseek"]);
 
 function getProviderApiKeyStorageKey(provider) {
 	const suffix = provider.charAt(0).toUpperCase() + provider.slice(1);
@@ -208,6 +208,10 @@ function getProviderEndpointStorageKey(provider) {
 }
 
 const AI_MODEL_PRESETS = {
+	deepseek: [
+		{ id: "deepseek-flash", label: "DeepSeek V4.1 Flash" },
+		{ id: "deepseek-v4-pro", label: "DeepSeek V4 Pro" },
+	],
 	openai: [
 		{ id: "gpt-6.1-terra", label: "GPT-6.1 Terra" },
 		{ id: "gpt-6.1-sol", label: "GPT-6.1 Sol" },
@@ -233,6 +237,7 @@ const AI_MODEL_PRESETS = {
 };
 
 const AI_DEFAULT_MODELS = {
+	deepseek: "deepseek-flash",
 	openai: "gpt-5.6-terra",
 	gemini: "gemini-2.5-flash",
 	nvidia: "nvidia/llama-3.3-nemotron-super-49b-v1",
@@ -1281,6 +1286,7 @@ function saveAiSettings(callback) {
 
 function getAiPermissionPattern() {
 	const provider = aiProviderSelect?.value || "ollama";
+	if (provider === "deepseek") return "https://api.deepseek.com/*";
 	if (provider === "openrouter") return "https://openrouter.ai/*";
 	if (provider === "nvidia") return "https://integrate.api.nvidia.com/*";
 	if (provider === "gemini") return "https://generativelanguage.googleapis.com/*";
@@ -1611,7 +1617,7 @@ function applyProviderToUi(provider, stored) {
 
 if (aiQuestionHelperToggle) {
 	chrome.storage.local.get(ALL_AI_STORAGE_KEYS, (result) => {
-		const provider = ["ollama", "lmstudio", "nvidia", "openrouter", "gemini", "openai"].includes(result[AI_PROVIDER_KEY])
+		const provider = ["ollama", "lmstudio", "nvidia", "openrouter", "gemini", "openai", "deepseek"].includes(result[AI_PROVIDER_KEY])
 			? result[AI_PROVIDER_KEY]
 			: "ollama";
 		aiQuestionHelperToggle.checked = result[AI_HELPER_ENABLED_KEY] === true;

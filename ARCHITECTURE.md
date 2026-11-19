@@ -260,10 +260,13 @@ they are cleared when the player or route changes.
 Test Question Helper is experimental and WIP. It is disabled by default and
 sends data only after the student presses its question action. Credentials stay
 in extension storage, never in the page, and are isolated per provider so
-switching providers preserves each configuration. OpenAI, Gemini, NVIDIA, and OpenRouter
+switching providers preserves each configuration. OpenAI, Gemini, NVIDIA, OpenRouter, and DeepSeek
 use fixed optional origins requested from the Connection action; Ollama and LM
 Studio are loopback-only local endpoints. Gemini keys are sent in a request
-header, never in the URL. Suggestions never submit an answer; the visual
+header, never in the URL. DeepSeek checks model IDs via authenticated
+`GET /models` and requests JSON via `POST /chat/completions` with thinking
+disabled to reserve the output budget for the suggestion. Suggestions never
+submit an answer; the visual
 fallback is separately opt-in, while live provider and complex eTest interaction
 coverage still need manual testing.
 
