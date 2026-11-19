@@ -4,6 +4,11 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## 1.1.5 — 2026-11-19
+
+- Add DeepSeek V4.1 Flash and V4 Pro to Test Question Helper, with
+  API key and model verification in Settings.
+
 ## 1.1.4 — 2026-11-19
 
 - Publish a privacy policy covering usage analytics and other data handling.
