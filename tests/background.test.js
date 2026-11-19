@@ -1103,8 +1103,32 @@ test("Stay Active transitions record only real enable and disable changes", asyn
   assert.deepEqual(events, ["stay_active_enabled", "stay_active_disabled", "stay_active_enabled"]);
 });
 
-test("AI log strips personal data and enforces age, size and disabled logging", async () => {
+test("AI logging defaults on only while an AI feature is enabled and respects an explicit opt-out", async () => {
   const state = {};
+  const local = { get: (_keys, cb) => cb(state), set: (values, cb) => { Object.assign(state, values); cb?.(); } };
+  const api = loadBackgroundInternals(state, { storage: { local, onChanged: { addListener() {} } } });
+  await api.recordAiActivity({ event: "started", feature: "helper", stage: "configuration" });
+  assert.equal(state.eeAiActivityLog, undefined);
+  state.eeAiQuestionHelperEnabled = true;
+  await api.recordAiActivity({ event: "started", feature: "helper", stage: "configuration" });
+  assert.equal(state.eeAiActivityLog.length, 1);
+  assert.equal(state.eeAiActivityLog[0].feature, "helper");
+  assert.equal(state.eeAiActivityLog[0].stage, "configuration");
+  state.eeAiQuestionHelperEnabled = false;
+  await api.recordAiActivity({ event: "started" });
+  assert.equal(state.eeAiActivityLog.length, 1);
+  state.eeAiAutoFillEnabled = true;
+  await api.recordAiActivity({ event: "started", feature: "automatic" });
+  assert.equal(state.eeAiActivityLog.length, 2);
+  state.eeAiActivityLogEnabled = false;
+  await api.recordAiActivity({ event: "received" });
+  assert.equal(state.eeAiActivityLog.length, 2);
+  const normalized = api.normalizeAiLogEntry({ event: "shortcut_unreachable", feature: "SECRET", stage: "SECRET", reason: "SECRET", providerResponse: "SECRET" });
+  assert.equal(JSON.stringify(normalized).includes("SECRET"), false);
+});
+
+test("AI log strips personal data and enforces age, size and disabled logging", async () => {
+  const state = { eeAiQuestionHelperEnabled: true };
   const local = {
     get: (_keys, cb) => cb(state),
     set: (values, cb) => { Object.assign(state, JSON.parse(JSON.stringify(values))); cb?.(); },
@@ -1152,6 +1176,8 @@ test("OpenAI output-limit failures retain safe diagnostics without provider cont
   });
   await assert.rejects(api.requestAiQuestionSuggestion({ plainBody: "SECRET_QUESTION", type: "choice", interactionData: { options: ["A", "B"] } }), /output limit/);
   assert.equal(state.eeAiActivityLog.at(-1).error, "output_limit");
+  assert.equal(state.eeAiActivityLog.at(-1).feature, "helper");
+  assert.equal(state.eeAiActivityLog.at(-1).stage, "response");
   assert.equal(state.eeAiActivityLog.at(-1).model, "gpt-5.6-terra");
   assert.equal(state.eeAiActivityLog.at(-1).reasoning, "off");
   assert.equal(JSON.stringify(state.eeAiActivityLog).includes("SECRET"), false);

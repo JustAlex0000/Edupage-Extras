@@ -4,6 +4,41 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## 1.1.3 — 2026-11-18
+
+- This store update also includes the 1.1.1 and 1.1.2 changes: additional Stay
+  Active sites, corrected indicator placement and the collapsible Reference text
+  editor. See those entries below for details.
+
+- Move AI activity logging into shared configuration, default recording on while
+  either AI feature is enabled, and retain explicit logging opt-outs. Add feature,
+  request-stage and shortcut-delivery details, HTTP guidance and Copy log with a
+  selectable fallback when clipboard access is denied. Keep safe local retention.
+
+- Separate GitHub Releases and Chrome Web Store publication into independent
+  jobs after validation; pause automatic Firefox Add-ons submissions and require
+  an explicit manual opt-in after the Mozilla moderation issue is resolved.
+
+- Explain which settings are shared by Test Question Helper and Automatic test
+  filling, and distinguish gradual filling within a question from queue pacing.
+
+- Acknowledge AI shortcut delivery so Chrome no longer reports a reachable
+  helper as unreachable because the message port closed without a response.
+- Mark Automatic test filling as WIP in Settings.
+
+## 1.1.2 — 2026-11-18
+
+- Rename AI reference notes to Reference text and hide its editor and file
+  controls while disabled, retaining saved text when toggled off.
+
+## 1.1.1 — 2026-11-18
+
+- Move the Stay Active status indicator closer to the bottom-right corner while
+  keeping the full button inside the viewport.
+- Add opt-in Stay Active support for individually selected websites, with
+  per-host permission prompts and removal controls.
+- Preserve the status indicator during EduPage page updates.
+
 ## 1.1.0 — 2026-11-16
 
 - Make selected text readable in dark themes with a blue highlight and dark text.

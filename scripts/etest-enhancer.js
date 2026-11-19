@@ -1185,7 +1185,7 @@
 
   async function applyAiResponse(content, request, response, runtimeError, hadOrderingAnswer) {
     try {
-      if (!currentAiRequest(content, request)) { request.outcome = "cancelled"; logAiActivity("cancelled"); return; }
+      if (!currentAiRequest(content, request)) { request.outcome = "cancelled"; logAiActivity("cancelled", request.queue ? "automatic" : "helper"); return; }
       if (runtimeError || !response?.ok || !response.suggestion) {
         request.outcome = "error";
         if (request.queue) return;
@@ -1202,7 +1202,7 @@
         for (const [index, step] of steps.entries()) {
           if (index && !await waitAiFill(request, aiFillStepSeconds * 1000)) return;
           if (request.queue && !await waitForQueueQuestion(content, request.queue)) return;
-          if (!currentAiRequest(content, request)) { request.outcome = "cancelled"; logAiActivity("cancelled"); return; }
+          if (!currentAiRequest(content, request)) { request.outcome = "cancelled"; logAiActivity("cancelled", request.queue ? "automatic" : "helper"); return; }
           request.applying = true;
           try { applied += step(); } finally { request.applying = false; }
           // Only our own just-applied answer becomes the new expected state.
@@ -1210,9 +1210,9 @@
           Object.assign(request, { identity: model.identity, body: model.plainBody,
             type: model.type, interactions: JSON.stringify(model.interactionData), answers: JSON.stringify(model.answers) });
         }
-        if (applied && questionHasAnswer(content)) { request.outcome = "applied"; logAiActivity("applied"); return; }
+        if (applied && questionHasAnswer(content)) { request.outcome = "applied"; logAiActivity("applied", request.queue ? "automatic" : "helper"); return; }
       }
-      logAiActivity("not_applied");
+      logAiActivity("not_applied", request.queue ? "automatic" : "helper");
       if (!request.queue && aiVisualFallbackEnabled) applyAiSuggestion(content, suggestion, { showOrderingHint: hadOrderingAnswer });
     } catch (error) { request.outcome = "error"; throw error; }
     finally { finishAiRequest(content, request); }
@@ -1301,8 +1301,8 @@
     if (!visualCueCount && suggestion.answer) appendAiNote(content, suggestion.answer);
   }
 
-  function logAiActivity(event) {
-    try { chrome.runtime.sendMessage({ type: "ee-ai-activity", event }, () => { void chrome.runtime.lastError; }); } catch (_) {}
+  function logAiActivity(event, feature = "helper") {
+    try { chrome.runtime.sendMessage({ type: "ee-ai-activity", event, feature }, () => { void chrome.runtime.lastError; }); } catch (_) {}
   }
 
   function questionIsActive(content) {
@@ -1338,16 +1338,16 @@
     if (!aiAutoFillEnabled || !isEtestPage()) return;
     refreshTestScope();
     const player = document.querySelector(".etest-player");
-    if (!player?.classList.contains("cardsPerScreen-all")) { logAiActivity("queue_unsupported"); return; }
+    if (!player?.classList.contains("cardsPerScreen-all")) { logAiActivity("queue_unsupported", "automatic"); return; }
     const questions = Array.from(player.querySelectorAll(".etest-question-content"))
       .filter(content => content.getClientRects().length && getComputedStyle(content).visibility !== "hidden");
-    if (!questions.length) { logAiActivity("queue_unsupported"); return; }
+    if (!questions.length) { logAiActivity("queue_unsupported", "automatic"); return; }
     cancelAiRequests();
     // Work on other questions first; hold a result if its question gains focus.
     questions.sort((a, b) => Number(questionIsActive(a)) - Number(questionIsActive(b)));
     const queue = { player, route: `${location.pathname}${location.search}`, edited: new WeakSet(), waiting: null };
     aiQueue = queue;
-    logAiActivity("queue_started");
+    logAiActivity("queue_started", "automatic");
     try {
       for (const content of questions) {
         if (!queueStillCurrent(queue)) { if (aiQueue === queue) cancelAiRequests(); return; }
@@ -1356,7 +1356,7 @@
         if (["error", "cancelled"].includes(result)) { if (aiQueue === queue) cancelAiRequests(); return; }
       }
       if (aiQueue === queue) {
-        if (queueStillCurrent(queue)) logAiActivity("queue_finished");
+        if (queueStillCurrent(queue)) logAiActivity("queue_finished", "automatic");
         else cancelAiRequests();
       }
     } finally { if (aiQueue === queue) aiQueue = null; }
@@ -1367,9 +1367,9 @@
       const queue = aiQueue;
       aiQueue = null;
       queue.waiting?.resolve(false);
-      logAiActivity("queue_stopped");
+      logAiActivity("queue_stopped", "automatic");
     }
-    if (pendingAiRequests.size) logAiActivity("cancelled");
+    if (pendingAiRequests.size) logAiActivity("cancelled", [...pendingAiRequests.values()].some(request => request.queue) ? "automatic" : "helper");
     aiRequestGeneration += 1;
     for (const [content, request] of pendingAiRequests) {
       clearTimeout(request.timer);
@@ -1985,7 +1985,11 @@
     return;
   }
 
-  chrome.runtime.onMessage.addListener((message) => {
+  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    // Acknowledge delivery before starting work; Chrome otherwise reports a closed port.
+    if (message?.type === "ee-ai-suggest-current-question" || message?.type === "ee-ai-toggle-loaded-test") {
+      sendResponse?.({ received: true });
+    }
     if (message?.type === "ee-ai-toggle-loaded-test") { void toggleAiQueue().catch(() => cancelAiRequests()); return; }
     if (message?.type === "ee-ai-suggest-current-question" && aiHelperEnabled) {
       if (aiAnswerMode === "buttons") { logAiActivity("shortcut_buttons"); return; }

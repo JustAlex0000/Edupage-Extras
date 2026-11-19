@@ -239,15 +239,15 @@ Provider configuration, notes and filling timing are shared with the individual
 helper. Each processed question consumes its normal request; stopping prevents
 remaining work but cannot recall a request already sent to the provider.
 
-**Use saved reference notes** is off by default. Paste notes or load a UTF-8
-`.txt`/`.md` file up to 128 KB and 20,000 characters, review it and choose
-**Save notes**. Only the text is saved locally, without the original file or its
-name. When enabled, saved notes are included in each explicitly requested
-question sent to the selected provider, consuming more input tokens and
-potentially increasing cost. Turning this off retains the local notes; **Clear
-notes and disable** deletes the text and stops sending it. Notes are excluded
-from AI activity logs and both diagnostic report modes. PDF, Word, images and
-other files are not supported by this text import.
+**Use reference text** is off by default. Enable it to show the editor and file
+controls. Paste text or load a UTF-8 `.txt`/`.md` file up to 128 KB and 20,000
+characters, review it and choose **Save text**. Only the text is saved locally,
+without the original file or its name. When enabled, saved text is included in
+each explicitly requested question sent to the selected provider, consuming more
+input tokens and potentially increasing cost. Turning this off hides the editor
+and retains the saved text; **Clear text and disable** deletes it and stops
+sending it. Reference text is excluded from AI activity logs and both diagnostic
+report modes. PDF, Word, images and other files are not supported by this import.
 
 **Restore test fullscreen** is an independent, off-by-default option beneath
 **Block Escape Key** in Stay Active settings. When both parent switches are on,
@@ -263,15 +263,24 @@ AI request failures are always shown beside the affected question, even when
 Helper messages is off. The preference controls optional suggestion notes and
 raw model-response details.
 
-Settings → Experimental → AI includes an **AI activity log** for checking failures
-afterwards. It records requests, timing, public OpenAI model presets/reasoning
-settings, safe error codes, application/cancellation outcomes and ignored
-shortcuts. Custom model names are replaced with `custom`. Logging is on by
-default for these actions; turn it off to stop logging and erase saved entries,
-or use **Clear log**. Up to 80 events are stored locally; entries older than
-seven days are pruned on new activity or opening the log. Questions, answers,
-keys, school URLs and raw provider responses are excluded, as is the entire log
-from diagnostic reports. A saved page cannot reconstruct past provider errors.
+The shared AI configuration in Settings → Experimental contains an **AI activity
+log** for both Test Question Helper and Automatic test filling. Logging defaults
+on when either feature is enabled; an explicit logging opt-out is preserved.
+Entries identify the feature, request stage, provider, public OpenAI model preset,
+safe error code, HTTP status and elapsed time when available. Custom model names
+are replaced with `custom`. Shortcut delivery distinguishes a missing receiver
+from a closed message connection. HTTP guidance helps identify key, permission,
+endpoint/model and rate/quota errors. These details do not confirm provider
+account state or answer correctness.
+
+**Copy log** copies the displayed safe event details with version information
+and UTC timestamps. If clipboard access is denied, a selected read-only text box
+allows manual copying. Clear removes the log and any local copy fallback;
+turning logging off erases entries and stops recording. Up to 80 events are kept
+locally for seven days, pruned on new activity or opening the log. Questions,
+answers, reference text, keys, school URLs and raw provider responses are excluded,
+as is the entire log from diagnostic reports. No log is uploaded automatically.
+A saved page cannot reconstruct past provider errors.
 
 ### Keyboard shortcuts
 

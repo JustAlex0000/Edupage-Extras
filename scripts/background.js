@@ -207,7 +207,7 @@ function isAnalyticsSender(sender) {
 // Keep diagnostics to fixed codes and public preset metadata, never provider text.
 const AI_LOG_KEY = "eeAiActivityLog";
 const AI_LOG_ENABLED_KEY = "eeAiActivityLogEnabled";
-const AI_LOG_EVENTS = new Set(["started", "received", "failed", "applied", "not_applied", "cancelled", "shortcut_buttons", "shortcut_no_question", "shortcut_unreachable", "queue_started", "queue_finished", "queue_stopped", "queue_unsupported"]);
+const AI_LOG_EVENTS = new Set(["started", "received", "failed", "applied", "not_applied", "cancelled", "shortcut_buttons", "shortcut_no_question", "shortcut_unreachable", "shortcut_received", "queue_started", "queue_finished", "queue_stopped", "queue_unsupported"]);
 const AI_LOG_ERRORS = new Set(["timeout", "network", "http", "output_limit", "empty", "invalid", "configuration", "unknown"]);
 const AI_LOG_MODELS = new Set(["gpt-6.1-terra", "gpt-6.1-sol", "gpt-6-luna", "gpt-6-astra", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.6-sol", "gpt-5.5", "gpt-4o", "gpt-4o-mini"]);
 let aiLogQueue = Promise.resolve();
@@ -216,6 +216,9 @@ function normalizeAiLogEntry(raw, now = Date.now()) {
   if (!raw || !AI_LOG_EVENTS.has(raw.event)) return null;
   const entry = { at: Number.isFinite(raw.at) ? Math.min(raw.at, now) : now, event: raw.event };
   if (entry.at < now - 7 * 86400000) return null;
+  if (["helper", "automatic"].includes(raw.feature)) entry.feature = raw.feature;
+  if (["configuration", "provider", "response"].includes(raw.stage)) entry.stage = raw.stage;
+  if (["no_receiver", "closed_port", "other"].includes(raw.reason)) entry.reason = raw.reason;
   if (AI_PROVIDERS.has(raw.provider)) entry.provider = raw.provider;
   if (raw.model) entry.model = AI_LOG_MODELS.has(raw.model) ? raw.model : "custom";
   if (["off", "none", "low", "medium", "high", "xhigh", "default"].includes(raw.reasoning)) entry.reasoning = raw.reasoning;
@@ -235,8 +238,8 @@ function recordAiActivity(raw) {
   return queueAiLog(async () => {
     const entry = normalizeAiLogEntry({ ...raw, at: Date.now() });
     if (!entry) return;
-    const values = await storageGet([AI_LOG_KEY, AI_LOG_ENABLED_KEY]);
-    if (values[AI_LOG_ENABLED_KEY] === false) return;
+    const values = await storageGet([AI_LOG_KEY, AI_LOG_ENABLED_KEY, AI_HELPER_ENABLED_KEY, "eeAiAutoFillEnabled"]);
+    if (values[AI_LOG_ENABLED_KEY] === false || (values[AI_HELPER_ENABLED_KEY] !== true && values.eeAiAutoFillEnabled !== true)) return;
     const previous = Array.isArray(values[AI_LOG_KEY]) ? values[AI_LOG_KEY] : [];
     const entries = previous.map(item => normalizeAiLogEntry(item)).filter(Boolean);
     await storageSet({ [AI_LOG_KEY]: [...entries, entry].slice(-80) });
@@ -737,7 +740,9 @@ async function performAiQuestionSuggestion(questionInput, context, mode) {
       body.chat_template_kwargs = { enable_thinking: false };
     }
   }
+  context.stage = "provider";
   const data = await fetchAiJson(url, { method: "POST", headers, body: JSON.stringify(body) });
+  context.stage = "response";
   if (data?.choices?.[0]?.finish_reason === "length" || data?.candidates?.[0]?.finishReason === "MAX_TOKENS") {
     const error = new Error("The model reached its output limit before completing the suggestion. Try lower reasoning or a shorter question.");
     error.aiLogCode = "output_limit";
@@ -755,14 +760,14 @@ async function performAiQuestionSuggestion(questionInput, context, mode) {
 
 async function requestAiQuestionSuggestion(questionInput, mode) {
   const started = Date.now();
-  const context = {};
-  await recordAiActivity({ event: "started" });
+  const context = { feature: mode === "loaded-test" ? "automatic" : "helper", stage: "configuration" };
+  await recordAiActivity({ event: "started", ...context });
   try {
     const suggestion = await performAiQuestionSuggestion(questionInput, context, mode);
     await recordAiActivity({ event: "received", ...context, ms: Date.now() - started });
     return suggestion;
   } catch (error) {
-    await recordAiActivity({ event: "failed", ...context, error: Object.keys(context).length ? aiLogError(error) : "configuration",
+    await recordAiActivity({ event: "failed", ...context, error: context.stage === "configuration" ? "configuration" : aiLogError(error),
       http: error?.aiHttpStatus, ms: Date.now() - started });
     throw error;
   }
@@ -2456,7 +2461,13 @@ chrome.commands.onCommand.addListener((command) => {
       const tabId = tabs[0]?.id;
       if (!tabId) return;
       chrome.tabs.sendMessage(tabId, { type: command === "fill-loaded-test" ? "ee-ai-toggle-loaded-test" : "ee-ai-suggest-current-question" }, () => {
-        if (chrome.runtime.lastError) void recordAiActivity({ event: "shortcut_unreachable" });
+        const error = chrome.runtime.lastError;
+        const feature = command === "fill-loaded-test" ? "automatic" : "helper";
+        if (error) {
+          const reason = /Receiving end does not exist/i.test(error.message || "") ? "no_receiver"
+            : /port closed|channel closed/i.test(error.message || "") ? "closed_port" : "other";
+          void recordAiActivity({ event: "shortcut_unreachable", feature, reason });
+        } else void recordAiActivity({ event: "shortcut_received", feature });
       });
     });
     return;
@@ -2550,7 +2561,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         || !["applied", "not_applied", "cancelled", "shortcut_buttons", "shortcut_no_question", "queue_started", "queue_finished", "queue_stopped", "queue_unsupported"].includes(message.event)) {
       sendResponse({ ok: false }); return false;
     }
-    recordAiActivity({ event: message.event }).then(() => sendResponse({ ok: true }));
+    recordAiActivity({ event: message.event, feature: message.feature }).then(() => sendResponse({ ok: true }));
     return true;
   }
 
