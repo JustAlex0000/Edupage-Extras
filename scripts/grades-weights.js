@@ -213,7 +213,7 @@
   }
 
   function needsTableBind(table) {
-    const panel = table?.previousElementSibling?.querySelector(".ee-grade-weights");
+    const panel = table?.nextElementSibling?.querySelector(".ee-grade-weights");
     return Boolean(panel && signatures.get(panel)?.table !== table);
   }
 

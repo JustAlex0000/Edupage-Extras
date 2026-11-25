@@ -458,6 +458,8 @@
   "shortcutSettingsFailed": { "message": "Nepodarilo sa otvoriť nastavenia skratiek" },
 
   "gradesOverall": { "message": "Celkovo" },
+  "gradesNumericAverage": { "message": "Priemer známok" },
+  "gradesPercentageAverage": { "message": "Percentuálny priemer" },
   "gradesSubjectsCount": {
     "message": "$count$ predmetov",
     "placeholders": { "count": { "content": "$1" } }

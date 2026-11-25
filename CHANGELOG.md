@@ -4,6 +4,17 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## 1.1.5 — 2026-11-25
+
+- Place the Grades toolbar below the table so the sticky column labels stay
+  aligned with EduPage’s header background while scrolling.
+
+- Keep the Grades overall row visible when numeric and percentage subject
+  averages coexist. Show each average separately alongside attendance totals.
+
+- Simplify the README and document the extension’s data handling in the
+  architecture guide.
+
 ## 1.1.4 — 2026-11-19
 
 - Publish a privacy policy covering usage analytics and other data handling.

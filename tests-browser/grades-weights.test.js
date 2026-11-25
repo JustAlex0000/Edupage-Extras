@@ -52,7 +52,7 @@ for (const [name, engine] of Object.entries({ chromium, firefox })) {
     assert.equal(await page.locator(".ee-grade-weights img").count(), 0);
     assert.match(await page.locator(".ee-grade-weights").textContent(), /Empty category1\.5×/);
     assert.equal(await page.locator("tr.predmetRow .ee-grade-weights").count(), 0);
-    assert.equal(await page.locator(".ee-grades-toolbar .ee-grade-weights").count(), 1);
+    assert.equal(await page.locator(".znamkyTable + .ee-grades-toolbar .ee-grade-weights").count(), 1);
     await page.locator(".ee-grade-weights summary").click();
     await page.evaluate(() => {
       const teacher = document.createElement("small");

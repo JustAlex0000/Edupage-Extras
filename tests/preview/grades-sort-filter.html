@@ -53,6 +53,7 @@
       };
       window.chrome = {
         i18n: {
+          getUILanguage() { return "sk"; },
           getMessage(key, substitutions = []) {
             const values = Array.isArray(substitutions) ? substitutions : [substitutions];
             return (messages[key] || key).replace(/\$(\d+)/g, (_, index) => values[Number(index) - 1] || "");

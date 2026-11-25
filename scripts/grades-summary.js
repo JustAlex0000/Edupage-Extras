@@ -99,13 +99,15 @@
       const tbody = table.querySelector("tbody");
       if (!tbody) return;
 
-      const averageScale = averages[0]?.scale || "grade";
-      if (averages.some((entry) => (entry.scale || "grade") !== averageScale)) {
-        return;
+      const totalsByScale = new Map();
+      for (const { avg, scale = "grade" } of averages) {
+        if (!totalsByScale.has(scale)) totalsByScale.set(scale, { sum: 0, count: 0 });
+        const total = totalsByScale.get(scale);
+        total.sum += avg;
+        total.count += 1;
       }
 
       const colCount = tableColumnCount(table);
-      const overallAvg = averages.reduce((sum, entry) => sum + entry.avg, 0) / averages.length;
 
       const summaryRow = document.createElement("tr");
       summaryRow.className = "ee-overall-row";
@@ -139,10 +141,22 @@
 
       const avgCell = document.createElement("td");
       avgCell.className = "ee-overall-value-cell";
-      avgCell.appendChild(GE.createBadgeElement(overallAvg, GE.formatAverageDisplay(overallAvg, averageScale), {
-        largeValue: true,
-        scale: averageScale,
-      }));
+      const mixedScales = totalsByScale.size > 1;
+      if (mixedScales) avgCell.classList.add("ee-overall-mixed");
+      for (const scale of ["grade", "percent"]) {
+        const total = totalsByScale.get(scale);
+        if (!total) continue;
+        const average = total.sum / total.count;
+        const display = GE.formatAverageDisplay(average, scale);
+        const badge = GE.createBadgeElement(average, display, { largeValue: true, scale });
+        if (mixedScales) {
+          const label = GE.t(scale === "grade" ? "gradesNumericAverage" : "gradesPercentageAverage");
+          badge.title = `${label} · ${GE.t("gradesSubjectsCount", [String(total.count)])}`;
+          badge.setAttribute("role", "group");
+          badge.setAttribute("aria-label", label);
+        }
+        avgCell.appendChild(badge);
+      }
 
       if (!attendanceColumns) {
         labelCell.colSpan = Math.max(1, colCount - 2);
@@ -267,10 +281,11 @@
         const vysvedCell = document.createElement("td");
         vysvedCell.className = "ee-overall-value-cell ee-overall-vysvedcenie-cell";
         if (Number.isFinite(vysvedcenie.average)) {
+          const certificateScale = mixedScales ? "grade" : totalsByScale.keys().next().value;
           vysvedCell.appendChild(GE.createBadgeElement(
             vysvedcenie.average,
-            GE.formatAverageDisplay(vysvedcenie.average, averageScale),
-            { largeValue: true, scale: averageScale },
+            GE.formatAverageDisplay(vysvedcenie.average, certificateScale),
+            { largeValue: true, scale: certificateScale },
           ));
         }
         vysvedCell.title = GE.t("gradesCertificateAverage");

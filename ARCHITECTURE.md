@@ -226,8 +226,9 @@ EduPage tabs using `scripting`. The libraries preserve their live state on repea
 attachment; this never reloads a test or invokes an AI provider automatically.
 
 Grades sorting/filtering works on the real subject table and moves a subject
-with its following category rows. Never modify `#znamkyTableHeaderBg` or
-EduPage's floating header clone: EduPage keeps them in sync itself.
+with its following category rows. Place the toolbar after the table. Inserting
+it above the table shifts the sticky column labels away from their background.
+EduPage controls the position of its floating header and its background.
 
 `grades-weights.js` adds an opt-in `eeGradesWeightsEnabled` panel to the existing
 Grades toolbar, with a subject selector and aligned name/weight pairs. Its
@@ -272,6 +273,41 @@ coverage still need manual testing.
 Use camelCase storage keys; new keys begin with `ee`. Keep the three locale
 files on the same key set. Experimental settings stay isolated behind their
 acknowledgement view and must not appear in normal settings search.
+
+## Data handling
+
+Settings and school-data caches use extension-local browser storage. School
+requests use the existing EduPage session. Grade/table/calendar exports are
+created locally; users choose whether to save or share them. Saved tests,
+comparison data, reference text and the AI log are excluded from diagnostic
+reports. Reports are generated on request, and unredacted reports can contain
+personal page details.
+
+Usage analytics send a fixed extension pageview and selected Stay Active events
+to `https://analytics.kryptosss.xyz/api/send`. They are enabled by default in
+Chrome unless disabled in Privacy settings; Firefox additionally requires its
+technical/interaction data permission. The payload has a fixed hostname/path and
+no school URLs, account details or school-page content. Requests omit cookies
+and referrers, but the receiving server gets connection metadata such as IP
+address and browser user agent. Server ownership, retention and deletion
+practices remain unverified.
+
+Optional AI calls send question text, supported interaction structure and
+recorded answers to the selected provider, plus reference text when enabled.
+Cloud services are OpenAI, Gemini, NVIDIA and OpenRouter; local services use
+localhost or 127.0.0.1. API keys stay in extension storage and authenticate with
+the selected provider. They are not injected into page code. The per-question
+helper and explicitly started loaded-test feature have separate opt-ins. See the
+AI sections below for their behavior, log retention and controls.
+
+Optional update checks request public version information from GitHub. The Stay
+Active test action opens `test.nop.wtf`; additional sites require individual host
+permission. These external services receive normal connection metadata.
+
+Login assistance reads existing form values in memory without saving the school
+password. The anonymizer reads the displayed name locally and stores only the
+chosen alias. Saved-test retention and deletion are described in the eTest
+section above. These technical notes are not a finalized privacy policy.
 
 ## Checks and releases
 

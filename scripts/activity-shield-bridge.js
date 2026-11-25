@@ -187,10 +187,10 @@
   }
 
   refresh();
-  EE.i18n?.subscribe(refresh);
   document.addEventListener("DOMContentLoaded", () => {
     updateIndicator(latestPrefs.eeActivityShieldEnabled === true, latestPrefs.eeActivityShieldVisualIndicator === true);
   }, { once: true });
+  EE.i18n?.subscribe(refresh);
 
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local") return;

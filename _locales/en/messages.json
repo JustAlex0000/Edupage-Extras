@@ -458,6 +458,8 @@
   "shortcutSettingsFailed": { "message": "Could not open shortcut settings" },
 
   "gradesOverall": { "message": "Overall" },
+  "gradesNumericAverage": { "message": "Numeric grade average" },
+  "gradesPercentageAverage": { "message": "Percentage average" },
   "gradesSubjectsCount": {
     "message": "$count$ subjects",
     "placeholders": { "count": { "content": "$1" } }

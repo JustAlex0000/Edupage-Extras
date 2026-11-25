@@ -366,7 +366,7 @@
     state.controls?.controls?.remove();
     state.controls = null;
 
-    const toolbar = table.previousElementSibling;
+    const toolbar = table.nextElementSibling;
     if (toolbar?.classList?.contains("ee-grades-toolbar") && toolbar.children.length === 0) {
       toolbar.remove();
     }

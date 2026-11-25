@@ -91,6 +91,45 @@ runTest("percentage averages keep their actual percentage fill and good-grade co
   assert.equal(gradeColor(average), "#558b2f");
 });
 
+runTest("mixed subject averages render separately alongside attendance totals", () => {
+  const createElement = () => ({
+    children: [],
+    dataset: {},
+    classList: { add() {} },
+    setAttribute() {},
+    appendChild(child) { this.children.push(child); },
+  });
+  const window = {
+    __eeGrades: {
+      t: (key) => key,
+      formatAverageDisplay: (value, scale) => scale === "percent" ? `${value}%` : value.toFixed(2),
+      createBadgeElement: (_value, textContent) => ({ textContent, setAttribute() {} }),
+      attendance: {
+        findAttendanceHeaderRow: () => null,
+        attendanceTone: () => ({ className: "attendance-tone" }),
+        formatPercent: (value) => `${value}%`,
+      },
+    },
+  };
+  window.top = window;
+  const source = fs.readFileSync(path.join(__dirname, "../scripts/grades-summary.js"), "utf8");
+  vm.runInNewContext(source, { window, document: { createElement } });
+  const tbody = createElement();
+  const table = { querySelector: (selector) => selector === "tbody" ? tbody : null };
+  window.__eeGrades.summary.ensureSummaryRow(table, [
+    { avg: 90, scale: "percent" }, { avg: 1.5, scale: "grade" },
+    { avg: 2.5, scale: "grade" }, { avg: 80, scale: "percent" },
+  ], "mixed", {
+    attendanceColumns: true,
+    attendanceSummary: { absent: 2, total: 20, percent: 10 },
+    predictedAttendanceSummary: { absent: 2, total: 40, percent: 5 },
+  });
+  assert.equal(tbody.children.length, 1);
+  const [, averages, ...attendance] = tbody.children[0].children;
+  assert.deepEqual(averages.children.map((badge) => badge.textContent), ["2.00", "85%"]);
+  assert.deepEqual(attendance.map((cell) => cell.children[0].textContent), ["10%", "2/20", "5%", "2/40"]);
+});
+
 runTest("grades bootstrap detects a table inserted after a client-side route change", () => {
   const { nodeContainsGradesTable } = loadGradesEnhancerInternals();
   const table = { matches: (selector) => selector === "table.znamkyTable" };
@@ -183,9 +222,9 @@ runTest("grades subject search is case- and accent-insensitive", () => {
 runTest("a replacement grades table is detected while internal mutations are suppressed", () => {
   const { hasUnenhancedGradesTable } = loadGradesEnhancerInternals();
   const enhancedTable = {
-    previousElementSibling: { classList: { contains: (name) => name === "ee-grades-toolbar" } },
+    nextElementSibling: { classList: { contains: (name) => name === "ee-grades-toolbar" } },
   };
-  const replacementTable = { previousElementSibling: null };
+  const replacementTable = { nextElementSibling: null };
 
   assert.equal(hasUnenhancedGradesTable([enhancedTable]), false);
   assert.equal(hasUnenhancedGradesTable([replacementTable]), true);

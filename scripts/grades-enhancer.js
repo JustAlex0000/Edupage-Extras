@@ -301,17 +301,18 @@
       }, null);
     }
     function hasUnenhancedGradesTable(tables = getGradesTables()) {
-      return tables.some((table) => !table?.previousElementSibling?.classList?.contains("ee-grades-toolbar"));
+      return tables.some((table) => !table?.nextElementSibling?.classList?.contains("ee-grades-toolbar"));
     }
     function ensureGradesToolbar(table) {
       if (!table?.parentElement) return null;
-      const previous = table.previousElementSibling;
-      if (previous?.classList?.contains("ee-grades-toolbar")) return previous;
+      const next = table.nextElementSibling;
+      if (next?.classList?.contains("ee-grades-toolbar")) return next;
 
       const toolbar = document.createElement("div");
       toolbar.className = "ee-grades-toolbar";
       toolbar.setAttribute("aria-label", t("gradesTableTools"));
-      table.parentElement.insertBefore(toolbar, table);
+      // Space above the table invalidates EduPage’s cached header position.
+      table.after(toolbar);
       return toolbar;
     }
     function injectStyles() {
@@ -474,6 +475,15 @@
 
         tr.ee-overall-row .ee-avg-badge {
           margin-left: auto;
+        }
+
+        tr.ee-overall-row .ee-overall-mixed > .ee-avg-badge {
+          display: flex;
+          width: max-content;
+        }
+
+        tr.ee-overall-row .ee-overall-mixed > .ee-avg-badge + .ee-avg-badge {
+          margin-top: 6px;
         }
 
         .ee-grades-toolbar {
@@ -1091,7 +1101,7 @@
       GE.weights.render(table, gradesWeightsEnabled);
       tables.forEach((gradesTable) => GE.badges.applyStoredGradeTitles(gradesTable));
       document.querySelectorAll(".ee-grades-toolbar").forEach((toolbar) => {
-        if (!toolbar.nextElementSibling?.matches("table.znamkyTable")) toolbar.remove();
+        if (!toolbar.previousElementSibling?.matches("table.znamkyTable")) toolbar.remove();
       });
       if (gradesSortFilterEnabled) {
         GE.sortFilter.ensureControls(table);
