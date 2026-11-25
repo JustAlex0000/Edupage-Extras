@@ -4,6 +4,12 @@ All notable changes to Edupage Extras are documented here. Versions follow
 `package.json` / `manifest.json`. History pre v0.7.0 is only in the git
 log — this file starts at the Firefox-compatibility update.
 
+## 1.1.6 — 2026-11-25
+
+- Add DeepSeek V4.1 Flash and V4 Pro to the AI provider settings, with
+  API key and model verification.
+- Document the data sent by both optional AI features in the privacy policy.
+
 ## 1.1.5 — 2026-11-25
 
 - Place the Grades toolbar below the table so the sticky column labels stay

@@ -36,12 +36,13 @@ const AI_MODEL_KEY = "eeAiModel";
 const AI_ACCESS_TOKEN_KEY = "eeAiAccessToken";
 const AI_REASONING_EFFORT_OPENAI_KEY = "eeAiReasoningEffortOpenai";
 const AI_THINKING_LEVEL_GEMINI_KEY = "eeAiThinkingLevelGemini";
-const AI_PROVIDERS = new Set(["ollama", "lmstudio", "nvidia", "openrouter", "gemini", "openai"]);
+const AI_PROVIDERS = new Set(["ollama", "lmstudio", "nvidia", "openrouter", "gemini", "openai", "deepseek"]);
 const AI_CLOUD_ENDPOINTS = {
   gemini: "https://generativelanguage.googleapis.com",
   nvidia: "https://integrate.api.nvidia.com",
   openai: "https://api.openai.com",
   openrouter: "https://openrouter.ai",
+  deepseek: "https://api.deepseek.com",
 };
 const AI_LOCAL_ENDPOINTS = {
   ollama: "http://127.0.0.1:11434",
@@ -291,7 +292,7 @@ function resolveAiProviderConfig(values = {}) {
   const accessToken = normalizeAiText(values[providerApiKey] || values[AI_ACCESS_TOKEN_KEY], 500);
   if (!model) throw new Error("Choose a model first.");
   if (AI_CLOUD_ENDPOINTS[provider] && !accessToken) {
-    const providerName = { gemini: "Gemini", nvidia: "NVIDIA", openai: "OpenAI", openrouter: "OpenRouter" }[provider];
+    const providerName = { gemini: "Gemini", nvidia: "NVIDIA", openai: "OpenAI", openrouter: "OpenRouter", deepseek: "DeepSeek" }[provider];
     throw new Error(`Enter ${provider === "nvidia" || provider === "openai" ? "an" : "a"} ${providerName} API key first.`);
   }
   const config = {
@@ -720,9 +721,8 @@ async function performAiQuestionSuggestion(questionInput, context, mode) {
     headers = buildOpenAiHeaders(config.accessToken);
     body = buildOpenAiChatBody(config, prompt);
   } else {
-    url = config.provider === "openrouter"
-      ? "https://openrouter.ai/api/v1/chat/completions"
-      : `${config.endpoint}/v1/chat/completions`;
+    const chatPath = { openrouter: "/api/v1/chat/completions", deepseek: "/chat/completions" };
+    url = `${config.endpoint}${chatPath[config.provider] || "/v1/chat/completions"}`;
     if (config.accessToken) headers = { ...headers, Authorization: `Bearer ${config.accessToken}` };
     body = {
       model: config.model,
@@ -732,6 +732,10 @@ async function performAiQuestionSuggestion(questionInput, context, mode) {
       stream: false,
     };
     body.response_format = { type: "json_object" };
+    if (config.provider === "deepseek") {
+      // Keep the output budget for the final JSON instead of a reasoning trace.
+      body.thinking = { type: "disabled" };
+    }
     if (config.provider === "nvidia") {
       // Nemotron 3 Ultra reasons by default. The helper needs its final JSON,
       // not a truncated reasoning trace, so disable thinking for this short,
@@ -800,6 +804,9 @@ async function testAiProviderConnection() {
   } else if (config.provider === "openai") {
     url = "https://api.openai.com/v1/models";
     headers.Authorization = `Bearer ${config.accessToken}`;
+  } else if (config.provider === "deepseek") {
+    url = `${config.endpoint}/models`;
+    headers.Authorization = `Bearer ${config.accessToken}`;
   } else if (config.provider === "nvidia") {
     const data = await fetchAiJson("https://integrate.api.nvidia.com/v1/chat/completions", {
       method: "POST",
@@ -831,11 +838,14 @@ async function testAiProviderConnection() {
     if (returnedModel !== config.model.replace(/^models\//, "")) {
       throw new Error("The configured model is not available for this API key.");
     }
-  } else if (config.provider === "openai") {
+  } else if (config.provider === "openai" || config.provider === "deepseek") {
     const models = data?.data;
     if (!Array.isArray(models)) throw new Error("The provider returned an unreadable model list.");
     const names = models.map((m) => normalizeAiText(m?.id, 240));
-    if (!isOpenAiModelAvailable(config.model, names)) {
+    const available = config.provider === "openai"
+      ? isOpenAiModelAvailable(config.model, names)
+      : names.includes(config.model);
+    if (!available) {
       throw new Error("The configured model is not available for this API key.");
     }
   } else if (config.provider !== "openrouter") {

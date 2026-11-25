@@ -1195,6 +1195,58 @@ test("GPT-6 models use compatible reasoning requests and latest Gemini models ne
   }
 });
 
+test("DeepSeek verifies the selected model and requests structured suggestions from its fixed origin", async () => {
+  const state = {
+    eeAiQuestionHelperEnabled: true,
+    eeAiProvider: "deepseek",
+    eeAiModelDeepseek: "deepseek-flash",
+    eeAiApiKeyDeepseek: "synthetic-key",
+    eeAiEndpointDeepseek: "https://example.test",
+  };
+  const listeners = [];
+  const requests = [];
+  const api = loadBackgroundInternals(state, {
+    fetch: async (url, options) => {
+      requests.push({ url, options });
+      const data = options.method === "GET"
+        ? { data: [{ id: "deepseek-flash", name: "DeepSeek V4.1 Flash" }, { id: "deepseek-v4-pro" }] }
+        : { choices: [{ finish_reason: "stop", message: { content: '{"choiceIndexes":[0]}' } }] };
+      return { ok: true, text: async () => JSON.stringify(data) };
+    },
+  }, { listeners });
+  const connect = () => new Promise((resolve) => listeners.at(-1)({ type: "ee-ai-test-connection" }, {}, resolve));
+
+  assert.equal((await connect()).ok, true);
+  assert.equal(requests[0].url, "https://api.deepseek.com/models");
+  assert.equal(requests[0].options.method, "GET");
+  assert.equal(requests[0].options.headers.Authorization, "Bearer synthetic-key");
+  assert.equal(requests[0].options.body, undefined);
+
+  state.eeAiModelDeepseek = "deepseek-v4-pro";
+  assert.equal((await connect()).ok, true);
+  state.eeAiModelDeepseek = "unknown-model";
+  const unavailable = await connect();
+  assert.equal(unavailable.ok, false);
+  assert.match(unavailable.error, /not available/);
+
+  state.eeAiModelDeepseek = "deepseek-v4-pro";
+  const question = { plainBody: "Synthetic choice", type: "choice", interactionData: { options: ["A", "B"] } };
+  const suggestion = await api.requestAiQuestionSuggestion(question);
+  assert.equal(suggestion.choiceIndexes[0], 0);
+  const { url, options } = requests.at(-1);
+  assert.equal(url, "https://api.deepseek.com/chat/completions");
+  assert.equal(options.method, "POST");
+  assert.equal(options.headers.Authorization, "Bearer synthetic-key");
+  const body = JSON.parse(options.body);
+  assert.equal(body.model, "deepseek-v4-pro");
+  assert.deepEqual(body.thinking, { type: "disabled" });
+  assert.deepEqual(body.response_format, { type: "json_object" });
+  assert.match(body.messages[0].content, /Return one JSON object/);
+
+  delete state.eeAiApiKeyDeepseek;
+  assert.throws(() => api.resolveAiProviderConfig(state), /DeepSeek API key/);
+});
+
 test("reference notes add input only when enabled; local fill settings never alter the API body", async () => {
   const state = { eeAiQuestionHelperEnabled: true, eeAiProvider: "ollama", eeAiModel: "synthetic", eeAiContextText: "PRIVATE_REFERENCE_NOTES", eeAiActivityLogEnabled: true };
   const bodies = [];

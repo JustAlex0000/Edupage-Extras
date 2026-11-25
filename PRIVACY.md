@@ -1,6 +1,6 @@
 # Edupage Extras Privacy Policy
 
-Last updated November 19, 2026.
+Last updated November 25, 2026.
 
 ## Usage analytics
 
@@ -35,14 +35,15 @@ Diagnostics are generated locally and can be exported or shared by you.
 
 - **Update checks.** When enabled, the extension requests public version
   information from GitHub. GitHub receives ordinary network request metadata.
-- **Test Question Helper.** When you explicitly request help, the extension
-  sends the current question and any choices already selected to the AI provider
-  you configured. If you enabled reference notes for AI requests, those notes
-  can also be included. Provider credentials are stored in the browser and
-  used to authenticate to the selected provider. The cloud providers are
-  OpenAI, Google Gemini, NVIDIA, and OpenRouter. Their own privacy and retention
-  policies apply to requests they receive. Ollama and LM Studio use a local
-  endpoint on your device.
+- **Optional AI features.** Test Question Helper sends the selected question
+  when you request help. If you enable and start Automatic test filling, it
+  can send multiple already loaded questions, one request per processed question.
+  Each request can include question text, supported answer options or interaction
+  structure, recorded answers, and saved reference text if enabled. Provider
+  credentials are stored in your browser and used to authenticate to the selected
+  service. Cloud providers include OpenAI, Google Gemini, NVIDIA, OpenRouter, and
+  DeepSeek. Their privacy and retention policies apply to requests they receive.
+  Ollama and LM Studio use a local endpoint on your device.
 
 ## Questions and data requests
 
